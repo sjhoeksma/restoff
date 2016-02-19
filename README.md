@@ -1,6 +1,6 @@
 # REST Offline
 
-Use your client offline through automatic synchronize of client and backend data using your existing RESTful API.
+Automatically synchronize your local client with backend server data using your existing RESTful API and make that data available offline. 
 
 # Setup
 
