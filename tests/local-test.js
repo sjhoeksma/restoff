@@ -1,4 +1,5 @@
 restlib = require("..");
 restoff = restlib.restoff;
-expect = require("chai").expect;
+var chai = require('chai');
+expect = chai.expect;
 require("./run-all.js");

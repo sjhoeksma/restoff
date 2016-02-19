@@ -1,3 +1,5 @@
+'use strict';
+
 var pkg = require('./package.json'); // Changed this? Need to re-run gulp to reload the
 var gulp = require('gulp');
 var gutil = require('gulp-util');
@@ -9,6 +11,7 @@ var rename = require('gulp-rename');
 var mocha = require('gulp-mocha');
 var mochaPhantom = require('gulp-mocha-phantomjs');
 var connect = require('gulp-connect');
+var livereload = require('gulp-livereload');
 
 var source = pkg.source;
 var libName = pkg.name;
@@ -25,7 +28,7 @@ var banner = function(bundled) {
 	].join('\n') + '\n';
 };
 
-gulp.task('default', ['build', 'mocha', 'watch-mocha', 'webserver']);
+gulp.task('default', ['build', 'mocha', 'watch', 'webserver']);
 
 gulp.task('mocha', ['build'], function() {
 	return gulp.src(['tests/*test.js'], {
@@ -37,7 +40,8 @@ gulp.task('mocha', ['build'], function() {
 		.on('error', gutil.log);
 });
 
-gulp.task('watch-mocha', function() {
+gulp.task('watch', function() {
+	livereload.listen();
 	return gulp.watch(['src/**', 'tests/**', 'testsweb/**'], ['mocha']);
 });
 
@@ -53,14 +57,17 @@ gulp.task('build', function() {
 		.pipe(rename(libName + '.min.js')) // rename for minify
 		.pipe(uglify()) // minify it
 		.pipe(gulp.dest('dist')) // dump pkg.name + '.min.js'
+		.pipe(livereload())
 		.on('error', gutil.log); // log any errors
 });
 
 gulp.task('webtests', ['build'], function() {
+	console.log("Running webtests")
 	return gulp.src('testsweb/index.html')
 		.pipe(mochaPhantom({
 			reporter: 'spec'
 		}));
+		
 });
 
 // edit /etc/hosts and add 127.0.0.1 test.development.com
@@ -68,13 +75,12 @@ gulp.task('webtests', ['build'], function() {
 // http://code.tutsplus.com/tutorials/gulp-as-a-development-web-server--cms-20903
 // https://github.com/AveVlad/gulp-connect
 gulp.task('webserver', function() {
-	console.log("Starting server on port 4050");
 	connect.server({
-		livereload: true,
+		// livereload: true,
 		port: 4050,
-		livereload: {
-			port: 35728
-		},
+		// livereload: {
+		// 	port: 35728
+		// },
 		host: 'test.development.com',
 		// root: ['.']
 	});
