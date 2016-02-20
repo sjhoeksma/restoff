@@ -40,7 +40,7 @@ if (roff.isOnline) {
 
 ### isForcedOffline and forceOffline Properties
 
-You can "force" your application offline by setting ```forceOffline = false```. This causes a call to the ```ajax.send()``` instance used by restoff to throw a ```net::ERR_INTERNET_DISCONNECTED``` exception.
+You can "force" your application offline by setting ```forceOffline = false```. Forcing offline overwrites ```ajax.send()``` to simply call ```onreadystatechange``` with a ```readyState``` of ```DONE```.
 
 ```isOnline``` will return false when ```isForcedOffline``` is true.
 
