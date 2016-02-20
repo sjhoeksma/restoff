@@ -43,12 +43,12 @@ RestOff.prototype = Object.create(Object.prototype, {
 				new XMLHttpRequest() : // Mozilla, Safari, ...
 				new ActiveXObject("Microsoft.XMLHTTP"); // IE 8 and older
 
-			// ForcedOffline overrides send to simply jump to onreadystatechange
+			// ForcedOffline overrides send() which now simply calls onreadystatechange
 			// We use readyState2 and override it to trick the request into
 			// thinking it is complete. Why readyState2? Because readyState
-			// has no setter
+			// has no setter (request.readyState = 4 throws an exception).
 			if (this.isForcedOffline) {
-				request.__defineGetter__('readyState2', function(){return 4;});
+				request.__defineGetter__('readyState2', function(){return request.__proto__.DONE;});
 				request.send = function() { this.onreadystatechange(); }
 			} else {
 				request.__defineGetter__('readyState2', function(){ return this.readyState; });
@@ -64,12 +64,12 @@ RestOff.prototype.get = function(uri) {
 		request.open("GET", uri, true); // true: asynchronous
 		request.onreadystatechange = function(){
 			if(request.__proto__.DONE == request.readyState2 ) { // 4: Request finished and response is ready
-				if(request.status == 0) {
+				if(request.__proto__.UNSENT == request.status) {
 					var offlineData = {
 						"offlineData": true
 					};
 					resolve(offlineData);
-				} else if(request.status == 200) {
+				} else if(200 == request.status) {
 					that.isOnline = true;
 					resolve(JSON.parse(request.response));
 					// TODO: Check for non-json result
@@ -83,6 +83,9 @@ RestOff.prototype.get = function(uri) {
 				}
 			} // else ignore other readyStates
 		};
+		// TODO: Figure out how to stop 404 (Not Found)
+		//       message in log. Tried surrounding with try/catch
+		//       and removing strict.
 		request.send();
 	});
 	return promise;
