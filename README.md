@@ -6,6 +6,55 @@ Cavets are the results must be Json and you should follow [RESTful bests practic
 
 # Setup
 
+## RestOff Usage
+
+### get(uri)
+
+get(uri) makes a call to a RESTful endpoint that returns valid json.
+
+Example usage:
+
+```
+var roff = restoff();
+return roff.get("http://test.development.com:4050/testsweb/testdata/user01.json")
+.then(function(result){
+	// use the result here
+});
+
+```
+
+### isOnline Property
+
+Determined by the **last** RESTful call.
+
+When true, your application is online. When false, the application is offline.
+
+Example usage:
+
+```
+var roff = restoff();
+if (roff.isOnline) {
+	console.log ("We are online!");
+}
+```
+
+### isForcedOffline and forceOffline Properties
+
+You can "force" your application offline by setting ```forceOffline = false```. This causes a call to the ```ajax.send()``` instance used by restoff to throw a ```net::ERR_INTERNET_DISCONNECTED``` exception.
+
+```isOnline``` will return false when ```isForcedOffline``` is true.
+
+```
+var roff = restoff();
+roff.forceOffline = true;
+if (!roff.isOnline) {
+	console.log ("We are offline!");
+}
+```
+
+This can be very useful if your customer wants to see how their application behaves when it is offline. For example, a customer could force a reload of all information. Then forceOffline and see if they have the information they need before going to a location that has no internet access or cellphone access.
+
+
 ## Using In Your Projects
 
 Change directory to your node project.
@@ -18,22 +67,6 @@ Change directory to your node project.
 
 ```
 $ npm install
-```
-
-### Usage
-
-#### get(uri)
-
-get(uri) makes a call to a RESTful endpoint that returns valid json.
-
-Example usage:
-
-```
-return roff.get("http://test.development.com:4050/testsweb/testdata/user01.json")
-.then(function(result){
-	// use the result here
-});
-
 ```
 
 ### Update Node Module Dependencies
