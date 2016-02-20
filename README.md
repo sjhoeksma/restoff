@@ -1,6 +1,8 @@
 # REST Offline
 
-Automatically synchronize your local client with backend server data using your existing RESTful API and make that data available offline. 
+Automatically synchronize your local client with backend server data using your existingish RESTful API and make that data available offline. 
+
+Cavets are the results must be Json and you should follow [RESTful bests practices][rest-best-practices].
 
 # Setup
 
@@ -92,3 +94,5 @@ Add to your /etc/hosts file:
 * Click on livereload icon in chrome browser: small circle in center should become solid.
 * Is more than one instance of gulp running?
 
+
+[rest-best-practices]: http://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api
