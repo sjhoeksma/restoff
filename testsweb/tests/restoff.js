@@ -1,16 +1,25 @@
 describe ("running web specific tests", function() {
 
+	var user01 = {
+		"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68578",
+		"first_name": "Happy",
+		"last_name": "User"
+	};
+
 	it("should not wipeout Object prototype and be a restoff", function() {
 		expect(restoff).to.not.eql(undefined);
 
 		var roff = restoff();
 		expect(roff).to.have.property('toString');
 		expect(roff).to.have.property('isOnline');
+		expect(roff.ONLINE_UNKNOWN).to.equal(10);
+		expect(roff.ONLINE).to.equal(11);
+		expect(roff.ONLINE_NOT).to.equal(12);
 	});
 
 	it("should be offline initially", function() {
 		var roff = restoff();
-		expect(roff.isOnline).to.be.false;
+		expect(roff.isOnline).to.equal(roff.ONLINE_UNKNOWN);
 		expect(roff.isForcedOffline).to.be.false;
 	});
 
@@ -29,16 +38,11 @@ describe ("running web specific tests", function() {
 	
 	it("should access a valid endpoint while connected", function() {
 		var roff = restoff();
-		var user01 = {
-			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68578",
-			"first_name": "Happy",
-			"last_name": "User"
-		};
 
 		return roff.get("http://test.development.com:4050/testsweb/testdata/users")
 		.then(function(result){
 			expect(result).to.deep.equals(user01);
-			expect(roff.isOnline).to.be.true;
+			expect(roff.isOnline).to.equal(roff.ONLINE);
 		});
 	});
 
@@ -54,19 +58,26 @@ describe ("running web specific tests", function() {
 		});
 	});
 
-	it("should store RESTful call to local repository and figure out correct repository name", function() {
+	it("should store a RESTful call to the local repository, \
+		figure out correct repository name and\
+		the RESTful call should still work even when offline.", function() {
 		var roff = restoff({
 			"rootUri" : "/testsweb/testdata"
 		});
 		expect(Object.keys(roff.repository).length).to.equal(0);
 		return roff.get("http://test.development.com:4050/testsweb/testdata/users")
-		.then(function(result){
-			expect(Object.keys(roff.repository).length).to.equal(1);
-			expect(roff.repository["users"]).to.not.be.undefined;
-		});
-
+			.then(function(result){
+				expect(result).to.deep.equals(user01);
+				expect(Object.keys(roff.repository).length).to.equal(1);
+				expect(roff.repository["users"]).to.deep.equals(user01);
+				roff.forceOffline = true;
+				roff.get("http://test.development.com:4050/testsweb/testdata/users")
+					.then(function(result) {
+						expect(result).to.deep.equals(user01);
+						expect(Object.keys(roff.repository).length).to.equal(1);
+						expect(roff.repository["users"]).to.deep.equals(user01);
+					});
+			});
 	});
 
-
 });
-

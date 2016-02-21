@@ -142,6 +142,9 @@ Add to your /etc/hosts file:
 127.0.0.1 test.development.com
 ```
 
+## TODOs
+
+* Figure out how to stop 404 (Not Found) message in log. Tried surrounding with try/catch and removing strict.
 
 ## Development Issues
 

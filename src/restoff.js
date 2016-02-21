@@ -1,6 +1,6 @@
 function restoff(config) {
 	var that = Object.create(RestOff.prototype);
-	that._isOnline = false;
+	that._isOnline = that.ONLINE_UNKNOWN;
 	that._forcedOffline = false;
 	that._repo = {};
 
@@ -22,10 +22,10 @@ RestOff.prototype = Object.create(Object.prototype, {
 	isForcedOffline: {
 		get: function() { return this._forcedOffline; }
 	},
-	forcedOffline: {
+	forceOffline: {
 		set: function(value) {
 			this._forcedOffline = true;
-			this._isOnline = false;
+			this._isOnline = this.ONLINE_NOT;
 		}
 	},
 	repository: { get: function() { return this._repo; }},
@@ -39,7 +39,7 @@ RestOff.prototype = Object.create(Object.prototype, {
 				new XMLHttpRequest() : // Mozilla, Safari, ...
 				new ActiveXObject("Microsoft.XMLHTTP"); // IE 8 and older
 
-			// ForcedOffline overrides send() which now simply calls onreadystatechange
+			// ForceOffline overrides send() which now simply calls onreadystatechange
 			// We use readyState2 and override it to trick the request into
 			// thinking it is complete. Why readyState2? Because readyState
 			// has no setter (request.readyState = 4 throws an exception).
@@ -54,14 +54,25 @@ RestOff.prototype = Object.create(Object.prototype, {
 	}
 });
 
-RestOff.prototype.repoAdd = function(uri, result) {
+RestOff.prototype.ONLINE_UNKNOWN = 10;
+RestOff.prototype.ONLINE = 11;
+RestOff.prototype.ONLINE_NOT = 12;
+
+RestOff.prototype.repoNameFrom = function(uri) {
 	var url = document.createElement('a');
 	url.href = uri;
 	var repoName = url.pathname.replace(this.rootUri, "");
 	if ("/" == repoName[0]) {
 		repoName = repoName.slice(1,repoName.length);
 	}
-	this._repo[repoName] = result;
+	return repoName;
+}
+
+RestOff.prototype.repoAdd = function(uri, result) {
+	var repoName = this.repoNameFrom(uri);
+	this._repo[repoName] = JSON.parse(result);
+	// TODO: Check for non-json result
+	return this._repo[repoName];
 }
 
 RestOff.prototype.get = function(uri) {
@@ -70,17 +81,17 @@ RestOff.prototype.get = function(uri) {
 		var request = that.getRequest;
 		request.open("GET", uri, true); // true: asynchronous
 		request.onreadystatechange = function(){
-			if(request.__proto__.DONE == request.readyState2 ) { // 4: Request finished and response is ready
+			if(request.__proto__.DONE == request.readyState2 ) {
 				if(request.__proto__.UNSENT == request.status) {
-					var offlineData = {
-						"offlineData": true
-					};
-					resolve(offlineData);
+					that.isOnline = that.ONLINE_NOT; // TODO: Write a test to cover this line of code
+					var repoName = that.repoNameFrom(uri);
+					if (undefined == that.repository[repoName]) {
+						that.repoAdd(uri, "{}");
+					}
+					resolve(that.repository[repoName]);
 				} else if(200 == request.status) {
-					that.isOnline = true;
-					that.repoAdd(uri, request.response);
-					resolve(JSON.parse(request.response));
-					// TODO: Check for non-json result
+					that.isOnline = that.ONLINE;
+					resolve(that.repoAdd(uri, request.response));
 				} else {
 					var errorMessage = {
 						"message" : request.statusText,
@@ -91,9 +102,6 @@ RestOff.prototype.get = function(uri) {
 				}
 			} // else ignore other readyStates
 		};
-		// TODO: Figure out how to stop 404 (Not Found)
-		//       message in log. Tried surrounding with try/catch
-		//       and removing strict.
 		request.send();
 	});
 	return promise;
