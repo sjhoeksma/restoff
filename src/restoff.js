@@ -81,15 +81,15 @@ RestOff.prototype.get = function(uri) {
 		var request = that.getRequest;
 		request.open("GET", uri, true); // true: asynchronous
 		request.onreadystatechange = function(){
-			if(request.__proto__.DONE == request.readyState2 ) {
-				if(request.__proto__.UNSENT == request.status) {
+			if(request.__proto__.DONE === request.readyState2 ) {
+				if(request.__proto__.UNSENT === request.status) {
 					that.isOnline = that.ONLINE_NOT; // TODO: Write a test to cover this line of code
 					var repoName = that.repoNameFrom(uri);
-					if (undefined == that.repository[repoName]) {
-						that.repoAdd(uri, "{}");
+					if (undefined === that.repository[repoName]) {
+						that.repoAdd(uri, "{}"); // offline and first call to the endpoint made
 					}
 					resolve(that.repository[repoName]);
-				} else if(200 == request.status) {
+				} else if(200 === request.status) {
 					that.isOnline = that.ONLINE;
 					resolve(that.repoAdd(uri, request.response));
 				} else {
