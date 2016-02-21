@@ -1,12 +1,24 @@
-function restoff() {
+function restoff(config) {
 	var that = Object.create(RestOff.prototype);
 	that._isOnline = false;
 	that._forcedOffline = false;
+	that._repo = {};
+
+	if (config) {
+		that._rootUri = config.rootUri ? config.rootUri : "";
+	} else {
+		that._rootUri = "";
+	}
+
 	return that;
 }
 
 function RestOff() {}
 RestOff.prototype = Object.create(Object.prototype, {
+	rootUri: {
+		get: function() { return this._rootUri; },
+		set: function(value) { this._rootUri = value; }
+	},
 	isForcedOffline: {
 		get: function() { return this._forcedOffline; }
 	},
@@ -16,6 +28,7 @@ RestOff.prototype = Object.create(Object.prototype, {
 			this._isOnline = false;
 		}
 	},
+	repository: { get: function() { return this._repo; }},
 	isOnline: {
 		get: function() { return this._isOnline; },
 		set: function(value) { this._isOnline = value; }
@@ -40,6 +53,17 @@ RestOff.prototype = Object.create(Object.prototype, {
 		}
 	}
 });
+
+RestOff.prototype.repoAdd = function(uri, result) {
+	var url = document.createElement('a');
+	url.href = uri;
+	var repoName = url.pathname.replace(this.rootUri, "");
+	if ("/" == repoName[0]) {
+		repoName = repoName.slice(1,repoName.length);
+	}
+	this._repo[repoName] = result;
+}
+
 RestOff.prototype.get = function(uri) {
 	var that = this;
 	var promise = new Promise(function(resolve, reject) {
@@ -54,6 +78,7 @@ RestOff.prototype.get = function(uri) {
 					resolve(offlineData);
 				} else if(200 == request.status) {
 					that.isOnline = true;
+					that.repoAdd(uri, request.response);
 					resolve(JSON.parse(request.response));
 					// TODO: Check for non-json result
 				} else {

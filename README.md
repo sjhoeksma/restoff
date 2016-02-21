@@ -8,6 +8,30 @@ Cavets are the results must be Json and you should follow [RESTful bests practic
 
 ## RestOff Usage
 
+### restoff(config) Settings
+
+config
+
+```
+{
+	"rootUri" : "/will/remove",
+}
+```
+
+#### rootUri Config
+
+By deafult, ```rootUri``` is the empty string. Used to remove any location information within your uri that is not actually part of the RESTful api.
+
+For example, if your restful endpoint is ```http://api.example.com/root/moreroot/tickets``` then the root Uri would be set as follows:
+
+```
+{
+	"rootUri" : "/root/moreroot",
+}
+```
+
+leaving you with a repoistory name of ```tickets```. Without the rootUri, your repository name becomes ```root/moreroot/tickets```.
+
 ### get(uri)
 
 get(uri) makes a call to a RESTful endpoint that returns valid json.
@@ -16,7 +40,7 @@ Example usage:
 
 ```
 var roff = restoff();
-return roff.get("http://test.development.com:4050/testsweb/testdata/user01.json")
+return roff.get("http://test.development.com:4050/testsweb/testdata/users")
 .then(function(result){
 	// use the result here
 });

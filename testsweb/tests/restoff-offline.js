@@ -5,7 +5,7 @@ describe ("running web specific tests - offline", function() {
 
 	it("should set isOnline to false when isForcedOffline is set to true", function() {
 		var roff = restoff();
-		return roff.get("http://test.development.com:4050/testsweb/testdata/user01.json")
+		return roff.get("http://test.development.com:4050/testsweb/testdata/users")
 		.then(function(result){
 			expect(roff.isOnline).to.be.true;
 			expect(roff.isForcedOffline).to.be.false;
@@ -22,7 +22,7 @@ describe ("running web specific tests - offline", function() {
 			"offlineData": true
 		};
 
-		return roff.get("http://test.development.com:4050/testsweb/testdata/user01.json")
+		return roff.get("http://test.development.com:4050/testsweb/testdata/users")
 		.then(function(result){
 			expect(roff.isForcedOffline).to.be.true;
 			expect(roff.isOnline).to.be.false;
@@ -32,7 +32,7 @@ describe ("running web specific tests - offline", function() {
 
 	// // Actual offline test: Comment out this code and make sure your internet
 	// // connection is turned off
-	// it("should work when it is really offline", function() {
+	// it("should work offline when it is 'really' offline", function() {
 	// 	var roff = restoff();
 	// 	var offlineData = {
 	// 		"offlineData": true

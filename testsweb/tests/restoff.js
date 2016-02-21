@@ -13,6 +13,19 @@ describe ("running web specific tests", function() {
 		expect(roff.isOnline).to.be.false;
 		expect(roff.isForcedOffline).to.be.false;
 	});
+
+	it("should handle config settings correctly", function() {
+		var roff = restoff();
+		expect(roff.rootUri).to.equal("");
+		roff.rootUri = "/root/uri";
+		expect(roff.rootUri).to.equal("/root/uri");
+
+		var roff2 = restoff({
+			"rootUri" : "/root01/uri01"
+		});
+		expect(roff2.rootUri).to.equal("/root01/uri01");
+
+	});
 	
 	it("should access a valid endpoint while connected", function() {
 		var roff = restoff();
@@ -22,8 +35,7 @@ describe ("running web specific tests", function() {
 			"last_name": "User"
 		};
 
-		// return roff.get("http://jsonplaceholder.typicode.com/posts")
-		return roff.get("http://test.development.com:4050/testsweb/testdata/user01.json")
+		return roff.get("http://test.development.com:4050/testsweb/testdata/users")
 		.then(function(result){
 			expect(result).to.deep.equals(user01);
 			expect(roff.isOnline).to.be.true;
@@ -41,6 +53,20 @@ describe ("running web specific tests", function() {
 			expect(error).to.deep.equals(errorResult);
 		});
 	});
+
+	it("should store RESTful call to local repository and figure out correct repository name", function() {
+		var roff = restoff({
+			"rootUri" : "/testsweb/testdata"
+		});
+		expect(Object.keys(roff.repository).length).to.equal(0);
+		return roff.get("http://test.development.com:4050/testsweb/testdata/users")
+		.then(function(result){
+			expect(Object.keys(roff.repository).length).to.equal(1);
+			expect(roff.repository["users"]).to.not.be.undefined;
+		});
+
+	});
+
 
 });
 
