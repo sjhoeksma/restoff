@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.0.10
+// version: 0.0.11
 // author: ProductOps
 // license: Copyright (C) 2016 ProductOps
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.0.10'; // version set through gulp build
+restlib["version-library"] = '0.0.11'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -80,9 +80,15 @@ RestOff.prototype.forceOnline = function() {
 }
 
 RestOff.prototype.repoNameFrom = function(uri) {
-	var url = document.createElement('a');
-	url.href = uri;
-	var repoName = url.pathname.replace(this.rootUri, "");
+	var rootUri = this.rootUri;
+
+	if ("" === rootUri) {
+		var url = document.createElement('a');
+		url.href = uri;
+		rootUri = url.protocol + "//" + url.hostname + (url.port ? ':' + url.port : "");
+	}
+
+	var repoName = uri.replace(rootUri, "");
 	if ("/" == repoName[0]) {
 		repoName = repoName.slice(1,repoName.length);
 	}

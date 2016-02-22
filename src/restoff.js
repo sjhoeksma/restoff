@@ -63,9 +63,15 @@ RestOff.prototype.forceOnline = function() {
 }
 
 RestOff.prototype.repoNameFrom = function(uri) {
-	var url = document.createElement('a');
-	url.href = uri;
-	var repoName = url.pathname.replace(this.rootUri, "");
+	var rootUri = this.rootUri;
+
+	if ("" === rootUri) {
+		var url = document.createElement('a');
+		url.href = uri;
+		rootUri = url.protocol + "//" + url.hostname + (url.port ? ':' + url.port : "");
+	}
+
+	var repoName = uri.replace(rootUri, "");
 	if ("/" == repoName[0]) {
 		repoName = repoName.slice(1,repoName.length);
 	}

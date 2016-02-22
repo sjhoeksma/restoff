@@ -7,10 +7,15 @@ describe ("running web specific tests", function() {
 	};
 
 	var address01 = {
-		"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68579",
+		"guid": "aedfa7a4-d748-11e5-b5d2-0a1d41d68579",
 		"address": "1347 Pacific Avenue, Suite 201",
 		"city": "Santa Cruz",
 		"zip": "95060"
+	};
+
+	var emailaddress01 = {
+		"guid": "aedfa7a4-d748-11e5-b5d2-0a1d41d6857A",
+		"emailaddress": "awesome@cool.com"
 	};
 
 	it("should not wipeout Object prototype and be a restoff", function() {
@@ -33,13 +38,13 @@ describe ("running web specific tests", function() {
 	it("should handle config settings correctly", function() {
 		var roff = restoff();
 		expect(roff.rootUri).to.equal("");
-		roff.rootUri = "/root/uri";
-		expect(roff.rootUri).to.equal("/root/uri");
+		roff.rootUri = "http://test.development.com:4050/testsweb/testdata";
+		expect(roff.rootUri).to.equal("http://test.development.com:4050/testsweb/testdata");
 
 		var roff2 = restoff({
-			"rootUri" : "/root01/uri01"
+			"rootUri" : "http://test.development.com:4050/testsweb/testdata2"
 		});
-		expect(roff2.rootUri).to.equal("/root01/uri01");
+		expect(roff2.rootUri).to.equal("http://test.development.com:4050/testsweb/testdata2");
 
 	});
 	
@@ -69,7 +74,7 @@ describe ("running web specific tests", function() {
 		figure out correct repository name and\
 		the RESTful call should still work even when offline.", function() {
 		var roff = restoff({
-			"rootUri" : "/testsweb/testdata"
+			"rootUri" : "http://test.development.com:4050/testsweb/testdata"
 		});
 		expect(Object.keys(roff.repository).length).to.equal(0);
 		return roff.get("http://test.development.com:4050/testsweb/testdata/users")
@@ -87,9 +92,22 @@ describe ("running web specific tests", function() {
 			});
 	});
 
+	it("should support the default rootUri of protocol + hostname when a rootUri is not set", function() {
+		var roff = restoff();
+		return roff.get("http://test.development.com:4050/emailaddresses")
+			.then(function(result){
+				expect(result).to.deep.equals(emailaddress01);
+				expect(Object.keys(roff.repository).length).to.equal(1);
+				console.log(roff.repository);
+				expect(roff.repository["emailaddresses"]).to.deep.equals(emailaddress01);
+			});
+
+	});
+
+
 	it("should support more than one repository", function() {
 		var roff = restoff({
-			"rootUri" : "/testsweb/testdata"
+			"rootUri" : "http://test.development.com:4050/testsweb/testdata"
 		});
 		expect(Object.keys(roff.repository).length).to.equal(0);
 		roff.get("http://test.development.com:4050/testsweb/testdata/users");
@@ -107,7 +125,7 @@ describe ("running web specific tests", function() {
 	it("should be able to clear a repository leaving an 'empty' repository\
 		and not add a repository if it exists.", function() {
 		var roff = restoff({
-			"rootUri" : "/testsweb/testdata"
+			"rootUri" : "http://test.development.com:4050/testsweb/testdata"
 		});
 		expect(Object.keys(roff.repository).length).to.equal(0);
 		return roff.get("http://test.development.com:4050/testsweb/testdata/users")
@@ -126,7 +144,7 @@ describe ("running web specific tests", function() {
 	it("should be able to clear all repositories leaving an 'empty' repository\
 		but not delete actual data on the backend.", function() {
 		var roff = restoff({
-			"rootUri" : "/testsweb/testdata"
+			"rootUri" : "http://test.development.com:4050/testsweb/testdata"
 		});
 		expect(Object.keys(roff.repository).length).to.equal(0);
 		roff.get("http://test.development.com:4050/testsweb/testdata/users");

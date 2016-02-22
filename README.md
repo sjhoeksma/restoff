@@ -27,9 +27,27 @@ config
 
 ```
 {
-	"rootUri" : "/will/remove",
+	"rootUri" : "http://api.example.com/root/moreroot/",
 }
 ```
+
+##### rootUri Config
+
+
+restOff uses the rootUri to determine the name of a repository. Let's take ```http://api.example.com/tickets``` as an example end point. The ```rootUri```, by default, will be the protocol + host. The repository name then becomes ```tickets```.
+
+Let's say we have a ```rootUri``` of ```http://api.example.com/root/moreroot/tickets```. The repository name would then be ```root/moreroot/tickets``` which is not optimal.
+
+Let's override the rootUri:
+
+```
+{
+	"rootUri" : "http://api.example.com/root/moreroot",
+}
+```
+
+This will lead to our desired repository name of ```tickets```.
+
 
 ### repoClearCache(repoName)
 
@@ -52,20 +70,6 @@ var roff = restoff();
 // .. do some things
 roff.clearCache(); // All cached data is gone
 ```
-
-#### rootUri Config
-
-By deafult, ```rootUri``` is the empty string. Used to remove any part of the URL that is not actually a required part of the RESTful URI.
-
-For example, if your RESTful endpoint is ```http://api.example.com/root/moreroot/tickets``` then the root Uri would be set as follows:
-
-```
-{
-	"rootUri" : "/root/moreroot",
-}
-```
-
-leaving a repoistory name of ```tickets```. Without the rootUri, the repository name becomes ```root/moreroot/tickets```.
 
 ### get(uri)
 
