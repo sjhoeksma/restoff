@@ -22,9 +22,9 @@ config
 
 #### rootUri Config
 
-By deafult, ```rootUri``` is the empty string. Used to remove any location information within your uri that is not actually part of the RESTful api.
+By deafult, ```rootUri``` is the empty string. Used to remove any part of the URL that is not actually a required part of the RESTful URI.
 
-For example, if your restful endpoint is ```http://api.example.com/root/moreroot/tickets``` then the root Uri would be set as follows:
+For example, if your RESTful endpoint is ```http://api.example.com/root/moreroot/tickets``` then the root Uri would be set as follows:
 
 ```
 {
@@ -32,7 +32,7 @@ For example, if your restful endpoint is ```http://api.example.com/root/moreroot
 }
 ```
 
-leaving you with a repoistory name of ```tickets```. Without the rootUri, your repository name becomes ```root/moreroot/tickets```.
+leaving a repoistory name of ```tickets```. Without the rootUri, the repository name becomes ```root/moreroot/tickets```.
 
 ### get(uri)
 
@@ -64,21 +64,21 @@ if (roff.isOnline) {
 }
 ```
 
-### isForcedOffline and forceOffline Properties
+### isForcedOffline Property, forceOffline() and forceOnline()
 
-You can "force" your application offline by setting ```forceOffline = false```. Forcing offline overwrites ```ajax.send()``` to simply call ```onreadystatechange``` with a ```readyState``` of ```DONE```.
+You can "force" your application offline by calling ```forceOffline()``` and "force" the application online by calling ```forceOnline()```. Forcing offline overwrites ```ajax.send()``` to simply call ```onreadystatechange``` with a ```readyState``` of ```DONE```.
 
 ```isOnline``` will return false when ```isForcedOffline``` is true.
 
 ```
 var roff = restoff();
-roff.forceOffline = true;
+roff.forceOffline();
 if (!roff.isOnline) {
 	console.log ("We are offline!");
 }
 ```
 
-This can be very useful if your customer wants to see how their application behaves when it is offline. For example, a customer could force a reload of all information. Then forceOffline and see if they have the information they need before going to a location that has no internet access or cellphone access.
+This can be very useful if your customer wants to see how their application behaves when it is offline. For example, a customer could force a reload of all information. Then forceOffline() and see if they have the information they need before going to a location that has no internet access or cellphone access.
 
 
 ## Using In Your Projects

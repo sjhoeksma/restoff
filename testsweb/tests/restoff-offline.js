@@ -3,21 +3,24 @@ describe ("running web specific tests - offline", function() {
 	beforeEach(function() {
 	});
 
-	it("should set forceOffline correctly", function() {
+	it("should forceOffline correctly and forceOnline correctly", function() {
 		var roff = restoff();
 		return roff.get("http://test.development.com:4050/testsweb/testdata/users")
 		.then(function(result){
 			expect(roff.isForcedOffline).to.be.false;
 			expect(roff.isOnline).to.equal(roff.ONLINE);
-			roff.forceOffline = true;
+			roff.forceOffline();
 			expect(roff.isForcedOffline).to.be.true;
 			expect(roff.isOnline).to.equal(roff.ONLINE_NOT);
+			roff.forceOnline();
+			expect(roff.isForcedOffline).to.be.false;
+			expect(roff.isOnline).to.equal(roff.ONLINE_UNKNOWN);
 		});
 	});
 
 	it("should create an empty repository when repository is first accessed while offline", function() {
 		var roff = restoff();
-		roff.forceOffline = true;
+		roff.forceOffline();
 
 		return roff.get("http://test.development.com:4050/testsweb/testdata/users")
 		.then(function(result){

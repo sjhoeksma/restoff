@@ -6,15 +6,22 @@ describe ("running web specific tests", function() {
 		"last_name": "User"
 	};
 
+	var address01 = {
+		"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68579",
+		"address": "1347 Pacific Avenue, Suite 201",
+		"city": "Santa Cruz",
+		"zip": "95060"
+	};
+
 	it("should not wipeout Object prototype and be a restoff", function() {
 		expect(restoff).to.not.eql(undefined);
 
 		var roff = restoff();
 		expect(roff).to.have.property('toString');
 		expect(roff).to.have.property('isOnline');
-		expect(roff.ONLINE_UNKNOWN).to.equal(10);
-		expect(roff.ONLINE).to.equal(11);
-		expect(roff.ONLINE_NOT).to.equal(12);
+		expect(roff.ONLINE_UNKNOWN).to.equal(-1);
+		expect(roff.ONLINE).to.equal(1);
+		expect(roff.ONLINE_NOT).to.equal(0);
 	});
 
 	it("should be offline initially", function() {
@@ -70,7 +77,7 @@ describe ("running web specific tests", function() {
 				expect(result).to.deep.equals(user01);
 				expect(Object.keys(roff.repository).length).to.equal(1);
 				expect(roff.repository["users"]).to.deep.equals(user01);
-				roff.forceOffline = true;
+				roff.forceOffline();
 				roff.get("http://test.development.com:4050/testsweb/testdata/users")
 					.then(function(result) {
 						expect(result).to.deep.equals(user01);
@@ -79,5 +86,23 @@ describe ("running web specific tests", function() {
 					});
 			});
 	});
+
+	it("should support more than one repository", function() {
+		var roff = restoff({
+			"rootUri" : "/testsweb/testdata"
+		});
+		expect(Object.keys(roff.repository).length).to.equal(0);
+		roff.get("http://test.development.com:4050/testsweb/testdata/users");
+		return roff.get("http://test.development.com:4050/testsweb/testdata/addresses")
+			.then(function(result){
+				expect(result).to.deep.equals(address01);
+				expect(Object.keys(roff.repository).length).to.equal(2);
+				expect(roff.repository["users"]).to.deep.equals(user01);
+				expect(roff.repository["addresses"]).to.deep.equals(address01);
+			});
+	});
+
+
+
 
 });

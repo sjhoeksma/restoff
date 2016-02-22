@@ -22,12 +22,6 @@ RestOff.prototype = Object.create(Object.prototype, {
 	isForcedOffline: {
 		get: function() { return this._forcedOffline; }
 	},
-	forceOffline: {
-		set: function(value) {
-			this._forcedOffline = true;
-			this._isOnline = this.ONLINE_NOT;
-		}
-	},
 	repository: { get: function() { return this._repo; }},
 	isOnline: {
 		get: function() { return this._isOnline; },
@@ -54,9 +48,20 @@ RestOff.prototype = Object.create(Object.prototype, {
 	}
 });
 
-RestOff.prototype.ONLINE_UNKNOWN = 10;
-RestOff.prototype.ONLINE = 11;
-RestOff.prototype.ONLINE_NOT = 12;
+RestOff.prototype.ONLINE_UNKNOWN = -1;
+RestOff.prototype.ONLINE = 1;
+RestOff.prototype.ONLINE_NOT = 0;
+
+RestOff.prototype.forceOffline = function() {
+	this._forcedOffline = true;
+	this._isOnline = this.ONLINE_NOT;
+}
+
+RestOff.prototype.forceOnline = function() {
+	this._forcedOffline = false;
+	this._isOnline = this.ONLINE_UNKNOWN;
+}
+
 
 RestOff.prototype.repoNameFrom = function(uri) {
 	var url = document.createElement('a');
@@ -98,6 +103,7 @@ RestOff.prototype.get = function(uri) {
 						"messageDetail" : request.responseText.replace(/\r?\n|\r/g, ""),
 						"status": request.status
 					};
+					console.log("Current user %O", errorMessage);
 					reject(errorMessage);
 				}
 			} // else ignore other readyStates
