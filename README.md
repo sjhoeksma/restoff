@@ -94,9 +94,9 @@ When true, your application is online. When false, the application is offline. W
 
 Instead of checking for true, false and Null please use:
 
-* restoff.ONLINE_UNKNOWN - Resolves to ```null```. State is unknown.
-* restoff.ONLINE - Resolves to ```true```. State is online.
-* restoff.ONLINE_NOT - Resolves to ```false```. State is offline.
+* ```restoff.ONLINE_UNKNOWN``` - Resolves to ```null```. State is unknown.
+* ```restoff.ONLINE``` - Resolves to ```true```. State is online.
+* ```restoff.ONLINE_NOT``` - Resolves to ```false```. State is offline.
 
 Example usage:
 
