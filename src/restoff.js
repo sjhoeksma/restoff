@@ -85,6 +85,15 @@ RestOff.prototype.repoClearCache = function(repoName) {
 	}
 }
 
+RestOff.prototype.clearCache = function() {
+	var that = this;
+	Object.keys(this.repository).forEach(
+		function(value) {
+			that._repo[value] = {};
+		}
+	);
+}
+
 RestOff.prototype.get = function(uri) {
 	var that = this;
 	var promise = new Promise(function(resolve, reject) {
@@ -108,7 +117,7 @@ RestOff.prototype.get = function(uri) {
 						"messageDetail" : request.responseText.replace(/\r?\n|\r/g, ""),
 						"status": request.status
 					};
-					console.log("Current user %O", errorMessage);
+					// console.log("Current user %O", errorMessage);
 					reject(errorMessage);
 				}
 			} // else ignore other readyStates

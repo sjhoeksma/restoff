@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.0.9
+// version: 0.0.10
 // author: ProductOps
 // license: Copyright (C) 2016 ProductOps
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.0.9'; // version set through gulp build
+restlib["version-library"] = '0.0.10'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -102,6 +102,15 @@ RestOff.prototype.repoClearCache = function(repoName) {
 	}
 }
 
+RestOff.prototype.clearCache = function() {
+	var that = this;
+	Object.keys(this.repository).forEach(
+		function(value) {
+			that._repo[value] = {};
+		}
+	);
+}
+
 RestOff.prototype.get = function(uri) {
 	var that = this;
 	var promise = new Promise(function(resolve, reject) {
@@ -125,7 +134,7 @@ RestOff.prototype.get = function(uri) {
 						"messageDetail" : request.responseText.replace(/\r?\n|\r/g, ""),
 						"status": request.status
 					};
-					console.log("Current user %O", errorMessage);
+					// console.log("Current user %O", errorMessage);
 					reject(errorMessage);
 				}
 			} // else ignore other readyStates

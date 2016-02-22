@@ -99,13 +99,13 @@ describe ("running web specific tests", function() {
 				expect(Object.keys(roff.repository).length).to.equal(2);
 				expect(roff.repository["users"]).to.deep.equals(user01);
 				expect(roff.repository["addresses"]).to.deep.equals(address01);
+				// TODO: Hit a backend and make sure data was not deleted
 			});
 	});
 
 
 	it("should be able to clear a repository leaving an 'empty' repository\
-		and not add a repository if it exists\
-		but not delete actual data on the backend.", function() {
+		and not add a repository if it exists.", function() {
 		var roff = restoff({
 			"rootUri" : "/testsweb/testdata"
 		});
@@ -119,9 +119,28 @@ describe ("running web specific tests", function() {
 				expect(roff.repository["users"]).to.deep.equals({});
 				roff.repoClearCache("not_a_repo");
 				expect(Object.keys(roff.repository).length).to.equal(1);
+				// TODO: Hit a backend and make sure data was not deleted
 			});
 	});
 
+	it("should be able to clear all repositories leaving an 'empty' repository\
+		but not delete actual data on the backend.", function() {
+		var roff = restoff({
+			"rootUri" : "/testsweb/testdata"
+		});
+		expect(Object.keys(roff.repository).length).to.equal(0);
+		roff.get("http://test.development.com:4050/testsweb/testdata/users");
+		return roff.get("http://test.development.com:4050/testsweb/testdata/addresses")
+			.then(function(result){
+				expect(Object.keys(roff.repository).length).to.equal(2);
+				expect(roff.repository["users"]).to.deep.equals(user01);
+				expect(roff.repository["addresses"]).to.deep.equals(address01);
+				roff.clearCache();
+				expect(Object.keys(roff.repository).length).to.equal(2);
+				expect(roff.repository["users"]).to.deep.equals({});
+				expect(roff.repository["addresses"]).to.deep.equals({});
+			});
+	});
 
 
 });

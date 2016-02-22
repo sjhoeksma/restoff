@@ -10,6 +10,17 @@ Cavets are the results must be Json and you should follow [RESTful bests practic
 
 ## RestOff Usage
 
+### Functions and Properties
+
+* forceOffline() - Force appliction to operate "offline".
+* forceOnline() - Force the application back "online".
+* repoClearCache(repoName) - Clears the cache of a given repository. Doesn't delete data on the server.
+	* TODO: Unless there are pending changes.
+* clearCache() - Clears all caches. Doesn't delete data on the server.
+	* TODO: Unless there are pending changes.
+* get(uri) - Makes a RESTful call to remote server 
+
+
 ### restoff(config) Settings
 
 config
@@ -18,6 +29,28 @@ config
 {
 	"rootUri" : "/will/remove",
 }
+```
+
+### repoClearCache(repoName)
+
+Clears the cache of the given repository name if the repository exists. Does not a repository named ```repoName``` to the repository if it doesn't exist.
+
+TODO: Unless there are pending changes. Add a "force" parameter.
+
+### clearCache()
+
+Clears the cache of all repositories.
+
+TODO: Unless there are pending changes. add a "force" parameter.
+
+TODO: Unless there are pending changes.
+
+Example usage:
+
+```
+var roff = restoff();
+// .. do some things
+roff.clearCache(); // All cached data is gone
 ```
 
 #### rootUri Config
