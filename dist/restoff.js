@@ -102,13 +102,13 @@ RestOff.prototype.repoAdd = function(uri, result) {
 	return this._repo[repoName];
 }
 
-RestOff.prototype.repoClearCache = function(repoName) {
+RestOff.prototype.clearCacheBy = function(repoName) {
 	if (undefined !== this._repo[repoName]) {
 		this._repo[repoName] = {};
 	}
 }
 
-RestOff.prototype.clearCache = function() {
+RestOff.prototype.clearCacheAll = function() {
 	var that = this;
 	Object.keys(this.repository).forEach(
 		function(value) {

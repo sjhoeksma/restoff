@@ -132,10 +132,10 @@ describe ("running web specific tests", function() {
 			.then(function(result){
 				expect(Object.keys(roff.repository).length).to.equal(1);
 				expect(roff.repository["users"]).to.deep.equals(user01);
-				roff.repoClearCache("users");
+				roff.clearCacheBy("users");
 				expect(Object.keys(roff.repository).length).to.equal(1);
 				expect(roff.repository["users"]).to.deep.equals({});
-				roff.repoClearCache("not_a_repo");
+				roff.clearCacheBy("not_a_repo");
 				expect(Object.keys(roff.repository).length).to.equal(1);
 				// TODO: Hit a backend and make sure data was not deleted
 			});
@@ -153,7 +153,7 @@ describe ("running web specific tests", function() {
 				expect(Object.keys(roff.repository).length).to.equal(2);
 				expect(roff.repository["users"]).to.deep.equals(user01);
 				expect(roff.repository["addresses"]).to.deep.equals(address01);
-				roff.clearCache();
+				roff.clearCacheAll();
 				expect(Object.keys(roff.repository).length).to.equal(2);
 				expect(roff.repository["users"]).to.deep.equals({});
 				expect(roff.repository["addresses"]).to.deep.equals({});

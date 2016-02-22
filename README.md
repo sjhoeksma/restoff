@@ -14,7 +14,7 @@ Cavets are the results must be Json and you should follow [RESTful bests practic
 
 * **forceOffline()** - Force the appliction to operate "offline".
 * **forceOnline()** - Force the application back "online".
-* **repoClearCache(repoName)** - Clears the cache of a given repository. Doesn't delete data on the server.
+* **clearCacheBy(repoName)** - Clears the cache of a given repository. Doesn't delete data on the server.
 	* TODO: Unless there are pending changes.
 * **clearCache()** - Clears all caches. Doesn't delete data on the server.
 	* TODO: Unless there are pending changes.
@@ -49,13 +49,13 @@ Let's override the rootUri:
 This will lead to our desired repository name of ```tickets```.
 
 
-### repoClearCache(repoName)
+### clearCacheBy(repoName)
 
 Clears the cache of the given repository name if the repository exists. Does not a repository named ```repoName``` to the repository if it doesn't exist.
 
 TODO: Unless there are pending changes. Add a "force" parameter.
 
-### clearCache()
+### clearCacheAll()
 
 Clears the cache of all repositories.
 
@@ -68,7 +68,7 @@ Example usage:
 ```
 var roff = restoff();
 // .. do some things
-roff.clearCache(); // All cached data is gone
+roff.clearCacheAll(); // All cached data is gone
 ```
 
 ### get(uri)
