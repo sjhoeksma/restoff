@@ -12,13 +12,13 @@ Cavets are the results must be Json and you should follow [RESTful bests practic
 
 ### Functions and Properties
 
-* forceOffline() - Force appliction to operate "offline".
-* forceOnline() - Force the application back "online".
-* repoClearCache(repoName) - Clears the cache of a given repository. Doesn't delete data on the server.
+* **forceOffline()** - Force the appliction to operate "offline".
+* **forceOnline()** - Force the application back "online".
+* **repoClearCache(repoName)** - Clears the cache of a given repository. Doesn't delete data on the server.
 	* TODO: Unless there are pending changes.
-* clearCache() - Clears all caches. Doesn't delete data on the server.
+* **clearCache()** - Clears all caches. Doesn't delete data on the server.
 	* TODO: Unless there are pending changes.
-* get(uri) - Makes a RESTful call to remote server 
+* **get(uri)** - Makes a RESTful call to remote server 
 
 
 ### restoff(config) Settings
