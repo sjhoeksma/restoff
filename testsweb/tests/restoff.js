@@ -98,7 +98,6 @@ describe ("running web specific tests", function() {
 			.then(function(result){
 				expect(result).to.deep.equals(emailaddress01);
 				expect(Object.keys(roff.repository).length).to.equal(1);
-				console.log(roff.repository);
 				expect(roff.repository["emailaddresses"]).to.deep.equals(emailaddress01);
 			});
 
