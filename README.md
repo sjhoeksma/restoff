@@ -92,7 +92,7 @@ Determined by the **last** RESTful call.
 
 When true, your application is online. When false, the application is offline. When null, the state is unknown (we haven't yet checked to see if we are online).
 
-Instead of checking for true, false and Null please use:
+Instead of checking for ```true```, ```false``` and ```null``` please use:
 
 * ```restoff.ONLINE_UNKNOWN``` - Resolves to ```null```. State is unknown.
 * ```restoff.ONLINE``` - Resolves to ```true```. State is online.
