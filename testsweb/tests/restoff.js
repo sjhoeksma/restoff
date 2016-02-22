@@ -1,4 +1,4 @@
-describe ("running web specific tests", function() {
+describe ("restoff", function() {
 
 	var user01 = {
 		"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68578",
@@ -14,9 +14,24 @@ describe ("running web specific tests", function() {
 	};
 
 	var emailaddress01 = {
-		"guid": "aedfa7a4-d748-11e5-b5d2-0a1d41d6857A",
+		"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d6857A",
 		"emailaddress": "awesome@cool.com"
 	};
+
+	function newDb(name) {
+		var db = new loki(name); 
+
+		var emailaddresses = db.addCollection('emailaddresses', { indices: ['id']});
+		// var emailaddressTemp = jQuery.extend(true, {}, oldObject);
+		// emailaddresses.insert(emailaddressTemp);
+		// var users = db.addCollection('users', { indices: ['id']});
+		// users.insert(user01);
+		// var addresses = db.addCollection('users', { indices: ['guid']});
+		// addresses.insert(address01);
+		return db;
+	}
+
+	var test_db = newDb("loki.json");
 
 	it("should not wipeout Object prototype and be a restoff", function() {
 		expect(restoff).to.not.eql(undefined);
@@ -38,13 +53,19 @@ describe ("running web specific tests", function() {
 	it("should handle config settings correctly", function() {
 		var roff = restoff();
 		expect(roff.rootUri).to.equal("");
+		expect(roff.dbName).to.equal("restoff.json");
 		roff.rootUri = "http://test.development.com:4050/testsweb/testdata";
 		expect(roff.rootUri).to.equal("http://test.development.com:4050/testsweb/testdata");
 
+		roff.dbName = "new.json";
+		expect(roff.dbName).to.equal("new.json");
+
 		var roff2 = restoff({
-			"rootUri" : "http://test.development.com:4050/testsweb/testdata2"
+			"rootUri" : "http://test.development.com:4050/testsweb/testdata2",
+			"dbName" : "loki.json"
 		});
 		expect(roff2.rootUri).to.equal("http://test.development.com:4050/testsweb/testdata2");
+		expect(roff2.dbName).to.equal("loki.json");
 
 	});
 	

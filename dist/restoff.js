@@ -21,11 +21,8 @@ function restoff(config) {
 	that._forcedOffline = false;
 	that._repo = {};
 
-	if (config) {
-		that._rootUri = config.rootUri ? config.rootUri : "";
-	} else {
-		that._rootUri = "";
-	}
+	that._rootUri = (undefined !== config) ? config.rootUri ? config.rootUri : "" : "";
+	that._dbName = (undefined !== config) ? config.dbName ? config.dbName : "restoff.json" : "restoff.json";
 
 	return that;
 }
@@ -35,6 +32,10 @@ RestOff.prototype = Object.create(Object.prototype, {
 	rootUri: {
 		get: function() { return this._rootUri; },
 		set: function(value) { this._rootUri = value; }
+	},
+	dbName: {
+		get: function() { return this._dbName; },
+		set: function(value) { this._dbName = value; }
 	},
 	isForcedOffline: {
 		get: function() { return this._forcedOffline; }
@@ -149,6 +150,7 @@ RestOff.prototype.get = function(uri) {
 	});
 	return promise;
 }
+
 restlib.restoff = restoff;
 
 

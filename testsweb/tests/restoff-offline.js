@@ -1,4 +1,4 @@
-describe ("running web specific tests - offline", function() {
+describe ("restoff when offline ", function() {
 
 	beforeEach(function() {
 	});

@@ -12,6 +12,7 @@ var mocha = require('gulp-mocha');
 var mochaPhantom = require('gulp-mocha-phantomjs');
 var connect = require('gulp-connect');
 var livereload = require('gulp-livereload');
+var nodemon = require('nodemon');
 
 var source = pkg.source;
 var libName = pkg.name;
@@ -28,7 +29,7 @@ var banner = function(bundled) {
 	].join('\n') + '\n';
 };
 
-gulp.task('default', ['build', 'mocha', 'watch', 'webserver']);
+gulp.task('default', ['build', 'mocha', 'watch', 'webserver', 'restserver']);
 
 gulp.task('mocha', ['build'], function() {
 	return gulp.src(['tests/*test.js'], {
@@ -85,3 +86,13 @@ gulp.task('webserver', function() {
 		// root: ['.']
 	});
 });
+
+
+gulp.task('restserver', function () {
+	nodemon({
+		script: './tests/rest_api/server.js'
+		, ext: 'js html'
+		, env: { 'NODE_ENV': 'development' }
+	});
+});
+

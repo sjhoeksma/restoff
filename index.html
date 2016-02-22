@@ -7,6 +7,7 @@
 		<link rel="stylesheet" href="../node_modules/mocha/mocha.css">
 	</head>
 	<body id="mocha">
+		<script src="../node_modules/lokijs/build/lokijs.min.js"></script>
 		<script src="../node_modules/mocha/mocha.js"></script>
 		<script src="../node_modules/chai/chai.js"></script>
 		<script src="../dist/restoff.js"></script>
@@ -14,6 +15,7 @@
 		<script src="./testsweb/tests/restoff.js"></script>
 		<script src="./tests/shared/restoff.js"></script>
 		<script src="./testsweb/tests/restoff-offline.js"></script>
+		<script src="./testsweb/tests/restoff-insert.js"></script>
 		<script>
 			restoff = restlib.restoff; // pull restoff from library
 			var expect = chai.expect;
