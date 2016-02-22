@@ -103,6 +103,25 @@ describe ("running web specific tests", function() {
 	});
 
 
+	it("should be able to clear a repository leaving an 'empty' repository\
+		and not add a repository if it exists\
+		but not delete actual data on the backend.", function() {
+		var roff = restoff({
+			"rootUri" : "/testsweb/testdata"
+		});
+		expect(Object.keys(roff.repository).length).to.equal(0);
+		return roff.get("http://test.development.com:4050/testsweb/testdata/users")
+			.then(function(result){
+				expect(Object.keys(roff.repository).length).to.equal(1);
+				expect(roff.repository["users"]).to.deep.equals(user01);
+				roff.repoClearCache("users");
+				expect(Object.keys(roff.repository).length).to.equal(1);
+				expect(roff.repository["users"]).to.deep.equals({});
+				roff.repoClearCache("not_a_repo");
+				expect(Object.keys(roff.repository).length).to.equal(1);
+			});
+	});
+
 
 
 });

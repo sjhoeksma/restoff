@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.0.8
+// version: 0.0.9
 // author: ProductOps
 // license: Copyright (C) 2016 ProductOps
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.0.8'; // version set through gulp build
+restlib["version-library"] = '0.0.9'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -79,7 +79,6 @@ RestOff.prototype.forceOnline = function() {
 	this._isOnline = this.ONLINE_UNKNOWN;
 }
 
-
 RestOff.prototype.repoNameFrom = function(uri) {
 	var url = document.createElement('a');
 	url.href = uri;
@@ -95,6 +94,12 @@ RestOff.prototype.repoAdd = function(uri, result) {
 	this._repo[repoName] = JSON.parse(result);
 	// TODO: Check for non-json result
 	return this._repo[repoName];
+}
+
+RestOff.prototype.repoClearCache = function(repoName) {
+	if (undefined !== this._repo[repoName]) {
+		this._repo[repoName] = {};
+	}
 }
 
 RestOff.prototype.get = function(uri) {

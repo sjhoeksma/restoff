@@ -62,7 +62,6 @@ RestOff.prototype.forceOnline = function() {
 	this._isOnline = this.ONLINE_UNKNOWN;
 }
 
-
 RestOff.prototype.repoNameFrom = function(uri) {
 	var url = document.createElement('a');
 	url.href = uri;
@@ -78,6 +77,12 @@ RestOff.prototype.repoAdd = function(uri, result) {
 	this._repo[repoName] = JSON.parse(result);
 	// TODO: Check for non-json result
 	return this._repo[repoName];
+}
+
+RestOff.prototype.repoClearCache = function(repoName) {
+	if (undefined !== this._repo[repoName]) {
+		this._repo[repoName] = {};
+	}
 }
 
 RestOff.prototype.get = function(uri) {
