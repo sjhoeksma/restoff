@@ -48,9 +48,9 @@ RestOff.prototype = Object.create(Object.prototype, {
 	}
 });
 
-RestOff.prototype.ONLINE_UNKNOWN = -1;
-RestOff.prototype.ONLINE = 1;
-RestOff.prototype.ONLINE_NOT = 0;
+RestOff.prototype.ONLINE_UNKNOWN = null;
+RestOff.prototype.ONLINE = true;
+RestOff.prototype.ONLINE_NOT = false;
 
 RestOff.prototype.forceOffline = function() {
 	this._forcedOffline = true;

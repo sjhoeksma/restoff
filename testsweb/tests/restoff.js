@@ -24,9 +24,9 @@ describe ("running web specific tests", function() {
 		var roff = restoff();
 		expect(roff).to.have.property('toString');
 		expect(roff).to.have.property('isOnline');
-		expect(roff.ONLINE_UNKNOWN).to.equal(-1);
-		expect(roff.ONLINE).to.equal(1);
-		expect(roff.ONLINE_NOT).to.equal(0);
+		expect(roff.ONLINE_UNKNOWN).to.equal(null);
+		expect(roff.ONLINE).to.equal(true);
+		expect(roff.ONLINE_NOT).to.equal(false);
 	});
 
 	it("should be offline initially", function() {
