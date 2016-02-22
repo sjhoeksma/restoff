@@ -1,5 +1,7 @@
 # REST Offline
 
+In development... Not "usable" yet.
+
 Automatically synchronize your local client with backend server data using your existingish RESTful API and make that data available offline. 
 
 Cavets are the results must be Json and you should follow [RESTful bests practices][rest-best-practices].
