@@ -29,7 +29,7 @@ var banner = function(bundled) {
 	].join('\n') + '\n';
 };
 
-gulp.task('default', ['build', 'mocha', 'watch', 'webserver', 'restserver']);
+gulp.task('default', ['build', 'mocha', 'watch', 'webserver']); // , 'restserver'
 
 gulp.task('mocha', ['build'], function() {
 	return gulp.src(['tests/*test.js'], {
@@ -77,22 +77,17 @@ gulp.task('webtests', ['build'], function() {
 // https://github.com/AveVlad/gulp-connect
 gulp.task('webserver', function() {
 	connect.server({
-		// livereload: true,
 		port: 4050,
-		// livereload: {
-		// 	port: 35728
-		// },
 		host: 'test.development.com',
-		// root: ['.']
 	});
 });
 
 
-gulp.task('restserver', function () {
-	nodemon({
-		script: './tests/rest_api/server.js'
-		, ext: 'js html'
-		, env: { 'NODE_ENV': 'development' }
-	});
-});
+// gulp.task('restserver', function () {
+// 	nodemon({
+// 		script: './tests/rest_api/server.js'
+// 		, ext: 'js html'
+// 		, env: { 'NODE_ENV': 'development' }
+// 	});
+// });
 

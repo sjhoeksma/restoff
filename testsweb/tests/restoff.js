@@ -18,20 +18,20 @@ describe ("restoff", function() {
 		"emailaddress": "awesome@cool.com"
 	};
 
-	function newDb(name) {
-		var db = new loki(name); 
+	// function newDb(name) {
+	// 	var db = new loki(name); 
 
-		var emailaddresses = db.addCollection('emailaddresses', { indices: ['id']});
-		// var emailaddressTemp = jQuery.extend(true, {}, oldObject);
-		// emailaddresses.insert(emailaddressTemp);
-		// var users = db.addCollection('users', { indices: ['id']});
-		// users.insert(user01);
-		// var addresses = db.addCollection('users', { indices: ['guid']});
-		// addresses.insert(address01);
-		return db;
-	}
+	// 	var emailaddresses = db.addCollection('emailaddresses', { indices: ['id']});
+	// 	// var emailaddressTemp = jQuery.extend(true, {}, oldObject);
+	// 	// emailaddresses.insert(emailaddressTemp);
+	// 	// var users = db.addCollection('users', { indices: ['id']});
+	// 	// users.insert(user01);
+	// 	// var addresses = db.addCollection('users', { indices: ['guid']});
+	// 	// addresses.insert(address01);
+	// 	return db;
+	// }
 
-	var test_db = newDb("loki.json");
+	// var test_db = newDb("loki.json");
 
 	it("should not wipeout Object prototype and be a restoff", function() {
 		expect(restoff).to.not.eql(undefined);
