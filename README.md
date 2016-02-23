@@ -19,7 +19,11 @@ Cavets are the results must be Json and you should follow [RESTful bests practic
 * **clearCache()** - Clears all caches. Doesn't delete data on the server.
 	* TODO: Unless there are pending changes.
 * **get(uri)** - Makes a RESTful call to remote server 
-
+* **autoQueryParam(name, value)** - A parameter of ```name``` with ```value``` will be added/appended to every RESTful api call.
+* **autoQueryParamGet(name)** - Returns the value of the query parameter with the provided ```name```.
+* **autoHeaderParam(name, value)** - A header of ```name``` with ```value``` will be added to the header of every RESTful api call.
+* **autoHeaderParamGet(name)** - Returns the value of the header parameter with the provided ```name```.
+* **uriGenerate(uri)** - Returns the uri generated based on things like auto addition of query parameters, etc.
 
 ### restoff(config) Settings
 
@@ -48,6 +52,54 @@ Let's override the rootUri:
 
 This will lead to our desired repository name of ```tickets```.
 
+### autoQueryParam(name, value)
+
+A parameter of ```name``` with ```value``` will be added/appended to every RESTful api call. Useful for adding parameters such as an access token.
+
+Example usage:
+
+```
+var roff = restoff()
+	.autoQueryParam("access_token", "rj5aabcea");
+```
+
+### autoQueryParamGet(name)
+
+Returns the value of the query parameter with the provided ```name```.
+
+Example usage:
+
+```
+var roff = restoff()
+	.autoQueryParam("access_token", "rj5aabcea");
+var paramVAlue = roff.autoQueryParamGet("access_token");
+
+```
+
+
+### autoHeaderParam(name, value)
+
+A header of ```name``` with ```value``` will be added to the header of every RESTful api call.  Useful for adding parameters such as an access token.
+
+Example usage:
+
+```
+var roff = restoff()
+	.autoHeaderParam("access_token", "rj5aabcea");
+```
+
+### autoHeaderParamGet(name)
+
+Returns the value of the header parameter with the provided ```name```.
+
+Example usage:
+
+```
+var roff = restoff()
+	.autoHeaderParam("access_token", "rj5aabcea");
+var paramVAlue = roff.autoHeaderParamGet("access_token");
+
+```
 
 ### clearCacheBy(repoName)
 
@@ -61,7 +113,6 @@ Clears the cache of all repositories.
 
 TODO: Unless there are pending changes. add a "force" parameter.
 
-TODO: Unless there are pending changes.
 
 Example usage:
 
@@ -85,6 +136,21 @@ return roff.get("http://test.development.com:4050/testsweb/testdata/users")
 });
 
 ```
+
+### uriGenerate(uri)
+
+restOff may add additional query parameters when restOff.get(uri) is called. Use this method to see the final uri sent to the backend server.
+
+Example usage:
+
+```
+var roff = restoff().autoQueryParam("access_token", "rj5aabcea");
+var actualUri = roff.uriGenerate("http://test.development.com:4050/emailaddresses");
+expect(actualUri)).to.equal("http://test.development.com:4050/emailaddresses?access_token=rj5aabcea");
+
+```
+
+
 
 ### isOnline Property
 
