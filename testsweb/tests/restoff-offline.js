@@ -2,7 +2,7 @@ describe ("restoff when offline ", function() {
 
 	it("should forceOffline correctly and forceOnline correctly", function() {
 		var roff = restoff();
-		return roff.get("http://test.development.com:4050/testsweb/testdata/users")
+		return roff.get("http://test.development.com:4050/testsweb/testdata/addresses")
 		.then(function(result){
 			expect(roff.isForcedOffline, "isForcedOffline").to.be.false;
 			expect(roff.isOnline, "isOnline").to.equal(roff.ONLINE);
@@ -19,7 +19,7 @@ describe ("restoff when offline ", function() {
 		var roff = restoff();
 		roff.forceOffline();
 
-		return roff.get("http://test.development.com:4050/testsweb/testdata/users")
+		return roff.get("http://test.development.com:4050/testsweb/testdata/addresses")
 		.then(function(result){
 			expect(roff.isForcedOffline, "isForcedOffline").to.be.true;
 			expect(roff.isOnline, "isOnline").to.equal(roff.ONLINE_NOT);
