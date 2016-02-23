@@ -1,20 +1,17 @@
 describe ("restoff when offline ", function() {
 
-	beforeEach(function() {
-	});
-
 	it("should forceOffline correctly and forceOnline correctly", function() {
 		var roff = restoff();
 		return roff.get("http://test.development.com:4050/testsweb/testdata/users")
 		.then(function(result){
-			expect(roff.isForcedOffline).to.be.false;
-			expect(roff.isOnline).to.equal(roff.ONLINE);
+			expect(roff.isForcedOffline, "isForcedOffline").to.be.false;
+			expect(roff.isOnline, "isOnline").to.equal(roff.ONLINE);
 			roff.forceOffline();
-			expect(roff.isForcedOffline).to.be.true;
-			expect(roff.isOnline).to.equal(roff.ONLINE_NOT);
+			expect(roff.isForcedOffline, "isForcedOffline").to.be.true;
+			expect(roff.isOnline, "isOnline").to.equal(roff.ONLINE_NOT);
 			roff.forceOnline();
-			expect(roff.isForcedOffline).to.be.false;
-			expect(roff.isOnline).to.equal(roff.ONLINE_UNKNOWN);
+			expect(roff.isForcedOffline, "isForcedOffline").to.be.false;
+			expect(roff.isOnline, "isOnline").to.equal(roff.ONLINE_UNKNOWN);
 		});
 	});
 
@@ -24,9 +21,9 @@ describe ("restoff when offline ", function() {
 
 		return roff.get("http://test.development.com:4050/testsweb/testdata/users")
 		.then(function(result){
-			expect(roff.isForcedOffline).to.be.true;
-			expect(roff.isOnline).to.equal(roff.ONLINE_NOT);
-			expect(result).to.deep.equals({});
+			expect(roff.isForcedOffline, "isForcedOffline").to.be.true;
+			expect(roff.isOnline, "isOnline").to.equal(roff.ONLINE_NOT);
+			expect(result, "Empty object").to.deep.equals({});
 		});
 	});
 
@@ -40,9 +37,9 @@ describe ("restoff when offline ", function() {
 
 	// 	return roff.get("http://jsonplaceholder.typicode.com/posts")
 	// 	.then(function(result){
-	// 		expect(roff.isForcedOffline).to.be.false;
-	// 		expect(roff.isOnline).to.be.false;
-	// 		expect(result).to.deep.equals(offlineData);
+	// 		expect(roff.isForcedOffline, "isForcedOffline").to.be.false;
+	// 		expect(roff.isOnline, "isOnline").to.be.false;
+	// 		expect(result, "Offlinedata").to.deep.equals(offlineData);
 	// 	});
 	// });	
 

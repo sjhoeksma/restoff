@@ -12,7 +12,7 @@ var mocha = require('gulp-mocha');
 var mochaPhantom = require('gulp-mocha-phantomjs');
 var connect = require('gulp-connect');
 var livereload = require('gulp-livereload');
-var nodemon = require('nodemon');
+var exec = require('child_process').exec;
 
 var source = pkg.source;
 var libName = pkg.name;
@@ -29,7 +29,7 @@ var banner = function(bundled) {
 	].join('\n') + '\n';
 };
 
-gulp.task('default', ['build', 'mocha', 'watch', 'webserver']); // , 'restserver'
+gulp.task('default', ['build', 'mocha', 'watch', 'webserver', 'restserver']);
 
 gulp.task('mocha', ['build'], function() {
 	return gulp.src(['tests/*test.js'], {
@@ -82,12 +82,29 @@ gulp.task('webserver', function() {
 	});
 });
 
+gulp.task('restserver', function (cb) {
+	console.log("Running test rest api server on port 3000.");
+	console.log("Try going to http://test.development.com:3000/posts");
 
-// gulp.task('restserver', function () {
-// 	nodemon({
-// 		script: './tests/rest_api/server.js'
-// 		, ext: 'js html'
-// 		, env: { 'NODE_ENV': 'development' }
-// 	});
-// });
+	exec('json-server tests/rest-api/db.json', function (err, stdout, stderr) {
+    	console.log(stdout);
+    	console.log(stderr);
+    	cb(err);
+	});
+});
+
+gulp.task('restserverkill', function (cb) {
+	console.log("Killing rest api server on port 3000.");
+
+	exec("lsof -i tcp:3000 | awk 'NR!=1 {print $2}'", function (err, stdout, stderr) {
+	// exec("lsof -i tcp:3000 | awk 'NR!=1 {print $2}' | xargs kill", function (err, stdout, stderr) {
+    	console.log(stdout);
+    	console.log(stderr);
+    	cb(err);
+	});
+});
+
+
+
+
 

@@ -202,6 +202,7 @@ Change directory to your node project.
 
 ```
 $ npm install
+$ npm install -g json-server   // for testing
 ```
 
 ### Update Node Module Dependencies

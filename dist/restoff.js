@@ -57,6 +57,7 @@ RestOff.prototype = Object.create(Object.prototype, {
 			// We use readyState2 and override it to trick the request into
 			// thinking it is complete. Why readyState2? Because readyState
 			// has no setter (request.readyState = 4 throws an exception).
+			request.actuallySent = false;
 			if (this.isForcedOffline) {
 				request.__defineGetter__('readyState2', function(){return request.__proto__.DONE;});
 				request.send = function() { this.onreadystatechange(); }
@@ -173,9 +174,12 @@ RestOff.prototype.get = function(uri) {
 		);
 		
 		request.onreadystatechange = function(){
-			if(request.__proto__.DONE === request.readyState2 ) {
-				if(request.__proto__.UNSENT === request.status) {
-					that.isOnline = that.ONLINE_NOT; // TODO: Write a test to cover this line of code
+			if(request.__proto__.HEADERS_RECEIVED === request.readyState2) {
+				// net:ERR_CONNECTION_REFUSED only has an onreadystatechange of request.__proto__.DONE
+				request.actuallySent = true;
+			} else if(request.__proto__.DONE === request.readyState2 ) {
+				if ((request.__proto__.UNSENT === request.status) && (that.isForcedOffline)) {
+						// that.isOnline = that.ONLINE_NOT; // TODO: Write a test to cover this line of code
 					var repoName = that.repoNameFrom(uri);
 					if (undefined === that.repository[repoName]) {
 						that.repoAdd(uri, "{}"); // offline and first call to the endpoint made
@@ -190,7 +194,6 @@ RestOff.prototype.get = function(uri) {
 						"messageDetail" : request.responseText.replace(/\r?\n|\r/g, ""),
 						"status": request.status
 					};
-					// console.log("Current user %O", errorMessage);
 					reject(errorMessage);
 				}
 			} // else ignore other readyStates
