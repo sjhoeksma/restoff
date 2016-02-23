@@ -141,7 +141,6 @@ describe ("restoff", function() {
 			});
 	});
 
-
 	it("should be able to clear a repository leaving an 'empty' repository\
 		and not add a repository if it exists.", function() {
 		var roff = restoff({
@@ -179,6 +178,48 @@ describe ("restoff", function() {
 				expect(roff.repository["addresses"]).to.deep.equals({});
 			});
 	});
+
+	it("should support adding parameters automatically\
+		and will overwrite an existing parameter with the new value\
+		and it can support multiple auto parameters", function() {
+		var roff = restoff().autoQueryParam("access_token", "rj5aabcea");
+
+		expect(roff).to.be.an('object');
+		expect(roff.autoQueryParamGet("access_token")).to.equal("rj5aabcea");
+
+		roff.autoQueryParam("access_token", "rj5aabcea2");
+		expect(roff.autoQueryParamGet("access_token")).to.equal("rj5aabcea2");
+		roff.autoQueryParam("another_auto", "another_value");
+
+		var generated = roff.uriGenerate("http://test.development.com:4050/emailaddresses");
+		expect(generated).to.equal("http://test.development.com:4050/emailaddresses?access_token=rj5aabcea2&another_auto=another_value");
+
+		var generated2 = roff.uriGenerate("http://test.development.com:4050/emailaddresses?already=added");
+		expect(generated2).to.equal("http://test.development.com:4050/emailaddresses?already=added&access_token=rj5aabcea2&another_auto=another_value");
+
+		return roff.get("http://test.development.com:4050/emailaddresses")
+			.then(function(result){
+				expect(result).to.deep.equals(emailaddress01);
+				expect(Object.keys(roff.repository).length).to.equal(1);
+				expect(roff.repository["emailaddresses"]).to.deep.equals(emailaddress01);
+			});
+
+	});
+
+	it("should support adding headers automatically", function() {
+		var roff = restoff().autoHeaderParam("access_token", "rj5aabcea");
+
+		expect(roff).to.be.an('object');
+		expect(roff.autoHeaderParamGet("access_token")).to.equal("rj5aabcea");
+
+		return roff.get("http://test.development.com:4050/emailaddresses")
+			.then(function(result){
+				expect(result).to.deep.equals(emailaddress01);
+				expect(Object.keys(roff.repository).length).to.equal(1);
+				expect(roff.repository["emailaddresses"]).to.deep.equals(emailaddress01);
+			});
+
+	});	
 
 
 });

@@ -20,6 +20,8 @@ function restoff(config) {
 	that._isOnline = that.ONLINE_UNKNOWN;
 	that._forcedOffline = false;
 	that._repo = {};
+	that._autoParams = {};
+	that._autoHeaders = {};
 
 	that._rootUri = (undefined !== config) ? config.rootUri ? config.rootUri : "" : "";
 	that._dbName = (undefined !== config) ? config.dbName ? config.dbName : "restoff.json" : "restoff.json";
@@ -69,6 +71,46 @@ RestOff.prototype = Object.create(Object.prototype, {
 RestOff.prototype.ONLINE_UNKNOWN = null;
 RestOff.prototype.ONLINE = true;
 RestOff.prototype.ONLINE_NOT = false;
+
+RestOff.prototype.autoQueryParam = function(name, value) {
+	this._autoParams[name] = value;
+	return this;
+}
+
+RestOff.prototype.autoQueryParamGet = function(name) {
+	return this._autoParams[name];
+}
+
+
+RestOff.prototype.autoHeaderParam = function(name, value) {
+	this._autoHeaders[name] = value;
+	return this;
+}
+
+RestOff.prototype.autoHeaderParamGet = function(name) {
+	return this._autoHeaders[name];
+}
+
+RestOff.prototype.uriGenerate = function(uri) {
+	var result = uri;
+	var autoParams = this._autoParams;
+	var keys = Object.keys(autoParams);
+	if (keys.length > 0) {
+		var first = true;
+		if (result.indexOf("?") !== -1) {
+			first = false;
+		} else {
+			result += "?";
+		}
+		keys.forEach(
+			function(key) {
+				result += (first ? "" : "&") + key + "=" + autoParams[key];
+				first = false;
+			}
+		);
+	}
+	return result;
+}
 
 RestOff.prototype.forceOffline = function() {
 	this._forcedOffline = true;
@@ -122,7 +164,14 @@ RestOff.prototype.get = function(uri) {
 	var that = this;
 	var promise = new Promise(function(resolve, reject) {
 		var request = that.getRequest;
-		request.open("GET", uri, true); // true: asynchronous
+		request.open("GET", that.uriGenerate(uri), true); // true: asynchronous // TODO: Write a test to cover that.uriGenerate(uri) if possible
+		var autoHeaders = that._autoHeaders;
+		Object.keys(autoHeaders).forEach(
+			function(key) {
+				request.setRequestHeader(key, autoHeaders[key]); // TODO: Write a test to cover this if possible
+			}
+		);
+		
 		request.onreadystatechange = function(){
 			if(request.__proto__.DONE === request.readyState2 ) {
 				if(request.__proto__.UNSENT === request.status) {
