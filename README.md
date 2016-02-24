@@ -8,38 +8,52 @@ Cavets are the results must be Json and you should follow [RESTful best known pr
 
 # RestOff Usage
 
-## Existing XMLHttpRequest Request
+Create a restoff service instance.
+
+```javascript
+var rest = restoff();
+```
+
+Re-use between calls.
 
 Getting a resource:
 
 ```javascript
-	var rest = restoff();
-	return rest.get("http://api.example.com/users").then(function(source) {
-		console.log(rest.repository["users"]);
-	});
-
+return rest.get("http://api.example.com/users").then(function(source) {
+	console.log(rest.repository["users"]);
+});
 ```
 
 Deleting a resource:
 
 ```javascript
-	var rest = restoff();
-	return rest.delete("http://api.example.com/users/301378d5").then(function(source) {
-		console.log("User deleted");
-	});
-
+return rest.delete("http://api.example.com/users/301378d5").then(function(source) {
+	console.log("User deleted");
+});
 ```
 
 Post a resource:
 
 ```javascript
-	var rest = restoff();
-	return rest.post("http://api.example.com/users/301378d5").then(function(source) {
-		console.log("User was posted");
-	});
-
+return rest.post("http://api.example.com/users/301378d5").then(function(source) {
+	console.log("User was posted");
+});
 ```
 
+Example usage of synchronize subsets of resources based on user.
+
+```
+var rest = restoff({
+	"rootUri" : "http://api.example.com/"
+});
+
+function synchronize(rest, userId) {
+	rest.get("users/" + userId);
+	rest.get("books?ownedby="+userId);
+	rest.get("addresses?userid="+userId);
+	...
+}
+```
 
 ### Functions and Properties
 
