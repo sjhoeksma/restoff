@@ -1,4 +1,4 @@
-describe ("restoff class", function() {
+describe ("restoff", function() {
 
 	function testLog(text) {
 		if (false) {
@@ -54,7 +54,7 @@ describe ("restoff class", function() {
 	// 	});
 	// }
 
-	it("should not wipeout Object prototype and be a restoff", function() {
+	it("01: should not wipeout Object prototype and be a restoff", function() {
 		expect(restoff, "restoff").to.not.eql(undefined);
 
 		var roff = restoff();
@@ -66,13 +66,13 @@ describe ("restoff class", function() {
 		expect(roff.ONLINE_NOT, "ONLINE_NOT").to.equal(false);
 	});
 
-	it("should be offline initially", function() {
+	it("02: should be offline initially", function() {
 		var roff = restoff();
 		expect(roff.isOnline, "isOnline").to.equal(roff.ONLINE_UNKNOWN);
 		expect(roff.isForcedOffline, "isForcedOffline ").to.be.false;
 	});
 
-	it("should handle config settings correctly", function() {
+	it("03: should handle config settings correctly", function() {
 		var roff = restoff();
 		expect(roff.rootUri, "rootUri").to.equal("");
 		expect(roff.dbName, "dbName").to.equal("restoff.json");
@@ -90,7 +90,7 @@ describe ("restoff class", function() {
 		expect(roff2.dbName, "dbName").to.equal("loki.json");
 	});
 	
-	it("should access a valid endpoint while connected\
+	it("04: should access a valid endpoint while connected\
 		and return back a javascript object", function() {
 		var dbSource = restoff();
 		var roff = restoff();
@@ -106,11 +106,13 @@ describe ("restoff class", function() {
 					expect(roff.isOnline, "isOnline").to.equal(roff.ONLINE);
 					// return testTearDown(dbSource, testid);
 				});
+			}).catch(function(error) {
+				expect(true, "Did you run gulp restserver?").to.equal.false;
 			});
 		// });
 	});
 
-	it("should handle an invalid endpoint while connected", function() {
+	it("05: should handle an invalid endpoint while connected", function() {
 		// var errorResult = {
 		// 	"message" : "Not Found",
 		// 	"messageDetail" : "Cannot GET /testsweb/testdata/user02.json",
@@ -131,7 +133,7 @@ describe ("restoff class", function() {
 		;
 	});
 
-	it("should store a RESTful call to the local repository, \
+	it("06: should store a RESTful call to the local repository, \
 		figure out correct repository name and\
 		the RESTful call should still work even when offline\
 		.", function() {
@@ -143,8 +145,8 @@ describe ("restoff class", function() {
 		expect(Object.keys(roff.repository).length, "Repository length").to.equal(0);
 		// return testSetup(testid).then(function(dbSource) {
 			return dbSource.get(testUri(userRepo)).then(function(source) {
+				expect(dbSource.repository[userRepo].length, userRepo + " repository length").to.equal(1);
 				return roff.get(testUri(userRepo)).then(function(users){
-					expect(dbSource.repository[userRepo].length, userRepo + " repository length").to.equal(1);
 					expect(users, userRepo + " object").to.deep.equals(source);
 					expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
 					expect(roff.repository[userRepo], userRepo + " object").to.deep.equals(source);
@@ -160,17 +162,19 @@ describe ("restoff class", function() {
 		// });
 	});
 
-	it("should support a non-standard RESTful api", function() {
+	it("07: should support a non-standard RESTful api", function() {
 		var roff = restoff({
 			"rootUri" : "http://test.development.com:4050/testsweb/testdata"
 		});
 
-		var address01 = {
+		var address01 = [];
+		address01.push(
+		{
 			"guid": "aedfa7a4-d748-11e5-b5d2-0a1d41d68579",
 			"address": "1347 Pacific Avenue, Suite 201",
 			"city": "Santa Cruz",
 			"zip": "95060"
-		};
+		});
 
 		return roff.get("http://test.development.com:4050/testsweb/testdata/addresses").then(function(addresses){
 			expect(addresses, "Address object").to.deep.equals(address01);
@@ -180,7 +184,7 @@ describe ("restoff class", function() {
 
 	});
 
-	it("should support more than one repository", function() {
+	it("08: should support more than one repository", function() {
 		var dbSource = restoff();
 		var testid = "01"; // 03
 		var userRepo = "users" + testid;
@@ -200,7 +204,7 @@ describe ("restoff class", function() {
 		// });
 	});
 
-	it("should be able to clear a repository leaving an 'empty' repository\
+	it("09: should be able to clear a repository leaving an 'empty' repository\
 		and not add a repository if it exists\
 		and not delete any data from the actual data source.", function() {
 		var roff = restoff();
@@ -215,7 +219,7 @@ describe ("restoff class", function() {
 				expect(roff.repository[userRepo], userRepo + " object").to.deep.equals(users);
 				roff.clearCacheBy(userRepo);
 				expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
-				expect(roff.repository[userRepo], userRepo + " object").to.deep.equals({});
+				expect(roff.repository[userRepo], userRepo + " object").to.deep.equals([]);
 				roff.clearCacheBy("not_a_repo");
 				expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
 				
@@ -231,7 +235,7 @@ describe ("restoff class", function() {
 		// });
 	});
 
-	it("should be able to clear all repositories leaving an 'empty' repository\
+	it("10: should be able to clear all repositories leaving an 'empty' repository\
 		but not delete actual data on the backend.", function() {
 		var dbSource = restoff();			
 		var testid = "01"; // 05
@@ -248,15 +252,15 @@ describe ("restoff class", function() {
 					expect(dbSource.repository[addressRepo], addressRepo + " object").to.deep.equals(addresses);
 					dbSource.clearCacheAll();
 					expect(Object.keys(dbSource.repository).length, "Repository length").to.equal(2);
-					expect(dbSource.repository[userRepo], userRepo + " object").to.deep.equals({});
-					expect(dbSource.repository[addressRepo], addressRepo + " object").to.deep.equals({});
+					expect(dbSource.repository[userRepo], userRepo + " object").to.deep.equals([]);
+					expect(dbSource.repository[addressRepo], addressRepo + " object").to.deep.equals([]);
 					// return testTearDown(dbSource, testid);
 				});
 			});
 		// });
 	});
 
-	it("should support adding parameters automatically\
+	it("11: should support adding parameters automatically\
 		and will overwrite an existing parameter with the new value\
 		and it can support multiple auto parameters\
 		and it will append if there are already parameters in the uri passed", function() {
@@ -288,7 +292,7 @@ describe ("restoff class", function() {
 
 	});
 
-	it("should support adding headers automatically", function() {
+	it("12: should support adding headers automatically", function() {
 		var roff = restoff().autoHeaderParam("access_token", "rj5aabcea");
 
 		expect(roff, "roff").to.be.an('object');

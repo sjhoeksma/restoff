@@ -122,7 +122,7 @@ RestOff.prototype.repoNameFrom = function(uri) {
 }
 
 RestOff.prototype.repoAdd = function(uri, result) {
-	obj = JSON.parse(result);
+	var obj = JSON.parse(result);
 	// TODO: Check for non-json result
 	return this.repoAddObject(uri, obj);
 }
@@ -130,14 +130,15 @@ RestOff.prototype.repoAdd = function(uri, result) {
 RestOff.prototype.repoAddObject = function(uri, obj) {
 	var repoName = this.repoNameFrom(uri);
 	if (obj instanceof Array) {
+		// TODO: There is no consolodiation at this time but will come soonish.
 		this._repo[repoName] = obj
 	} else {
 		if (undefined === this._repo[repoName]) {
-			this._repo[repoName] = "[]";
+			this._repo[repoName] = [];
 		}
-		this._repo[repoName][obj.id] = obj
+		this._repo[repoName].push(obj);
 	}
-	return obj;
+	return this._repo[repoName];
 }
 
 RestOff.prototype.clearCacheBy = function(repoName) {
@@ -168,6 +169,7 @@ RestOff.prototype.get = function(uri) {
 		);
 		
 		request.onreadystatechange = function(){
+
 			if(request.__proto__.HEADERS_RECEIVED === request.readyState2) {
 				// net:ERR_CONNECTION_REFUSED only has an onreadystatechange of request.__proto__.DONE
 			} else if(request.__proto__.DONE === request.readyState2 ) {
@@ -175,7 +177,7 @@ RestOff.prototype.get = function(uri) {
 						// that.isOnline = that.ONLINE_NOT; // TODO: Write a test to cover this line of code
 					var repoName = that.repoNameFrom(uri);
 					if (undefined === that.repository[repoName]) {
-						that.repoAdd(uri, "{}"); // offline and first call to the endpoint made
+						that.repoAddObject(uri, []); // offline and first call to the endpoint made
 					}
 					resolve(that.repository[repoName]);
 				} else if(200 === request.status) {

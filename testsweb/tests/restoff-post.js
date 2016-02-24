@@ -4,7 +4,7 @@ describe ("restoff post", function() {
 		return "http://test.development.com:3000/" + path;
 	}
 
-	it("should post a new item to the endpoint and local repository\
+	it("01: should post a new item to the endpoint and local repository\
 	    when online even when the repository has not been created yet", function() {
 
 		var testid = "02"; // 06

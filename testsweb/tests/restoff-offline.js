@@ -1,6 +1,6 @@
-describe ("restoff when offline ", function() {
+describe ("restoff, when offline, ", function() {
 
-	it("should forceOffline correctly and forceOnline correctly", function() {
+	it("01: should forceOffline and forceOnline", function() {
 		var roff = restoff();
 		return roff.get("http://test.development.com:4050/testsweb/testdata/addresses")
 		.then(function(result){
@@ -15,7 +15,7 @@ describe ("restoff when offline ", function() {
 		});
 	});
 
-	it("should create an empty repository when repository is first accessed while offline", function() {
+	it("02: should create an empty repository when first accessed and offline", function() {
 		var roff = restoff();
 		roff.forceOffline();
 
@@ -23,7 +23,7 @@ describe ("restoff when offline ", function() {
 		.then(function(result){
 			expect(roff.isForcedOffline, "isForcedOffline").to.be.true;
 			expect(roff.isOnline, "isOnline").to.equal(roff.ONLINE_NOT);
-			expect(result, "Empty object").to.deep.equals({});
+			expect(result, "Empty object").to.deep.equals([]);
 		});
 	});
 
