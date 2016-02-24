@@ -4,55 +4,71 @@ describe ("restoff delete", function() {
 		return "http://test.development.com:3000/" + path;
 	}
 
-	// it("should do a physical delete on an endpoint and the local repository while online", function() {
+	it("01: should, when online, handle network errors", function() {
+		return restoff().delete("http://idontexisthopefully.com/001").then(function(result) {
+			expect(true, "Promise should call the catch.", false);
+		}).catch(function(error) {
+			var errorExpected = {
+				message: "Network Error",
+				messageDetail: "",
+				status: 0,
+				uri: "http://idontexisthopefully.com/001"
+			};
+			expect(error, "Error result").to.deep.equals(errorExpected);
+		});
+	});
 
-	// 	var testid = "02"; // 06
-	// 	var userRepo = "users" + testid;
+	it("02: should, when online, ignore 404s", function() {
+		var testid = "44";
+		var userRepo = "users" + testid;
 
-	// 	expect(Object.keys(rofftest.repository).length, "Repository length").to.equal(0);
-	// 	var roff = restoff();
+		var roff = restoff();
+		expect(Object.keys(roff.repository).length, "Repository length").to.equal(0);
 
-	// 	var newuser = {
-	// 		"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68577",
-	// 		"first_name": "Happy2",
-	// 		"last_name": "User2"
-	// 	}
+		return roff.delete(testUri(userRepo+"/232")).then(function(result) {
+			expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
+			expect(roff.repository[userRepo], userRepo + " object").to.deep.equals([]);			
+			expect(roff.repository[userRepo], userRepo + " object").to.deep.equals([]);			
+		}).catch(function(error) {
+			expect(true, "Promise should call the then.").to.be.false;
+		});
+	});
 
-	// 	return roff.post(testUri(userRepo), newuser).then(function(result) {
+	it("03: should, with a blank repo and when online, do nothing because we can't delete something we don't have they key of", function() {
+	});
 
+	it("04: should, with a non-blank repo and when online, delete an existing item from the server and local repository", function() {
+		var testid = "06";
+		var userRepo = "users" + testid;
+		var roff = restoff();
 
+		expect(Object.keys(roff.repository).length, "Repository length").to.equal(0);
 
-	// 	});
+		var usersToDelete = [{
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68522",
+			"first_name": "Unhappy",
+			"last_name": "User"
+		}];
 
-	// 	// return roff.delete(testUri("users/71ea1a7b-eed2-4c8b-9a6a-10900e8cbbe4"))
-	// 	// .then(function(users_source) {
-	// 	// 	// expect(roff.repository["users"].length, "User repository count ").to.equal(0);
-	// 	// 	// expect(roff.repository["users"], "User object").to.deep.equals(users_source);
+		var userToDelete = usersToDelete[0];
+		expect(Object.keys(roff.repository).length, "Repository length").to.equal(0);
 
-	// 	// });
+		return roff.post(testUri(userRepo), userToDelete).then(function(result) {
+			expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
+			expect(roff.repository[userRepo].length, userRepo + " repository count ").to.equal(1);
+			expect(roff.repository[userRepo], userRepo + " object").to.deep.equals(usersToDelete);
 
+			return roff.delete(testUri(userRepo + "/aedfa7a4-d748-11e5-b5d2-0a1d41d68522")).then(function(result) {
+				expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
+				expect(roff.repository[userRepo].length, userRepo + " repository count ").to.equal(0);
+				expect(roff.repository[userRepo], userRepo + " object").to.deep.equals([]);
+			}).catch(function(error) {
+				console.log(error);
+				expect(true, "Promise should call the then.").to.be.false;
+			});
 
-	// 	// return roff.get(testUri("users"))
-	// 	// 	.then(function(users) {
-	// 	// 		expect(roff.repository["users"], "User object").to.deep.equals(users);
-	// 	// 		expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
+		});
 
-	// 	// 		return roff.post(testUri("users"), 
- // 	// 				{
-	// 	// 		    	"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68577",
-	// 	// 		    	"first_name": "Happy2",
-	// 	// 		    	"last_name": "User2"
-	// 	// 		    }
-	// 	// 		)
-	// 	// 		.then(function(result) {
-	// 	// 			console.log(result);
-	// 	// 		});
-
-	// 	// });
-
-
-	// });
-
-
+	});
 
 });

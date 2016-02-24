@@ -8,6 +8,7 @@ function restoff(config) {
 
 	that._rootUri = (undefined !== config) ? config.rootUri ? config.rootUri : "" : "";
 	that._dbName = (undefined !== config) ? config.dbName ? config.dbName : "restoff.json" : "restoff.json";
+	that._foreignKeyName = (undefined !== config) ? config.foreignKeyName ? config.foreignKeyName : "id" : "id";
 
 	return that;
 }
@@ -21,6 +22,10 @@ RestOff.prototype = Object.create(Object.prototype, {
 	dbName: {
 		get: function() { return this._dbName; },
 		set: function(value) { this._dbName = value; }
+	},
+	foreignKeyName: {
+		get: function() { return this._foreignKeyName; },
+		set: function(value) { this._foreignKeyName = value; }
 	},
 	isForcedOffline: {
 		get: function() { return this._forcedOffline; }
@@ -141,6 +146,7 @@ RestOff.prototype.repoNameFrom = function(uri) {
 	return repoName;
 }
 
+// TODO: Refactor... Repo should be it's own thing
 RestOff.prototype.repoAdd = function(uri, result) {
 	var obj = JSON.parse(result);
 	// TODO: Check for non-json result
@@ -151,6 +157,7 @@ RestOff.prototype.repoAddObject = function(uri, obj) {
 	var repoName = this.repoNameFrom(uri);
 	if (obj instanceof Array) {
 		// TODO: There is no consolodiation at this time but will come soonish.
+		//       So right now, we literally overwrite whatever is there.
 		this._repo[repoName] = obj
 	} else {
 		if (undefined === this._repo[repoName]) {
@@ -159,6 +166,27 @@ RestOff.prototype.repoAddObject = function(uri, obj) {
 		this._repo[repoName].push(obj);
 	}
 	return this._repo[repoName];
+}
+
+RestOff.prototype.repoDelete = function(uri) {
+	var that = this;
+	var aUri = document.createElement("a");
+	aUri.href = uri;
+	var repoName = aUri.pathname.split("/")[1];
+	var idToRemove = aUri.pathname.split("/")[2];
+	if (undefined === this._repo[repoName]) {
+		this._repo[repoName] = [];
+	}
+
+	// TODO: Use a better data structure
+
+	this._repo[repoName].forEach(
+		function(obj, pos, repo) {
+			if (obj[that.foreignKeyName] === idToRemove ) {
+				that._repo[repoName].splice(pos);
+			}
+		}
+	);
 }
 
 RestOff.prototype.clearCacheBy = function(repoName) {
@@ -187,7 +215,7 @@ RestOff.prototype.get = function(uri) {
 				request.setRequestHeader(key, autoHeaders[key]); // TODO: Write a test to cover this if possible
 			}
 		);
-		
+
 		request.onreadystatechange = function(){
 
 			if(request.__proto__.HEADERS_RECEIVED === request.readyState2) {
@@ -239,13 +267,23 @@ RestOff.prototype.post = function(uri, object) {
 
 RestOff.prototype.delete = function(uri) {
 	var that = this;
+
 	var promise = new Promise(function(resolve, reject) {
 		var request = that.getRequest;
 		request.open("DELETE", that.uriGenerate(uri), true);
 		request.onreadystatechange = function(){
-			// console.log(request);
 			if(request.__proto__.DONE === request.readyState2 ) {
-				resolve("What happened?");
+				if (200 === request.status) {
+					that.repoDelete(uri);
+					resolve();
+				} else if (404 === request.status) {
+					// No Worries. Wasn't in repo and now it won't be in our
+					// local repository either (if it is there)
+					that.repoDelete(uri);
+					resolve();
+				} else {
+					reject(that.createError(request, uri));					
+				}
 			}
 		};
 		request.send();

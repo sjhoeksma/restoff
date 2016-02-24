@@ -12,7 +12,7 @@ describe ("restoff post", function() {
 
 	it("01: should, when online, handle network errors", function() {
 		return restoff().post("http://idontexisthopefully.com", newuser01).then(function(result) {
-			expect(true, "Promise should call the catch.", false);
+			expect(true, "Promise should call the catch.").to.be.false;			
 		}).catch(function(error) {
 			var errorExpected = {
 				message: "Network Error",
@@ -32,7 +32,7 @@ describe ("restoff post", function() {
 		expect(Object.keys(roff.repository).length, "Repository length").to.equal(0);
 
 		return roff.post(testUri(userRepo), newuser01).then(function(result) {
-			expect(true, "Promise should call the catch.", false);
+			expect(true, "Promise should call the catch.").to.be.false;			
 		}).catch(function(error) {
 			var errorExpected = {
 				message: "Not Found",
@@ -65,7 +65,8 @@ describe ("restoff post", function() {
 		});
 	});
 
-	it("04: should, with a non-blank repo and when online, post a new item to server and local repository", function() {
+	it("04: should, with a non-blank repo and when online, post a new item to server and local repository\
+		and 404 (Not Found) for deletes should be ignored.", function() {
 		var testid = "04";
 		var userRepo = "users" + testid;
 

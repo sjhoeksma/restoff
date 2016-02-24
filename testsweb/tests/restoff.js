@@ -39,13 +39,16 @@ describe ("restoff", function() {
 
 		roff.dbName = "new.json";
 		expect(roff.dbName, "dbName").to.equal("new.json");
+		expect(roff.foreignKeyName, "foreignKeyName").to.equal("id");
 
 		var roff2 = restoff({
 			"rootUri" : testUri("testsweb/testdata2"),
-			"dbName" : "loki.json"
+			"dbName" : "loki.json",
+			"foreignKeyName" : "id2"
 		});
 		expect(roff2.rootUri, "rootUri").to.equal(testUri("testsweb/testdata2"));
 		expect(roff2.dbName, "dbName").to.equal("loki.json");
+		expect(roff2.foreignKeyName, "foreignKeyName").to.equal("id2");
 	});
 	
 	it("04: should access a valid endpoint while connected\
