@@ -92,19 +92,19 @@ describe ("restoff class", function() {
 	
 	it("should access a valid endpoint while connected\
 		and return back a javascript object", function() {
-		var db_source = restoff();
+		var dbSource = restoff();
 		var roff = restoff();
 		var testid = "01";
 		var userRepo = "users" + testid;
 
-		// return testSetup(testid).then(function(db_source) {
-			return db_source.get(testUri(userRepo)).then(function(source) {
-				expect(db_source.repository[userRepo].length, userRepo + " repository length").to.equal(1);
-				expect(db_source.repository[userRepo].length, userRepo + " repository count ").to.equal(1);
+		// return testSetup(testid).then(function(dbSource) {
+			return dbSource.get(testUri(userRepo)).then(function(source) {
+				expect(dbSource.repository[userRepo].length, userRepo + " repository length").to.equal(1);
+				expect(dbSource.repository[userRepo].length, userRepo + " repository count ").to.equal(1);
 				return roff.get(testUri(userRepo)).then(function(result){
 					expect(result, "User result").to.deep.equals(source);
 					expect(roff.isOnline, "isOnline").to.equal(roff.ONLINE);
-					// return testTearDown(db_source, testid);
+					// return testTearDown(dbSource, testid);
 				});
 			});
 		// });
@@ -135,16 +135,16 @@ describe ("restoff class", function() {
 		figure out correct repository name and\
 		the RESTful call should still work even when offline\
 		.", function() {
-		var db_source = restoff();
+		var dbSource = restoff();
 		var roff = restoff();
 		var testid = "01"; // 02
 		var userRepo = "users" + testid;
 
 		expect(Object.keys(roff.repository).length, "Repository length").to.equal(0);
-		// return testSetup(testid).then(function(db_source) {
-			return db_source.get(testUri(userRepo)).then(function(source) {
+		// return testSetup(testid).then(function(dbSource) {
+			return dbSource.get(testUri(userRepo)).then(function(source) {
 				return roff.get(testUri(userRepo)).then(function(users){
-					expect(db_source.repository[userRepo].length, userRepo + " repository length").to.equal(1);
+					expect(dbSource.repository[userRepo].length, userRepo + " repository length").to.equal(1);
 					expect(users, userRepo + " object").to.deep.equals(source);
 					expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
 					expect(roff.repository[userRepo], userRepo + " object").to.deep.equals(source);
@@ -153,7 +153,7 @@ describe ("restoff class", function() {
 							expect(users2, userRepo + " object").to.deep.equals(source);
 							expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
 							expect(roff.repository[userRepo], userRepo + " object").to.deep.equals(source);
-							// return testTearDown(db_source, testid);
+							// return testTearDown(dbSource, testid);
 					});
 				});
 			});
@@ -181,20 +181,20 @@ describe ("restoff class", function() {
 	});
 
 	it("should support more than one repository", function() {
-		var db_source = restoff();
+		var dbSource = restoff();
 		var testid = "01"; // 03
 		var userRepo = "users" + testid;
 		var addressRepo = "addresses" + testid;
 
-		// return testSetup(testid).then(function(db_source) {
-			return db_source.get(testUri(userRepo)).then(function(users) {
-				return db_source.get(testUri(addressRepo)).then(function(addresses){
-					expect(Object.keys(db_source.repository).length, "Repository length").to.equal(2);
-					expect(db_source.repository[userRepo].length, userRepo + " repository length").to.equal(1);
-					expect(db_source.repository[addressRepo].length, addressRepo + " repository length").to.equal(1);
-					expect(db_source.repository[userRepo], userRepo + " object").to.deep.equals(users);
-					expect(db_source.repository[addressRepo], addressRepo + " object").to.deep.equals(addresses);
-					// return testTearDown(db_source, testid);
+		// return testSetup(testid).then(function(dbSource) {
+			return dbSource.get(testUri(userRepo)).then(function(users) {
+				return dbSource.get(testUri(addressRepo)).then(function(addresses){
+					expect(Object.keys(dbSource.repository).length, "Repository length").to.equal(2);
+					expect(dbSource.repository[userRepo].length, userRepo + " repository length").to.equal(1);
+					expect(dbSource.repository[addressRepo].length, addressRepo + " repository length").to.equal(1);
+					expect(dbSource.repository[userRepo], userRepo + " object").to.deep.equals(users);
+					expect(dbSource.repository[addressRepo], addressRepo + " object").to.deep.equals(addresses);
+					// return testTearDown(dbSource, testid);
 				});
 			});
 		// });
@@ -208,7 +208,7 @@ describe ("restoff class", function() {
 		var userRepo = "users" + testid;
 
 		expect(Object.keys(roff.repository).length, "Repository length").to.equal(0);
-		// return testSetup(testid).then(function(db_source) {
+		// return testSetup(testid).then(function(dbSource) {
 			return roff.get(testUri(userRepo)).then(function(users){
 				expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
 				expect(roff.repository[userRepo].length, userRepo + " repository length").to.equal(1);
@@ -220,12 +220,12 @@ describe ("restoff class", function() {
 				expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
 				
 				// Verify we did not delete any data from actual data source
-				var db_source = restoff();
-				return db_source.get(testUri(userRepo)).then(function(users){
-					expect(Object.keys(db_source.repository).length, "Repository length").to.equal(1);
-					expect(db_source.repository[userRepo].length, userRepo + " repository length").to.equal(1);
-					expect(db_source.repository[userRepo], userRepo + " object").to.deep.equals(users);
-					// return testTearDown(db_source, testid);
+				var dbSource = restoff();
+				return dbSource.get(testUri(userRepo)).then(function(users){
+					expect(Object.keys(dbSource.repository).length, "Repository length").to.equal(1);
+					expect(dbSource.repository[userRepo].length, userRepo + " repository length").to.equal(1);
+					expect(dbSource.repository[userRepo], userRepo + " object").to.deep.equals(users);
+					// return testTearDown(dbSource, testid);
 				});
 			});
 		// });
@@ -233,24 +233,24 @@ describe ("restoff class", function() {
 
 	it("should be able to clear all repositories leaving an 'empty' repository\
 		but not delete actual data on the backend.", function() {
-		var db_source = restoff();			
+		var dbSource = restoff();			
 		var testid = "01"; // 05
 		var userRepo = "users" + testid;
 		var addressRepo = "addresses" + testid;		
 
-		// return testSetup(testid).then(function(db_source) {
-			return db_source.get(testUri(userRepo)).then(function(users) {
-				return db_source.get(testUri(addressRepo)) .then(function(addresses){
-					expect(Object.keys(db_source.repository).length, "Repository length").to.equal(2);
-					expect(db_source.repository[userRepo].length, userRepo + " repository length").to.equal(1);
-					expect(db_source.repository[userRepo], userRepo + " object").to.deep.equals(users);
-					expect(db_source.repository[addressRepo].length, userRepo + " repository length").to.equal(1);
-					expect(db_source.repository[addressRepo], addressRepo + " object").to.deep.equals(addresses);
-					db_source.clearCacheAll();
-					expect(Object.keys(db_source.repository).length, "Repository length").to.equal(2);
-					expect(db_source.repository[userRepo], userRepo + " object").to.deep.equals({});
-					expect(db_source.repository[addressRepo], addressRepo + " object").to.deep.equals({});
-					// return testTearDown(db_source, testid);
+		// return testSetup(testid).then(function(dbSource) {
+			return dbSource.get(testUri(userRepo)).then(function(users) {
+				return dbSource.get(testUri(addressRepo)) .then(function(addresses){
+					expect(Object.keys(dbSource.repository).length, "Repository length").to.equal(2);
+					expect(dbSource.repository[userRepo].length, userRepo + " repository length").to.equal(1);
+					expect(dbSource.repository[userRepo], userRepo + " object").to.deep.equals(users);
+					expect(dbSource.repository[addressRepo].length, userRepo + " repository length").to.equal(1);
+					expect(dbSource.repository[addressRepo], addressRepo + " object").to.deep.equals(addresses);
+					dbSource.clearCacheAll();
+					expect(Object.keys(dbSource.repository).length, "Repository length").to.equal(2);
+					expect(dbSource.repository[userRepo], userRepo + " object").to.deep.equals({});
+					expect(dbSource.repository[addressRepo], addressRepo + " object").to.deep.equals({});
+					// return testTearDown(dbSource, testid);
 				});
 			});
 		// });
@@ -278,7 +278,7 @@ describe ("restoff class", function() {
 		var testid = "01"; // 06
 		var userRepo = "users" + testid;
 
-		// return testSetup(testid).then(function(db_source) {
+		// return testSetup(testid).then(function(dbSource) {
 			return roff.get(testUri(userRepo)).then(function(users){
 				expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
 				expect(roff.repository[userRepo], userRepo  + " object").to.deep.equals(users);
@@ -297,11 +297,11 @@ describe ("restoff class", function() {
 		var testid = "01"; // 07 
 		var userRepo = "users" + testid;
 
-		// return testSetup(testid).then(function(db_source) {
+		// return testSetup(testid).then(function(dbSource) {
 			return roff.get(testUri(userRepo)).then(function(users){
 				expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
 				expect(roff.repository[userRepo], userRepo + " object").to.deep.equals(users);
-				// return testTearDown(db_source, testid);
+				// return testTearDown(dbSource, testid);
 			});
 		// });
 	});	

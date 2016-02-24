@@ -17,56 +17,9 @@
   ],
   "users02": [
     {
-      "id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68578",
-      "first_name": "Happy",
-      "last_name": "User"
+      "id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68577",
+      "first_name": "Happy2",
+      "last_name": "User2"
     }
-  ],
-  "addresses02": [
-    {
-      "id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68579",
-      "address": "1347 Pacific Avenue, Suite 201",
-      "city": "Santa Cruz",
-      "state": "CA",
-      "zip": 95060
-    }
-  ],
-  "users03": [
-    {
-      "id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68578",
-      "first_name": "Happy",
-      "last_name": "User"
-    }
-  ],
-  "addresses03": [
-    {
-      "id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68579",
-      "address": "1347 Pacific Avenue, Suite 201",
-      "city": "Santa Cruz",
-      "state": "CA",
-      "zip": 95060
-    }
-  ],
-  "users04": [],
-  "addresses04": [],
-  "users05": [
-    {
-      "id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68578",
-      "first_name": "Happy",
-      "last_name": "User"
-    }
-  ],
-  "addresses05": [
-    {
-      "id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68579",
-      "address": "1347 Pacific Avenue, Suite 201",
-      "city": "Santa Cruz",
-      "state": "CA",
-      "zip": 95060
-    }
-  ],
-  "users06": [],
-  "addresses06": [],
-  "users07": [],
-  "addresses07": []
+  ]
 }

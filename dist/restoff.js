@@ -139,15 +139,27 @@ RestOff.prototype.repoNameFrom = function(uri) {
 }
 
 RestOff.prototype.repoAdd = function(uri, result) {
-	var repoName = this.repoNameFrom(uri);
-	this._repo[repoName] = JSON.parse(result);
+	obj = JSON.parse(result);
 	// TODO: Check for non-json result
-	return this._repo[repoName];
+	return this.repoAddObject(uri, obj);
+}
+
+RestOff.prototype.repoAddObject = function(uri, obj) {
+	var repoName = this.repoNameFrom(uri);
+	if (obj instanceof Array) {
+		this._repo[repoName] = obj
+	} else {
+		if (undefined === this._repo[repoName]) {
+			this._repo[repoName] = "[]";
+		}
+		this._repo[repoName][obj.id] = obj
+	}
+	return obj;
 }
 
 RestOff.prototype.clearCacheBy = function(repoName) {
 	if (undefined !== this._repo[repoName]) {
-		this._repo[repoName] = {};
+		this._repo[repoName] = [];
 	}
 }
 
@@ -155,7 +167,7 @@ RestOff.prototype.clearCacheAll = function() {
 	var that = this;
 	Object.keys(this.repository).forEach(
 		function(value) {
-			that._repo[value] = {};
+			that._repo[value] = [];
 		}
 	);
 }
@@ -205,14 +217,20 @@ RestOff.prototype.post = function(uri, object) {
 	var that = this;
 	var promise = new Promise(function(resolve, reject) {
 		var request = that.getRequest;
+		var body = JSON.stringify(object);
+
 		request.open("POST", that.uriGenerate(uri), true);
-		request.onreadystatechange = function(){
+		request.onreadystatechange = function() {
 			// console.log(request);
+			if(request.__proto__.DONE === request.readyState2 ) {
+				var repoName = that.repoNameFrom(uri);
+				resolve(that.repoAddObject(uri, body));
+			} else {
+				reject("TODO: Add test for this line of code");
+			}
 		};
 		request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-		var body = JSON.stringify(object);
 		request.send(body);
-		resolve("What happened?");		
 	});
 	return promise;
 }
