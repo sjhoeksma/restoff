@@ -37,8 +37,31 @@ config
 
 ##### rootUri Config
 
+When making a RESTful call, rootUri will be appended to the beginning of the URI if no protocol is provided.
 
-restOff uses the rootUri to determine the name of a repository. Let's take ```http://api.example.com/tickets``` as an example end point. The ```rootUri```, by default, will be the protocol + host. The repository name then becomes ```tickets```.
+For example:
+
+```
+var roff = restoff(
+	{
+		"rootUri" : "http://api.example.com/",
+	}
+)
+
+return roff.get("users") // uri becomes http://api.example.com/users
+	.then(function(result){
+		// use the result here
+	}
+
+
+return roff.get("http://another.example.com/users") // uri stays http://another.example.com/users
+	.then(function(result){
+		// use the result here
+	}
+
+```
+
+Also, restOff uses the rootUri to determine the name of a repository. Let's take ```http://api.example.com/tickets``` as an example end point. The ```rootUri```, by default, will be the protocol + host. The repository name then becomes ```tickets```.
 
 Let's say we have a ```rootUri``` of ```http://api.example.com/root/moreroot/tickets```. The repository name would then be ```root/moreroot/tickets``` which is not optimal.
 

@@ -93,6 +93,9 @@ RestOff.prototype.autoHeaderParamGet = function(name) {
 
 RestOff.prototype.uriGenerate = function(uri) {
 	var result = uri;
+	if (result.indexOf("http") === -1) { // missing domain/protocol/etc.
+		result = this.rootUri + result;
+	}
 	var autoParams = this._autoParams;
 	var keys = Object.keys(autoParams);
 	if (keys.length > 0) {
