@@ -55,6 +55,23 @@ RestOff.prototype.ONLINE_UNKNOWN = null;
 RestOff.prototype.ONLINE = true;
 RestOff.prototype.ONLINE_NOT = false;
 
+RestOff.prototype.createError = function(request, uri) {
+	var message = request.statusText;
+	var messageDetail = request.responseText.replace(/\r?\n|\r/g, "");
+	var status = request.status;
+
+	if (0 === status) {
+		message = "Network Error";
+	}
+
+	return {
+		"message" : message,
+		"messageDetail" : messageDetail,
+		"status": status,
+		"uri": uri
+	};
+}
+
 RestOff.prototype.autoQueryParam = function(name, value) {
 	this._autoParams[name] = value;
 	return this;
@@ -184,12 +201,7 @@ RestOff.prototype.get = function(uri) {
 					that.isOnline = that.ONLINE;
 					resolve(that.repoAdd(uri, request.response));
 				} else {
-					var errorMessage = {
-						"message" : request.statusText,
-						"messageDetail" : request.responseText.replace(/\r?\n|\r/g, ""),
-						"status": request.status
-					};
-					reject(errorMessage);
+					reject(that.createError(request, uri));
 				}
 			} // else ignore other readyStates
 		};
@@ -206,13 +218,14 @@ RestOff.prototype.post = function(uri, object) {
 
 		request.open("POST", that.uriGenerate(uri), true);
 		request.onreadystatechange = function() {
-			// console.log(request);
 			if(request.__proto__.DONE === request.readyState2 ) {
-				var repoName = that.repoNameFrom(uri);
-				resolve(that.repoAddObject(uri, body));
-			} else {
-				reject("TODO: Add test for this line of code");
-			}
+				if (201 === request.status) {
+					var repoName = that.repoNameFrom(uri);
+					resolve(that.repoAddObject(uri, object));
+				} else {
+					reject(that.createError(request, uri)); 
+				}
+			} // else ignore other readyStates
 		};
 		request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
 		request.send(body);

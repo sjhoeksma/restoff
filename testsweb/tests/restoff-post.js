@@ -1,120 +1,111 @@
 describe ("restoff post", function() {
 
+	var newuser01 = {
+		"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68577",
+		"first_name": "Happy3",
+		"last_name": "User3"
+	};
+
+	var newuser02 = {
+		"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68576",
+		"first_name": "Happy4",
+		"last_name": "User4"
+	};
+
 	function testUri(path) {
 		return "http://test.development.com:3000/" + path;
 	}
 
-	it("01: should post a new item to the endpoint and local repository\
-	    when online even when the repository has not been created yet", function() {
+	it("01: should, with a blank repo and when online, post a new item to server and local repository", function() {
 
-		var testid = "02"; // 06
+		var testid = "02";
 		var userRepo = "users" + testid;
 
 		var roff = restoff();
 		expect(Object.keys(roff.repository).length, "Repository length").to.equal(0);
 
-		var newuser = {
-			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68577",
-			"first_name": "Happy2",
-			"last_name": "User2"
-		}
 
-		return roff.post(testUri(userRepo), newuser).then(function(result) {
-			// expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
-			// console.log(roff.repository[userRepo]);
-			// console.log(roff.repository[userRepo].length);
-			// expect(roff.repository[userRepo].length, userRepo + " repository count").to.equal(1);
-			// var dbSource = restoff();
-			// expect(Object.keys(dbSource.repository).length, "Repository length").to.equal(0);
-			// return dbSource.get(testUri(userRepo)).then(function(result) {
-			// 	expect(Object.keys(dbSource.repository).length, "Repository length").to.equal(1);
-			// 	expect(dbSource.repository[userRepo].length, userRepo + " repository count").to.equal(1);
-			// });
+		return roff.post(testUri(userRepo), newuser01).then(function(result) {
+			expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
+			expect(roff.repository[userRepo].length, userRepo + " repository count").to.equal(1);
+			var dbSource = restoff();
+			expect(Object.keys(dbSource.repository).length, "Repository length").to.equal(0);
+			return dbSource.get(testUri(userRepo)).then(function(result) {
+				expect(Object.keys(dbSource.repository).length, "Repository length").to.equal(1);
+				expect(dbSource.repository[userRepo].length, userRepo + " repository count").to.equal(1);
+			});
 
 		});
-
-		// return roff.get(testUri(userRepo)).then(function(result) {
-		// 	expect(Object.keys(rofftest.repository).length, "Repository length").to.equal(0);
-
-
-
-		// });
-
-		// return roff.delete(testUri("users/71ea1a7b-eed2-4c8b-9a6a-10900e8cbbe4"))
-		// .then(function(users_source) {
-		// 	// expect(roff.repository["users"].length, "User repository count ").to.equal(0);
-		// 	// expect(roff.repository["users"], "User object").to.deep.equals(users_source);
-
-		// });
-
-
-		// return roff.get(testUri("users"))
-		// 	.then(function(users) {
-		// 		expect(roff.repository["users"], "User object").to.deep.equals(users);
-		// 		expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
-
-		// 		return roff.post(testUri("users"), 
- 	// 				{
-		// 		    	"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68577",
-		// 		    	"first_name": "Happy2",
-		// 		    	"last_name": "User2"
-		// 		    }
-		// 		)
-		// 		.then(function(result) {
-		// 			console.log(result);
-		// 		});
-
-		// });
-
-
 	});
 
-	// var rofftest;
+	it("02: should, when online, handle network errors", function() {
+		return restoff().post("http://idontexisthopefully.com", newuser01).then(function(result) {
+			expect(true, "Promise should call the catch.", false);
+		}).catch(function(error) {
+			var errorExpected = {
+				message: "Network Error",
+				messageDetail: "",
+				status: 0,
+				uri: "http://idontexisthopefully.com"
+			};
+			expect(error, "Error result").to.deep.equals(errorExpected);
+		});
+	});
 
-	// function testUri(path) {
-	// 	return "http://test.development.com:3000/" + path;
-	// }
+	it("03: should, when online, handle 404's'", function() {
 
-	// beforeEach(function() {
-	// 	// This is our "always online" datasource that we
-	// 	// reset between each test.
-	// 	rofftest = restoff();
-	// 	rofftest.clearCacheAll();
-	// });	
+		var testid = "44";
+		var userRepo = "users" + testid;
 
-	// it("should add a new object correctly when online and repository was loaded", function() {
-	// 	expect(Object.keys(rofftest.repository).length, "Repository length").to.equal(0);
-	// 	var roff = restoff();
+		var roff = restoff();
+		expect(Object.keys(roff.repository).length, "Repository length").to.equal(0);
 
-	// 	return roff.get(testUri("users"))
-	// 	.then(function(users_source) {
-	// 		expect(roff.repository["users"].length, "User repository count ").to.equal(1);
-	// 		// expect(roff.repository["users"], "User object").to.deep.equals(users_source);
+		return roff.post(testUri(userRepo), newuser01).then(function(result) {
+			expect(true, "Promise should call the catch.", false);
+		}).catch(function(error) {
+			var errorExpected = {
+				message: "Not Found",
+				messageDetail: "{}",
+				status: 404,
+				uri: "http://test.development.com:3000/users44"
+			};
+			expect(error, "Error result").to.deep.equals(errorExpected);
+		});
+	});
 
-	// 	});
+	it("04: should, with a non-blank repo and when online, post a new item to server and local repository", function() {
 
+		var testid = "04";
+		var userRepo = "users" + testid;
 
-	// 	// return roff.get(testUri("users"))
-	// 	// 	.then(function(users) {
-	// 	// 		expect(roff.repository["users"], "User object").to.deep.equals(users);
-	// 	// 		expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
+		var roff = restoff();
+		expect(Object.keys(roff.repository).length, "Repository length").to.equal(0);
 
-	// 	// 		return roff.post(testUri("users"), 
- // 	// 				{
-	// 	// 		    	"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68577",
-	// 	// 		    	"first_name": "Happy2",
-	// 	// 		    	"last_name": "User2"
-	// 	// 		    }
-	// 	// 		)
-	// 	// 		.then(function(result) {
-	// 	// 			console.log(result);
-	// 	// 		});
+		// Clean up prior run just in case
+		return roff.delete(testUri(userRepo+"/aedfa7a4-d748-11e5-b5d2-0a1d41d68577")).then(function(result) {
+			return roff.get(testUri(userRepo)).then(function(result) {
+				expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
+				var roffRepo = roff.repository[userRepo];
+				expect(roffRepo.length, userRepo + " repository count").to.equal(1);
+				return roff.post(testUri(userRepo), newuser01).then(function(result) {
+					expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
+					expect(roffRepo.length, userRepo + " repository count").to.equal(2);
+					var dbSource = restoff();
+					expect(Object.keys(dbSource.repository).length, "Repository length").to.equal(0);
+					return dbSource.get(testUri(userRepo)).then(function(result) {
+						var dbSourceRepo = dbSource.repository[userRepo];
+						expect(Object.keys(dbSource.repository).length, "Repository length").to.equal(1);
+						expect(dbSourceRepo.length, userRepo + " repository count").to.equal(2);
+						expect(dbSource.repository[userRepo], "Two repos should be the same").to.deep.equals(roff.repository[userRepo]);
+						return roff.delete(testUri(userRepo+"/aedfa7a4-d748-11e5-b5d2-0a1d41d68577")); // clean up
+					});
+				});
+			});
+		});
+	});	
 
-	// 	// });
-
-
-	// });
-
-
+	// TODO: Post offline logic including merging.
 
 });
+
+

@@ -113,22 +113,16 @@ describe ("restoff", function() {
 	});
 
 	it("05: should handle an invalid endpoint while connected", function() {
-		// var errorResult = {
-		// 	"message" : "Not Found",
-		// 	"messageDetail" : "Cannot GET /testsweb/testdata/user02.json",
-		// 	"status": 404
-		// };
-		// TODO: Get the 404 status working again
-		var errorResult = {
-			"message" : "",
-			"messageDetail" : "",
-			"status": 0
-		};
-
 		return restoff().get("http://test.development.com:4000/testsweb/testdata/user02.json").then(function(result) {
 				expect(true,"Catch promise should execute.").to.equal(false);
 			}).catch(function(error) {
-				expect(error, "Error result").to.deep.equals(errorResult);
+				var errorExpected = {
+					message: "Network Error",
+					messageDetail: "",
+					status: 0,
+					uri: "http://test.development.com:4000/testsweb/testdata/user02.json"
+				};
+				expect(error, "Error result").to.deep.equals(errorExpected);
 			})
 		;
 	});
