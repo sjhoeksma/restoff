@@ -30,12 +30,12 @@ Deleting a resource:
 
 ```
 
-Put a resource:
+Post a resource:
 
 ```javascript
 	var rest = restoff();
-	return rest.delete("http://api.example.com/users/301378d5").then(function(source) {
-		console.log("User deleted");
+	return rest.post("http://api.example.com/users/301378d5").then(function(source) {
+		console.log("User was posted");
 	});
 
 ```
