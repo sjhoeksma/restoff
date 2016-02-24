@@ -57,7 +57,6 @@ RestOff.prototype = Object.create(Object.prototype, {
 			// We use readyState2 and override it to trick the request into
 			// thinking it is complete. Why readyState2? Because readyState
 			// has no setter (request.readyState = 4 throws an exception).
-			request.actuallySent = false;
 			if (this.isForcedOffline) {
 				request.__defineGetter__('readyState2', function(){return request.__proto__.DONE;});
 				request.send = function() { this.onreadystatechange(); }
@@ -176,7 +175,6 @@ RestOff.prototype.get = function(uri) {
 		request.onreadystatechange = function(){
 			if(request.__proto__.HEADERS_RECEIVED === request.readyState2) {
 				// net:ERR_CONNECTION_REFUSED only has an onreadystatechange of request.__proto__.DONE
-				request.actuallySent = true;
 			} else if(request.__proto__.DONE === request.readyState2 ) {
 				if ((request.__proto__.UNSENT === request.status) && (that.isForcedOffline)) {
 						// that.isOnline = that.ONLINE_NOT; // TODO: Write a test to cover this line of code
@@ -197,6 +195,39 @@ RestOff.prototype.get = function(uri) {
 					reject(errorMessage);
 				}
 			} // else ignore other readyStates
+		};
+		request.send();
+	});
+	return promise;
+}
+
+RestOff.prototype.post = function(uri, object) {
+	var that = this;
+	var promise = new Promise(function(resolve, reject) {
+		var request = that.getRequest;
+		request.open("POST", that.uriGenerate(uri), true);
+		request.onreadystatechange = function(){
+			// console.log(request);
+		};
+		request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+		var body = JSON.stringify(object);
+		request.send(body);
+		resolve("What happened?");		
+	});
+	return promise;
+}
+
+
+RestOff.prototype.delete = function(uri) {
+	var that = this;
+	var promise = new Promise(function(resolve, reject) {
+		var request = that.getRequest;
+		request.open("DELETE", that.uriGenerate(uri), true);
+		request.onreadystatechange = function(){
+			// console.log(request);
+			if(request.__proto__.DONE === request.readyState2 ) {
+				resolve("What happened?");
+			}
 		};
 		request.send();
 	});

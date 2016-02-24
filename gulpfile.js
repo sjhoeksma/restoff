@@ -43,7 +43,7 @@ gulp.task('mocha', ['build'], function() {
 
 gulp.task('watch', function() {
 	livereload.listen();
-	return gulp.watch(['src/**', 'tests/**', 'testsweb/**'], ['mocha']);
+	return gulp.watch(['src/**', 'tests/**', 'testsweb/**', 'index.html'], ['mocha']);
 });
 
 gulp.task('build', function() {
@@ -84,9 +84,9 @@ gulp.task('webserver', function() {
 
 gulp.task('restserver', function (cb) {
 	console.log("Running test rest api server on port 3000.");
-	console.log("Try going to http://test.development.com:3000/posts");
+	console.log("Try going to http://test.development.com:3000/users");
 
-	exec('json-server tests/rest-api/db.json', function (err, stdout, stderr) {
+	exec('json-server database/db.json', function (err, stdout, stderr) {
     	console.log(stdout);
     	console.log(stderr);
     	cb(err);
