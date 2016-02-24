@@ -6,18 +6,45 @@ describe ("restoff post", function() {
 		"last_name": "User3"
 	};
 
-	var newuser02 = {
-		"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68576",
-		"first_name": "Happy4",
-		"last_name": "User4"
-	};
-
 	function testUri(path) {
 		return "http://test.development.com:3000/" + path;
 	}
 
-	it("01: should, with a blank repo and when online, post a new item to server and local repository", function() {
+	it("01: should, when online, handle network errors", function() {
+		return restoff().post("http://idontexisthopefully.com", newuser01).then(function(result) {
+			expect(true, "Promise should call the catch.", false);
+		}).catch(function(error) {
+			var errorExpected = {
+				message: "Network Error",
+				messageDetail: "",
+				status: 0,
+				uri: "http://idontexisthopefully.com"
+			};
+			expect(error, "Error result").to.deep.equals(errorExpected);
+		});
+	});
 
+	it("02: should, when online, handle 404's'", function() {
+		var testid = "44";
+		var userRepo = "users" + testid;
+
+		var roff = restoff();
+		expect(Object.keys(roff.repository).length, "Repository length").to.equal(0);
+
+		return roff.post(testUri(userRepo), newuser01).then(function(result) {
+			expect(true, "Promise should call the catch.", false);
+		}).catch(function(error) {
+			var errorExpected = {
+				message: "Not Found",
+				messageDetail: "{}",
+				status: 404,
+				uri: "http://test.development.com:3000/users44"
+			};
+			expect(error, "Error result").to.deep.equals(errorExpected);
+		});
+	});
+
+	it("03: should, with a blank repo and when online, post a new item to server and local repository", function() {
 		var testid = "02";
 		var userRepo = "users" + testid;
 
@@ -38,43 +65,7 @@ describe ("restoff post", function() {
 		});
 	});
 
-	it("02: should, when online, handle network errors", function() {
-		return restoff().post("http://idontexisthopefully.com", newuser01).then(function(result) {
-			expect(true, "Promise should call the catch.", false);
-		}).catch(function(error) {
-			var errorExpected = {
-				message: "Network Error",
-				messageDetail: "",
-				status: 0,
-				uri: "http://idontexisthopefully.com"
-			};
-			expect(error, "Error result").to.deep.equals(errorExpected);
-		});
-	});
-
-	it("03: should, when online, handle 404's'", function() {
-
-		var testid = "44";
-		var userRepo = "users" + testid;
-
-		var roff = restoff();
-		expect(Object.keys(roff.repository).length, "Repository length").to.equal(0);
-
-		return roff.post(testUri(userRepo), newuser01).then(function(result) {
-			expect(true, "Promise should call the catch.", false);
-		}).catch(function(error) {
-			var errorExpected = {
-				message: "Not Found",
-				messageDetail: "{}",
-				status: 404,
-				uri: "http://test.development.com:3000/users44"
-			};
-			expect(error, "Error result").to.deep.equals(errorExpected);
-		});
-	});
-
 	it("04: should, with a non-blank repo and when online, post a new item to server and local repository", function() {
-
 		var testid = "04";
 		var userRepo = "users" + testid;
 
@@ -104,7 +95,12 @@ describe ("restoff post", function() {
 		});
 	});	
 
-	// TODO: Post offline logic including merging.
+	it("05: should, when online and posting against an existing object, add a new one", function() {
+		// With an existing object, posting it twice, will result in the object duplicated unless
+		// some type of referential integrity is set on the backend which will return some error.
+		// For now, we will write no test for this case.
+		// TODO: Allow referential integrity, and on our end do that integrity check.
+	});	
 
 });
 
