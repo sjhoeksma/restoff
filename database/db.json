@@ -37,5 +37,11 @@
     }
   ],
   "users06": [],
-  "users07": []
+  "users07": [
+    {
+      "id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68577",
+      "first_name": "Happy3",
+      "last_name": "User3"
+    }
+  ]
 }
