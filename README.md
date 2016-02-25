@@ -100,7 +100,7 @@ function synchronize(rest, userId) {
 * **autoQueryParamSet(name, value)** - A parameter of ```name``` with ```value``` will be added/appended to every RESTful api call.
 * **autoQueryParamSetGet(name)** - Returns the value of the query parameter with the provided ```name```.
 * **clearCacheAll()** - Clears all caches. Doesn't delete data on the server.
-* **clearCacheBy(repoName)** - Clears the cache of a given repository. Doesn't delete data on the server.
+* **clearCacheBy(repositoryName)** - Clears the cache of a given repository. Doesn't delete data on the server.
 * **delete(uri)** - Deletes a resource from a remote server.
 * **forceOffline()** - Force the appliction to operate "offline".
 * **forceOnline()** - Force the application back "online".
@@ -207,9 +207,9 @@ var paramVAlue = roff.autoHeaderParamSetGet("access_token");
 
 ```
 
-### clearCacheBy(repoName)
+### clearCacheBy(repositoryName)
 
-Clears the cache of the given repository name if the repository exists. Does not a repository named ```repoName``` to the repository if it doesn't exist.
+Clears the cache of the given repository name if the repository exists. Does not a repository named ```repositoryName``` to the repository if it doesn't exist.
 
 * TODO: Unless there are pending changes.
 	* Add a force parameter to ignore changes?
