@@ -155,6 +155,7 @@ RestOff.prototype.repositoryNameFrom = function(uri) {
 	var rootUri = this.rootUri;
 
 	if ("" === rootUri) {
+		// No rootUri so assume rootUri is part of uri
 		var url = document.createElement('a');
 		url.href = uri;
 		rootUri = url.protocol + "//" + url.hostname + (url.port ? ':' + url.port : "");
@@ -168,26 +169,32 @@ RestOff.prototype.repositoryNameFrom = function(uri) {
 	if (removeSearch.length > 1) {
 		repoName = removeSearch[0];
 	}
+
+	var removeId = repoName.split("/");
+	if (removeId.length > 1) {
+		repoName = removeId[0];
+	}
+
 	return repoName;
 }
 
-RestOff.prototype.primaryKeyFor = function(repoName, obj) {
-	var result = obj[this.primaryKeyName];
-	if (undefined === obj[this.primaryKeyName]) {
+RestOff.prototype.primaryKeyFor = function(repoName, resource) {
+	var result = resource[this.primaryKeyName];
+	if (undefined === resource[this.primaryKeyName]) {
 		// TODO: Write tests for this
-		console.log("Warning: object did not have a primaryKey " + result);
+		console.log("Warning: resource did not have a primaryKey " + result);
 	}
 	return result;
 }
 
 // TODO: Refactor... Repo should be it's own thing
 RestOff.prototype.repositoryAdd = function(uri, result) {
-	var obj = JSON.parse(result);
+	var resource = JSON.parse(result);
 	// TODO: Check for non-json result
-	return this.repositoryAddObject(uri, obj);
+	return this.repositoryAddObject(uri, resource);
 }
 
-RestOff.prototype.repositoryAddObject = function(uri, obj) {
+RestOff.prototype.repositoryAddObject = function(uri, resource) {
 	var repoName = this.repositoryNameFrom(uri);
 	var that = this;
 	if (undefined === this._repo[repoName]) {
@@ -196,12 +203,12 @@ RestOff.prototype.repositoryAddObject = function(uri, obj) {
 
 	// TODO: There is no consolodiation at this time but will come soonish.
 	//       So right now, we literally overwrite whatever is there.
-	if (obj instanceof Array) {
-		obj.forEach(function(item) {
-			that._repo[repoName][that.primaryKeyFor(repoName, item)] = item;
+	if (resource instanceof Array) {
+		resource.forEach(function(aresource) {
+			that._repo[repoName][that.primaryKeyFor(repoName, aresource)] = aresource;
 		});
 	} else {
-		this._repo[repoName][this.primaryKeyFor(repoName, obj)] = obj;
+		this._repo[repoName][this.primaryKeyFor(repoName, resource)] = resource;
 	}
 	return this._repo[repoName];
 }
@@ -290,18 +297,21 @@ RestOff.prototype.get = function(uri) {
 	return promise;
 }
 
-RestOff.prototype.post = function(uri, object) {
+
+RestOff.prototype.post = function(uri, resource) {
 	var that = this;
 	var promise = new Promise(function(resolve, reject) {
 		var request = that.getRequest;
 		var uriFinal = that.uriGenerate(uri);
-		var body = JSON.stringify(object);
+		var body = JSON.stringify(resource);
 		request.open("POST", uriFinal, true);
 		request.onreadystatechange = function() {
 			if(request.__proto__.DONE === request.readyState2 ) {
 				if (201 === request.status) {
-					var repoName = that.repositoryNameFrom(uriFinal);
-					resolve(that.repositoryAddObject(uriFinal, object));
+					// TODO: We should pull the final resource from the
+					//       returned URI and add that to our repository
+					//       but need a better backend system for testing
+					resolve(that.repositoryAddObject(uriFinal, resource));
 				} else {
 					reject(that.createError(request, uriFinal)); 
 				}
@@ -313,6 +323,30 @@ RestOff.prototype.post = function(uri, object) {
 	return promise;
 }
 
+RestOff.prototype.put = function(uri, resource) {
+	var that = this;
+	var promise = new Promise(function(resolve, reject) {
+		var request = that.getRequest;
+		var uriFinal = that.uriGenerate(uri);
+		var body = JSON.stringify(resource);
+		request.open("PUT", uriFinal, true);
+		request.onreadystatechange = function() {
+			if(request.__proto__.DONE === request.readyState2 ) {
+				// TODO: We should pull the final resource from the
+				//       returned URI and add that to our repository
+				//       but need a better backend system for testing
+				if (200 === request.status) {
+					resolve(that.repositoryAddObject(uriFinal, resource));
+				} else {
+					reject(that.createError(request, uriFinal)); 
+				}
+			} // else ignore other readyStates
+		};
+		request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+		request.send(body);
+	});
+	return promise;
+}
 
 RestOff.prototype.delete = function(uri) {
 	var that = this;

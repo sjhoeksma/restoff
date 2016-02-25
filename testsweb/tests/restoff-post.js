@@ -45,7 +45,7 @@ describe ("restoff post", function() {
 	});
 
 	it("03: should, with a blank repo and when online,\
-		    post a new item to server and local repository", function() {
+		    post a new resource to server and local repository", function() {
 		var userRepo = "users02";
 
 		var roff = restoff({
@@ -69,7 +69,8 @@ describe ("restoff post", function() {
 		});
 	});
 
-	it("04: should, with a non-blank repo and when online, post a new item to server and local repository\
+	it("04: should, with a non-blank repo and when online,\
+		post a new resource to server and local repository\
 		and 404 (Not Found) for deletes should be ignored.", function() {
 		var userRepo = "users04";
 
@@ -102,7 +103,8 @@ describe ("restoff post", function() {
 		});
 	});	
 
-	it("05: should, when online and posting against an existing object, overwrite the existing one", function() {
+	it("05: should, when online and posting against an existing resource,\
+		    overwrite the existing one", function() {
 		var userRepo = "users05";
 
 		var existingUser = {

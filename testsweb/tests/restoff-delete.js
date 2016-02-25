@@ -38,7 +38,7 @@ describe ("restoff delete", function() {
 	});
 
 	it("04: should, with a non-blank repo and when online,\
-	        delete an existing item from the server and local\
+	        delete an existing resource from the server and local\
 	        repository", function() {
 		var userRepo = "users06";
 		var roff = restoff({
