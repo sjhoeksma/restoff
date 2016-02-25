@@ -8,7 +8,7 @@ function restoff(config) {
 
 	that._rootUri = (undefined !== config) ? config.rootUri ? config.rootUri : "" : "";
 	that._dbName = (undefined !== config) ? config.dbName ? config.dbName : "restoff.json" : "restoff.json";
-	that._foreignKeyName = (undefined !== config) ? config.foreignKeyName ? config.foreignKeyName : "id" : "id";
+	that._primaryKeyName = (undefined !== config) ? config.primaryKeyName ? config.primaryKeyName : "id" : "id";
 
 	return that;
 }
@@ -23,19 +23,18 @@ RestOff.prototype = Object.create(Object.prototype, {
 		get: function() { return this._dbName; },
 		set: function(value) { this._dbName = value; }
 	},
-	foreignKeyName: {
-		get: function() { return this._foreignKeyName; },
-		set: function(value) { this._foreignKeyName = value; }
+	primaryKeyName: {
+		get: function() { return this._primaryKeyName; },
+		set: function(value) { this._primaryKeyName = value; }
 	},
 	isForcedOffline: {
 		get: function() { return this._forcedOffline; }
 	},
 	repository: { get: function() { return this._repo; }},
-	repositorySize: { get: function() { return roff.repositorySize }},
-	isOnline: {
-		get: function() { return this._isOnline; },
-		set: function(value) { this._isOnline = value; }
-	},
+	repositorySize: { get: function() { return Object.keys(this.repository).length; }},
+	isOnline: { get: function() { return this._isOnline === this.ONLINE; }},
+	isOffline: { get: function() { return this._isOnline === this.ONLINE_NOT; }},
+	isOnlineUnknown: { get: function() { return this._isOnline === this.ONLINE_UNKNOWN; }},
 	getRequest: {
 		get: function() {
 			var request = window.XMLHttpRequest ?
@@ -131,6 +130,10 @@ RestOff.prototype.forceOnline = function() {
 	this._isOnline = this.ONLINE_UNKNOWN;
 }
 
+RestOff.prototype.repositorySizeBy = function(repoName) {
+	return Object.keys(this.repositoryGet(repoName)).length;
+}
+
 RestOff.prototype.repositoryNameFrom = function(uri) {
 	var rootUri = this.rootUri;
 
@@ -141,10 +144,23 @@ RestOff.prototype.repositoryNameFrom = function(uri) {
 	}
 
 	var repoName = uri.replace(rootUri, "");
-	if ("/" == repoName[0]) {
+	if ("/" === repoName[0]) {
 		repoName = repoName.slice(1,repoName.length);
 	}
+	var removeSearch = repoName.split("?");
+	if (removeSearch.length > 1) {
+		repoName = removeSearch[0];
+	}
 	return repoName;
+}
+
+RestOff.prototype.primaryKeyFor = function(repoName, obj) {
+	var result = obj[this.primaryKeyName];
+	if (undefined === obj[this.primaryKeyName]) {
+		// TODO: Write tests for this
+		console.log("Warning: object did not have a primaryKey " + result);
+	}
+	return result;
 }
 
 // TODO: Refactor... Repo should be it's own thing
@@ -164,11 +180,11 @@ RestOff.prototype.repositoryAddObject = function(uri, obj) {
 	// TODO: There is no consolodiation at this time but will come soonish.
 	//       So right now, we literally overwrite whatever is there.
 	if (obj instanceof Array) {
-		obj.forEach(function(obj) {
-			that._repo[repoName][obj.id] = obj;
+		obj.forEach(function(item) {
+			that._repo[repoName][that.primaryKeyFor(repoName, item)] = item;
 		});
 	} else {
-		this._repo[repoName][obj.id] = obj;
+		this._repo[repoName][this.primaryKeyFor(repoName, obj)] = obj;
 	}
 	return this._repo[repoName];
 }
@@ -222,7 +238,8 @@ RestOff.prototype.get = function(uri) {
 	var that = this;
 	var promise = new Promise(function(resolve, reject) {
 		var request = that.getRequest;
-		request.open("GET", that.uriGenerate(uri), true); // true: asynchronous // TODO: Write a test to cover that.uriGenerate(uri) if possible
+		var uriFinal = that.uriGenerate(uri);
+		request.open("GET", uriFinal, true); // true: asynchronous // TODO: Write a test to cover that.uriGenerate(uri) if possible
 		var autoHeaders = that._autoHeaders;
 		Object.keys(autoHeaders).forEach(
 			function(key) {
@@ -236,17 +253,18 @@ RestOff.prototype.get = function(uri) {
 				// net:ERR_CONNECTION_REFUSED only has an onreadystatechange of request.__proto__.DONE
 			} else if(request.__proto__.DONE === request.readyState2 ) {
 				if ((request.__proto__.UNSENT === request.status) && (that.isForcedOffline)) {
-						// that.isOnline = that.ONLINE_NOT; // TODO: Write a test to cover this line of code
-					var repoName = that.repositoryNameFrom(uri);
+						// that._isOnline = that.ONLINE_NOT; // TODO: Write a test to cover this line of code
+					var repoName = that.repositoryNameFrom(uriFinal);
 					if (undefined === that.repository[repoName]) {
-						that.repositoryAddObject(uri, []); // offline and first call to the endpoint made
+						that.repositoryAddObject(uriFinal, []); // offline and first call to the endpoint made
 					}
 					resolve(that.repository[repoName]);
 				} else if(200 === request.status) {
-					that.isOnline = that.ONLINE;
-					resolve(that.repositoryAdd(uri, request.response));
+					that._isOnline = that.ONLINE;
+					resolve(that.repositoryAdd(uriFinal, request.response));
 				} else {
-					reject(that.createError(request, uri));
+					that._isOnline = that.ONLINE_NOT;
+					reject(that.createError(request, uriFinal));
 				}
 			} // else ignore other readyStates
 		};
@@ -259,16 +277,16 @@ RestOff.prototype.post = function(uri, object) {
 	var that = this;
 	var promise = new Promise(function(resolve, reject) {
 		var request = that.getRequest;
+		var uriFinal = that.uriGenerate(uri);
 		var body = JSON.stringify(object);
-
-		request.open("POST", that.uriGenerate(uri), true);
+		request.open("POST", uriFinal, true);
 		request.onreadystatechange = function() {
 			if(request.__proto__.DONE === request.readyState2 ) {
 				if (201 === request.status) {
-					var repoName = that.repositoryNameFrom(uri);
-					resolve(that.repositoryAddObject(uri, object));
+					var repoName = that.repositoryNameFrom(uriFinal);
+					resolve(that.repositoryAddObject(uriFinal, object));
 				} else {
-					reject(that.createError(request, uri)); 
+					reject(that.createError(request, uriFinal)); 
 				}
 			} // else ignore other readyStates
 		};

@@ -1,5 +1,7 @@
 describe ("restoff post", function() {
 
+	var ROOT_URI = "http://test.development.com:3000/";
+
 	var newuser01 = {
 		"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68577",
 		"first_name": "Happy3",
@@ -25,11 +27,10 @@ describe ("restoff post", function() {
 	});
 
 	it("02: should, when online, handle 404's'", function() {
-		var testid = "44";
-		var userRepo = "users" + testid;
+		var userRepo = "users44";
 
 		var roff = restoff();
-		expect(roff.repositorySize, "Repository length").to.equal(0);
+		expect(roff.repositorySize, "Repository size").to.equal(0);
 
 		return roff.post(testUri(userRepo), newuser01).then(function(result) {
 			expect(true, "Promise should call the catch.").to.be.false;			
@@ -44,22 +45,27 @@ describe ("restoff post", function() {
 		});
 	});
 
-	it("03: should, with a blank repo and when online, post a new item to server and local repository", function() {
-		var testid = "02";
-		var userRepo = "users" + testid;
+	it("03: should, with a blank repo and when online,\
+		    post a new item to server and local repository", function() {
+		var userRepo = "users02";
 
-		var roff = restoff();
-		expect(roff.repositorySize, "Repository length").to.equal(0);
+		var roff = restoff({
+			"rootUri" : ROOT_URI
+		});
+		expect(roff.repositorySize, "Repository size").to.equal(0);
+		console.log(roff);
 
+		return roff.post(userRepo, newuser01).then(function(updatedResult) {
+			expect(roff.repositorySize, "Repository size").to.equal(1);
+			expect(roff.repositoryGet(userRepo), userRepo + " object").to.deep.equals(updatedResult);
+			var dbSource = restoff({
+				"rootUri" : ROOT_URI
+			});
+			expect(dbSource.repositorySize, "Repository size").to.equal(0);
 
-		return roff.post(testUri(userRepo), newuser01).then(function(result) {
-			expect(roff.repositorySize, "Repository length").to.equal(1);
-			expect(roff.repositoryGet(userRepo).length, userRepo + " repository count").to.equal(1);
-			var dbSource = restoff();
-			expect(Object.keys(dbSource.repository).length, "Repository length").to.equal(0);
-			return dbSource.get(testUri(userRepo)).then(function(result) {
-				expect(Object.keys(dbSource.repository).length, "Repository length").to.equal(1);
-				expect(dbSource.repositoryGet(userRepo).length, userRepo + " repository count").to.equal(1);
+			return dbSource.get(userRepo).then(function(result) {
+				expect(dbSource.repositorySize, "Repository size").to.equal(1);
+				expect(roff.repositoryGet(userRepo), userRepo + " object").to.deep.equals(result);
 			});
 
 		});
@@ -67,29 +73,31 @@ describe ("restoff post", function() {
 
 	it("04: should, with a non-blank repo and when online, post a new item to server and local repository\
 		and 404 (Not Found) for deletes should be ignored.", function() {
-		var testid = "04";
-		var userRepo = "users" + testid;
+		var userRepo = "users04";
 
-		var roff = restoff();
-		expect(roff.repositorySize, "Repository length").to.equal(0);
+		var roff = restoff({
+			"rootUri" : ROOT_URI
+		});
+		expect(roff.repositorySize, "Repository size").to.equal(0);
 
 		// Clean up prior run just in case
-		return roff.delete(testUri(userRepo+"/aedfa7a4-d748-11e5-b5d2-0a1d41d68577")).then(function(result) {
-			return roff.get(testUri(userRepo)).then(function(result) {
-				expect(roff.repositorySize, "Repository length").to.equal(1);
-				var roffRepo = roff.repositoryGet(userRepo);
-				expect(roffRepo.length, userRepo + " repository count").to.equal(1);
-				return roff.post(testUri(userRepo), newuser01).then(function(result) {
-					expect(roff.repositorySize, "Repository length").to.equal(1);
-					expect(roffRepo.length, userRepo + " repository count").to.equal(2);
-					var dbSource = restoff();
-					expect(Object.keys(dbSource.repository).length, "Repository length").to.equal(0);
-					return dbSource.get(testUri(userRepo)).then(function(result) {
-						var dbSourceRepo = dbSource.repositoryGet(userRepo);
-						expect(Object.keys(dbSource.repository).length, "Repository length").to.equal(1);
-						expect(dbSourceRepo.length, userRepo + " repository count").to.equal(2);
+		return roff.delete(userRepo+"/aedfa7a4-d748-11e5-b5d2-0a1d41d68577").then(function(result) {
+			return roff.get(userRepo).then(function(sourceResult) {
+				expect(roff.repositorySize, "Repository size").to.equal(1);
+				expect(roff.repositoryGet(userRepo), userRepo + " object").to.deep.equals(sourceResult);
+				return roff.post(userRepo, newuser01).then(function(result) {
+					expect(roff.repositorySize, "Repository size").to.equal(1);
+					expect(roff.repositorySizeBy(userRepo), userRepo + " repository count").to.equal(2);
+					expect(roff.repositoryGet(userRepo), userRepo + " object").to.deep.equals(result);
+					var dbSource = restoff({
+						"rootUri" : ROOT_URI
+					});
+					expect(dbSource.repositorySize, "Repository size").to.equal(0);
+					return dbSource.get(userRepo).then(function(result) {
+						expect(dbSource.repositorySize, "Repository size").to.equal(1);
+						expect(dbSource.repositorySizeBy(userRepo), userRepo + " repository count").to.equal(2);
 						expect(dbSource.repositoryGet(userRepo), "Two repos should be the same").to.deep.equals(roff.repositoryGet(userRepo));
-						return roff.delete(testUri(userRepo+"/aedfa7a4-d748-11e5-b5d2-0a1d41d68577")); // clean up
+						return roff.delete(userRepo+"/aedfa7a4-d748-11e5-b5d2-0a1d41d68577"); // clean up
 					});
 				});
 			});
@@ -97,8 +105,7 @@ describe ("restoff post", function() {
 	});	
 
 	it("05: should, when online and posting against an existing object, overwrite the existing one", function() {
-		// var testid = "05";
-		// var userRepo = "users" + testid;
+		// var userRepo = "users05";
 
 		// var existingUsers = [
 		// 	{
@@ -120,29 +127,29 @@ describe ("restoff post", function() {
   // 		var editedUser = editedUsers[0];
 
 		// var roff = restoff();
-		// expect(roff.repositorySize, "Repository length").to.equal(0);
+		// expect(roff.repositorySize, "Repository size").to.equal(0);
 
 		// // Clean up just in case
 		// return roff.post(testUri(userRepo), existingUser).then(function(result) {
 		// 	roff.clearCacheAll();
-		// 	expect(roff.repositorySize, "Repository length").to.equal(1);
-		// 	expect(roff.repositoryGet(userRepo).length, userRepo + "Repository length").to.equal(0);
+		// 	expect(roff.repositorySize, "Repository size").to.equal(1);
+		// 	expect(roff.repositoryGet(userRepo).length, userRepo + "Repository size").to.equal(0);
 
 		// 	return roff.get(testUri(userRepo)).then(function(result) {
-		// 		expect(roff.repositorySize, "Repository length").to.equal(1);
-		// 		expect(roff.repositoryGet(userRepo).length, userRepo + "Repository length").to.equal(1);
+		// 		expect(roff.repositorySize, "Repository size").to.equal(1);
+		// 		expect(roff.repositoryGet(userRepo).length, userRepo + "Repository size").to.equal(1);
 		// 		expect(roff.repositoryGet(userRepo), userRepo + " repository equals").to.deep.equals(existingUsers);
 
 		// 		return roff.post(testUri(userRepo), editedUser).then(function(result) {
-		// 			expect(roff.repositorySize, "Repository length").to.equal(1);
-		// 			expect(roff.repositoryGet(userRepo).length, userRepo + "Repository length").to.equal(1);
+		// 			expect(roff.repositorySize, "Repository size").to.equal(1);
+		// 			expect(roff.repositoryGet(userRepo).length, userRepo + "Repository size").to.equal(1);
 
 
 		// 			expect(roff.repositoryGet(userRepo), userRepo + " repository equals").to.deep.equals(editedUsers);
 
 		// 	// 		return roff.post(testUri(userRepo), existingUser).then(function(result) {
-		// 	// 			// expect(roff.repositorySize, "Repository length").to.equal(1);
-		// 	// 			// expect(roffRepo.length, userRepo + "Repository length").to.equal(1);
+		// 	// 			// expect(roff.repositorySize, "Repository size").to.equal(1);
+		// 	// 			// expect(roffRepo.length, userRepo + "Repository size").to.equal(1);
 		// 	// 			// expect(roff.repositoryGet(userRepo), userRepo + " repository equals").to.deep.equals(editedUsers);
 		// 	// 		});
 
