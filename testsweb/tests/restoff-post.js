@@ -53,7 +53,6 @@ describe ("restoff post", function() {
 			"rootUri" : ROOT_URI
 		});
 		expect(roff.repositorySize, "Repository size").to.equal(0);
-		console.log(roff);
 
 		return roff.post(userRepo, newuser01).then(function(updatedResult) {
 			expect(roff.repositorySize, "Repository size").to.equal(1);
