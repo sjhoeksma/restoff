@@ -105,59 +105,58 @@ describe ("restoff post", function() {
 	});	
 
 	it("05: should, when online and posting against an existing object, overwrite the existing one", function() {
-		// var userRepo = "users05";
+		var userRepo = "users05";
 
-		// var existingUsers = [
-		// 	{
-		// 		"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa",
-		// 		"first_name": "Existing",
-		// 		"last_name": "New Name"
-		// 	}
-		// ];
+		var existingUser = {
+			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa",
+			"first_name": "Existing",
+			"last_name": "New Name"
+		};
+		var existingUsers = [];
+		existingUsers["4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa"] = existingUser;
 
-		// var editedUsers = [
-		// 	{
-		// 		"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa",
-		// 		"first_name": "Existing",
-		// 		"last_name": "Edited"
-		// 	}
-		// ];
+		var editedUser = {
+			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa",
+			"first_name": "Existing",
+			"last_name": "Edited"
+		};
+		var editedUsers = [];
+		editedUsers["4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa"] = editedUser;
 
-  // 		var existingUser = existingUsers[0];
-  // 		var editedUser = editedUsers[0];
+		var roff = restoff({
+			"rootUri" : ROOT_URI
+		});
+		expect(roff.repositorySize, "Repository size").to.equal(0);
 
-		// var roff = restoff();
-		// expect(roff.repositorySize, "Repository size").to.equal(0);
+		// Clean up just in case
+		return roff.post(testUri(userRepo), existingUser).then(function(result) {
+			roff.clearCacheAll();
+			expect(roff.repositorySize, "Repository size").to.equal(1);
+			expect(roff.repositorySizeBy(userRepo), userRepo + "Repository size").to.equal(0);
 
-		// // Clean up just in case
-		// return roff.post(testUri(userRepo), existingUser).then(function(result) {
-		// 	roff.clearCacheAll();
-		// 	expect(roff.repositorySize, "Repository size").to.equal(1);
-		// 	expect(roff.repositoryGet(userRepo).length, userRepo + "Repository size").to.equal(0);
+			return roff.get(testUri(userRepo)).then(function(result) {
+				expect(roff.repositorySize, "Repository size").to.equal(1);
+				expect(roff.repositorySizeBy(userRepo), userRepo + "Repository size").to.equal(1);
+				expect(roff.repositoryGet(userRepo), userRepo + " repository equals").to.deep.equals(existingUsers);
 
-		// 	return roff.get(testUri(userRepo)).then(function(result) {
-		// 		expect(roff.repositorySize, "Repository size").to.equal(1);
-		// 		expect(roff.repositoryGet(userRepo).length, userRepo + "Repository size").to.equal(1);
-		// 		expect(roff.repositoryGet(userRepo), userRepo + " repository equals").to.deep.equals(existingUsers);
+				return roff.post(testUri(userRepo), editedUser).then(function(result) {
+					expect(roff.repositorySize, "Repository size").to.equal(1);
+					expect(roff.repositorySizeBy(userRepo), userRepo + "Repository size").to.equal(1);
+					expect(roff.repositoryGet(userRepo), userRepo + " repository equals").to.deep.equals(editedUsers);
 
-		// 		return roff.post(testUri(userRepo), editedUser).then(function(result) {
-		// 			expect(roff.repositorySize, "Repository size").to.equal(1);
-		// 			expect(roff.repositoryGet(userRepo).length, userRepo + "Repository size").to.equal(1);
+					return roff.post(testUri(userRepo), existingUser).then(function(result) {
+						expect(roff.repositorySize, "Repository size").to.equal(1);
+						expect(roff.repositorySizeBy(userRepo), userRepo + "Repository size").to.equal(1);
+						expect(roff.repositoryGet(userRepo), userRepo + " repository equals").to.deep.equals(existingUsers);
+						expect(result, userRepo + " repository equals").to.deep.equals(existingUsers);
+						expect(roff.repositoryGet(userRepo), userRepo + " repository equals").to.deep.equals(result);
+					});
 
-
-		// 			expect(roff.repositoryGet(userRepo), userRepo + " repository equals").to.deep.equals(editedUsers);
-
-		// 	// 		return roff.post(testUri(userRepo), existingUser).then(function(result) {
-		// 	// 			// expect(roff.repositorySize, "Repository size").to.equal(1);
-		// 	// 			// expect(roffRepo.length, userRepo + "Repository size").to.equal(1);
-		// 	// 			// expect(roff.repositoryGet(userRepo), userRepo + " repository equals").to.deep.equals(editedUsers);
-		// 	// 		});
-
-		// 		});
-		// 	});
+				});
+			});
 
 
-		// });
+		});
 
 	});	
 
