@@ -8,10 +8,6 @@ describe ("restoff post", function() {
 		"last_name": "User3"
 	};
 
-	function testUri(path) {
-		return "http://test.development.com:3000/" + path;
-	}
-
 	it("01: should, when online, handle network errors", function() {
 		return restoff().post("http://idontexisthopefully.com", newuser01).then(function(result) {
 			expect(true, "Promise should call the catch.").to.be.false;			
@@ -29,10 +25,13 @@ describe ("restoff post", function() {
 	it("02: should, when online, handle 404's'", function() {
 		var userRepo = "users44";
 
-		var roff = restoff();
+		var roff = restoff({
+			"rootUri" : ROOT_URI
+		});
+
 		expect(roff.repositorySize, "Repository size").to.equal(0);
 
-		return roff.post(testUri(userRepo), newuser01).then(function(result) {
+		return roff.post(userRepo, newuser01).then(function(result) {
 			expect(true, "Promise should call the catch.").to.be.false;			
 		}).catch(function(error) {
 			var errorExpected = {
@@ -128,22 +127,22 @@ describe ("restoff post", function() {
 		expect(roff.repositorySize, "Repository size").to.equal(0);
 
 		// Clean up just in case
-		return roff.post(testUri(userRepo), existingUser).then(function(result) {
+		return roff.post(userRepo, existingUser).then(function(result) {
 			roff.clearCacheAll();
 			expect(roff.repositorySize, "Repository size").to.equal(1);
 			expect(roff.repositorySizeBy(userRepo), userRepo + "Repository size").to.equal(0);
 
-			return roff.get(testUri(userRepo)).then(function(result) {
+			return roff.get(userRepo).then(function(result) {
 				expect(roff.repositorySize, "Repository size").to.equal(1);
 				expect(roff.repositorySizeBy(userRepo), userRepo + "Repository size").to.equal(1);
 				expect(roff.repositoryGet(userRepo), userRepo + " repository equals").to.deep.equals(existingUsers);
 
-				return roff.post(testUri(userRepo), editedUser).then(function(result) {
+				return roff.post(userRepo, editedUser).then(function(result) {
 					expect(roff.repositorySize, "Repository size").to.equal(1);
 					expect(roff.repositorySizeBy(userRepo), userRepo + "Repository size").to.equal(1);
 					expect(roff.repositoryGet(userRepo), userRepo + " repository equals").to.deep.equals(editedUsers);
 
-					return roff.post(testUri(userRepo), existingUser).then(function(result) {
+					return roff.post(userRepo, existingUser).then(function(result) {
 						expect(roff.repositorySize, "Repository size").to.equal(1);
 						expect(roff.repositorySizeBy(userRepo), userRepo + "Repository size").to.equal(1);
 						expect(roff.repositoryGet(userRepo), userRepo + " repository equals").to.deep.equals(existingUsers);

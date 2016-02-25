@@ -41,9 +41,38 @@ return rest.delete("http://api.example.com/users/301378d5").then(function(source
 Post a resource:
 
 ```javascript
-return rest.post("http://api.example.com/users/301378d5").then(function(source) {
-	console.log("User was posted");
+
+var roff = restoff();
+var newUser = {
+	"id" : "ffa454",
+	"first_name": "Happy",
+	"last_name": "User"
+}
+
+return roff.post("http://test.development.com:4050/users", newUser)
+	.then(function(result){
+		// use the result here
+	});
+
+```
+
+Put a resource:
+
+```javascript
+
+var roff = restoff({
+	"rootUri" : "http://test.development.com:4050/"
 });
+var existingUser = {
+	"id" : "ffa454",
+	"first_name": "Happy",
+	"last_name": "User"
+}
+
+return roff.put("users/ffa454", existingUser).then(function(result){
+		// use the result here
+	});
+
 ```
 
 Example usage of synchronize subsets of resources based on user.
@@ -63,7 +92,6 @@ function synchronize(rest, userId) {
 
 ### Functions and Properties
 
-
 * **autoHeaderParamSet(name, value)** - A header of ```name``` with ```value``` will be added to the header of every RESTful api call.
 * **autoHeaderParamSetGet(name)** - Returns the value of the header parameter with the provided ```name```.
 * **autoQueryParamSet(name, value)** - A parameter of ```name``` with ```value``` will be added/appended to every RESTful api call.
@@ -74,7 +102,8 @@ function synchronize(rest, userId) {
 * **forceOffline()** - Force the appliction to operate "offline".
 * **forceOnline()** - Force the application back "online".
 * **get(uri)** - Retrieves a json resource from a remote server using the local repository when offline.
-* **post(uri)** - Posts an object to a remote server and in the local repository.
+* **post(uri, resource)** - Posts a resource to a remote server and in the local repository adding the resource if it doesn't exist or overwriting the existing resource.
+* **put(uri, resource)** - Puts a known resource on a remote server and in the local repository updating the resource id provided in the uri.
 * **uriGenerate(uri)** - Returns the uri generated based on things like auto addition of query parameters, etc.
 
 ### restoff(config) Settings
@@ -231,9 +260,9 @@ return roff.get("http://test.development.com:4050/testsweb/testdata/users")
 
 ```
 
-### post(uri)
+### post(uri, resource)
 
-```post(uri)``` posts an object to a remote server and in the local repository.
+```post(uri)``` posts a resource to a remote server and in the local repository adding the resource if it doesn't exist or overwriting the existing resource
 
 * When online, inserts and updates will happen immediately.
 * TODO: May want to do a POST then a GET to catch any changes by a model on the server before the data is posted???
@@ -250,6 +279,29 @@ var newUser = {
 }
 
 return roff.post("http://test.development.com:4050/users", newUser)
+.then(function(result){
+	// use the result here
+});
+
+```
+
+### put(uri, resource)
+
+```put(uri, resource)``` puts a known resource on a remote server and in the local repository updating the resource id provided in the uri.
+
+Example usage:
+
+```javascript
+var roff = restoff({
+	"rootUri" : "http://test.development.com:4050/"
+});
+var existingUser = {
+	"id" : "ffa454",
+	"first_name": "Happy",
+	"last_name": "User"
+}
+
+return roff.post("users/ffa454", existingUser)
 .then(function(result){
 	// use the result here
 });
