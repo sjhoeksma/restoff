@@ -10,6 +10,7 @@
 	* support custom/non-standard RESTful endpoints (example: a request GET actually does a delete)
 	* support put/post updates where resource is changed on the server (requires better mockable restapi backend for testing)
 	* partial loading of repositories in memory (currently 100% of all repositories persist in memory)
+	* support nested resources (example: /users/45/addresses)
 
 Automatically synchronize your local client with backend server data using your existingish RESTful API and make that data available offline. 
 
@@ -388,7 +389,7 @@ $ npm outdated
 
 ### Node Modules Used
 
-* https://jsonplaceholder.typicode.com/
+* [jsonplaceholder][jsonplaceholder-link]
 
 ### Continuous Rebuild and Testing
 
@@ -446,3 +447,4 @@ Add to your /etc/hosts file:
 
 
 [rest-best-practices]: http://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api
+[jsonplaceholder-link]: http://jsonplaceholder.typicode.com/

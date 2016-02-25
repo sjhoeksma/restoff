@@ -174,10 +174,10 @@ RestOff.prototype.primaryKeyFor = function(repositoryName, resource) {
 RestOff.prototype.repositoryAdd = function(uri, result) {
 	var resource = JSON.parse(result);
 	// TODO: Check for non-json result
-	return this.repositoryAddObject(uri, resource);
+	return this.repositoryAddResource(uri, resource);
 }
 
-RestOff.prototype.repositoryAddObject = function(uri, resource) {
+RestOff.prototype.repositoryAddResource = function(uri, resource) {
 	var repositoryName = this.repositoryNameFrom(uri);
 	var that = this;
 	if (undefined === this._repo[repositoryName]) {
@@ -263,7 +263,7 @@ RestOff.prototype.get = function(uri) {
 						// that._isOnline = that.ONLINE_NOT; // TODO: Write a test to cover this line of code
 					var repositoryName = that.repositoryNameFrom(uriFinal);
 					if (undefined === that.repository[repositoryName]) {
-						that.repositoryAddObject(uriFinal, []); // offline and first call to the endpoint made
+						that.repositoryAddResource(uriFinal, []); // offline and first call to the endpoint made
 					}
 					resolve(that.repository[repositoryName]);
 				} else if(200 === request.status) {
@@ -293,7 +293,7 @@ RestOff.prototype.post = function(uri, resource) {
 					// TODO: We should pull the final resource from the
 					//       returned URI and add that to our repository
 					//       but need a better backend system for testing
-					resolve(that.repositoryAddObject(uriFinal, resource));
+					resolve(that.repositoryAddResource(uriFinal, resource));
 				} else {
 					reject(that.createError(request, uriFinal)); 
 				}
@@ -318,7 +318,7 @@ RestOff.prototype.put = function(uri, resource) {
 				//       returned URI and add that to our repository
 				//       but need a better backend system for testing
 				if (200 === request.status) {
-					resolve(that.repositoryAddObject(uriFinal, resource));
+					resolve(that.repositoryAddResource(uriFinal, resource));
 				} else {
 					reject(that.createError(request, uriFinal)); 
 				}
