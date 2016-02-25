@@ -31,6 +31,7 @@ RestOff.prototype = Object.create(Object.prototype, {
 		get: function() { return this._forcedOffline; }
 	},
 	repository: { get: function() { return this._repo; }},
+	repositorySize: { get: function() { return roff.repositorySize }},
 	isOnline: {
 		get: function() { return this._isOnline; },
 		set: function(value) { this._isOnline = value; }
@@ -130,7 +131,7 @@ RestOff.prototype.forceOnline = function() {
 	this._isOnline = this.ONLINE_UNKNOWN;
 }
 
-RestOff.prototype.repoNameFrom = function(uri) {
+RestOff.prototype.repositoryNameFrom = function(uri) {
 	var rootUri = this.rootUri;
 
 	if ("" === rootUri) {
@@ -147,28 +148,47 @@ RestOff.prototype.repoNameFrom = function(uri) {
 }
 
 // TODO: Refactor... Repo should be it's own thing
-RestOff.prototype.repoAdd = function(uri, result) {
+RestOff.prototype.repositoryAdd = function(uri, result) {
 	var obj = JSON.parse(result);
 	// TODO: Check for non-json result
-	return this.repoAddObject(uri, obj);
+	return this.repositoryAddObject(uri, obj);
 }
 
-RestOff.prototype.repoAddObject = function(uri, obj) {
-	var repoName = this.repoNameFrom(uri);
+RestOff.prototype.repositoryAddObject = function(uri, obj) {
+	var repoName = this.repositoryNameFrom(uri);
+	var that = this;
+	if (undefined === this._repo[repoName]) {
+		this._repo[repoName] = [];
+	}
+
+	// TODO: There is no consolodiation at this time but will come soonish.
+	//       So right now, we literally overwrite whatever is there.
 	if (obj instanceof Array) {
-		// TODO: There is no consolodiation at this time but will come soonish.
-		//       So right now, we literally overwrite whatever is there.
-		this._repo[repoName] = obj
+		obj.forEach(function(obj) {
+			that._repo[repoName][obj.id] = obj;
+		});
 	} else {
-		if (undefined === this._repo[repoName]) {
-			this._repo[repoName] = [];
-		}
-		this._repo[repoName].push(obj);
+		this._repo[repoName][obj.id] = obj;
 	}
 	return this._repo[repoName];
 }
 
-RestOff.prototype.repoDelete = function(uri) {
+RestOff.prototype.repositoryGet = function(repoName) {
+	if (undefined === this._repo[repoName]) {
+		this._repo[repoName] = [];
+	}
+	return this._repo[repoName];
+}
+
+RestOff.prototype.repositoryResourceGet = function(repoName, resourceId) {
+	if (undefined === this._repo[repoName]) {
+		this._repo[repoName] = [];
+		return this._repo[repoName];
+	}
+	return this._repo[repoName][resourceId];
+}
+
+RestOff.prototype.repositoryDelete = function(uri) {
 	var that = this;
 	var aUri = document.createElement("a");
 	aUri.href = uri;
@@ -178,15 +198,9 @@ RestOff.prototype.repoDelete = function(uri) {
 		this._repo[repoName] = [];
 	}
 
-	// TODO: Use a better data structure
-
-	this._repo[repoName].forEach(
-		function(obj, pos, repo) {
-			if (obj[that.foreignKeyName] === idToRemove ) {
-				that._repo[repoName].splice(pos);
-			}
-		}
-	);
+	if (undefined !== this._repo[repoName][idToRemove]) {
+		delete this._repo[repoName][idToRemove];
+	}
 }
 
 RestOff.prototype.clearCacheBy = function(repoName) {
@@ -223,14 +237,14 @@ RestOff.prototype.get = function(uri) {
 			} else if(request.__proto__.DONE === request.readyState2 ) {
 				if ((request.__proto__.UNSENT === request.status) && (that.isForcedOffline)) {
 						// that.isOnline = that.ONLINE_NOT; // TODO: Write a test to cover this line of code
-					var repoName = that.repoNameFrom(uri);
+					var repoName = that.repositoryNameFrom(uri);
 					if (undefined === that.repository[repoName]) {
-						that.repoAddObject(uri, []); // offline and first call to the endpoint made
+						that.repositoryAddObject(uri, []); // offline and first call to the endpoint made
 					}
 					resolve(that.repository[repoName]);
 				} else if(200 === request.status) {
 					that.isOnline = that.ONLINE;
-					resolve(that.repoAdd(uri, request.response));
+					resolve(that.repositoryAdd(uri, request.response));
 				} else {
 					reject(that.createError(request, uri));
 				}
@@ -251,8 +265,8 @@ RestOff.prototype.post = function(uri, object) {
 		request.onreadystatechange = function() {
 			if(request.__proto__.DONE === request.readyState2 ) {
 				if (201 === request.status) {
-					var repoName = that.repoNameFrom(uri);
-					resolve(that.repoAddObject(uri, object));
+					var repoName = that.repositoryNameFrom(uri);
+					resolve(that.repositoryAddObject(uri, object));
 				} else {
 					reject(that.createError(request, uri)); 
 				}
@@ -274,12 +288,12 @@ RestOff.prototype.delete = function(uri) {
 		request.onreadystatechange = function(){
 			if(request.__proto__.DONE === request.readyState2 ) {
 				if (200 === request.status) {
-					that.repoDelete(uri);
+					that.repositoryDelete(uri);
 					resolve();
 				} else if (404 === request.status) {
 					// No Worries. Wasn't in repo and now it won't be in our
 					// local repository either (if it is there)
-					that.repoDelete(uri);
+					that.repositoryDelete(uri);
 					resolve();
 				} else {
 					reject(that.createError(request, uri));					

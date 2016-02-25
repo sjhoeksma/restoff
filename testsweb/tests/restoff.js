@@ -59,8 +59,8 @@ describe ("restoff", function() {
 		var userRepo = "users" + testid;
 
 		return dbSource.get(testUri(userRepo)).then(function(source) {
-			expect(dbSource.repository[userRepo].length, userRepo + " repository length").to.equal(1);
-			expect(dbSource.repository[userRepo].length, userRepo + " repository count ").to.equal(1);
+			expect(dbSource.repositoryGet(userRepo).length, userRepo + " repository length").to.equal(1);
+			expect(dbSource.repositoryGet(userRepo).length, userRepo + " repository count ").to.equal(1);
 			return roff.get(testUri(userRepo)).then(function(result){
 				expect(result, "User result").to.deep.equals(source);
 				expect(roff.isOnline, "isOnline").to.equal(roff.ONLINE);
@@ -94,18 +94,18 @@ describe ("restoff", function() {
 		var testid = "01";
 		var userRepo = "users" + testid;
 
-		expect(Object.keys(roff.repository).length, "Repository length").to.equal(0);
+		expect(roff.repositorySize, "Repository length").to.equal(0);
 		return dbSource.get(testUri(userRepo)).then(function(source) {
-			expect(dbSource.repository[userRepo].length, userRepo + " repository length").to.equal(1);
+			expect(dbSource.repositoryGet(userRepo).length, userRepo + " repository length").to.equal(1);
 			return roff.get(testUri(userRepo)).then(function(users){
 				expect(users, userRepo + " object").to.deep.equals(source);
-				expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
-				expect(roff.repository[userRepo], userRepo + " object").to.deep.equals(source);
+				expect(roff.repositorySize, "Repository length").to.equal(1);
+				expect(roff.repositoryGet(userRepo), userRepo + " object").to.deep.equals(source);
 				roff.forceOffline();
 				return roff.get(testUri(userRepo)).then(function(users2) {
 						expect(users2, userRepo + " object").to.deep.equals(source);
-						expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
-						expect(roff.repository[userRepo], userRepo + " object").to.deep.equals(source);
+						expect(roff.repositorySize, "Repository length").to.equal(1);
+						expect(roff.repositoryGet(userRepo), userRepo + " object").to.deep.equals(source);
 				});
 			});
 		});
@@ -127,7 +127,7 @@ describe ("restoff", function() {
 
 		return roff.get("http://test.development.com:4050/testsweb/testdata/addresses").then(function(addresses){
 			expect(addresses, "Address object").to.deep.equals(address01);
-			expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
+			expect(roff.repositorySize, "Repository length").to.equal(1);
 			expect(roff.repository["addresses"], "Address object").to.deep.equals(address01);
 		});
 
@@ -142,9 +142,9 @@ describe ("restoff", function() {
 		return dbSource.get(testUri(userRepo)).then(function(users) {
 			return dbSource.get(testUri(addressRepo)).then(function(addresses){
 				expect(Object.keys(dbSource.repository).length, "Repository length").to.equal(2);
-				expect(dbSource.repository[userRepo].length, userRepo + " repository length").to.equal(1);
+				expect(dbSource.repositoryGet(userRepo).length, userRepo + " repository length").to.equal(1);
 				expect(dbSource.repository[addressRepo].length, addressRepo + " repository length").to.equal(1);
-				expect(dbSource.repository[userRepo], userRepo + " object").to.deep.equals(users);
+				expect(dbSource.repositoryGet(userRepo), userRepo + " object").to.deep.equals(users);
 				expect(dbSource.repository[addressRepo], addressRepo + " object").to.deep.equals(addresses);
 			});
 		});
@@ -157,23 +157,23 @@ describe ("restoff", function() {
 		var testid = "01";
 		var userRepo = "users" + testid;
 
-		expect(Object.keys(roff.repository).length, "Repository length").to.equal(0);
+		expect(roff.repositorySize, "Repository length").to.equal(0);
 		return roff.get(testUri(userRepo)).then(function(users){
-			expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
-			expect(roff.repository[userRepo].length, userRepo + " repository length").to.equal(1);
-			expect(roff.repository[userRepo], userRepo + " object").to.deep.equals(users);
+			expect(roff.repositorySize, "Repository length").to.equal(1);
+			expect(roff.repositoryGet(userRepo).length, userRepo + " repository length").to.equal(1);
+			expect(roff.repositoryGet(userRepo), userRepo + " object").to.deep.equals(users);
 			roff.clearCacheBy(userRepo);
-			expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
-			expect(roff.repository[userRepo], userRepo + " object").to.deep.equals([]);
+			expect(roff.repositorySize, "Repository length").to.equal(1);
+			expect(roff.repositoryGet(userRepo), userRepo + " object").to.deep.equals([]);
 			roff.clearCacheBy("not_a_repo");
-			expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
+			expect(roff.repositorySize, "Repository length").to.equal(1);
 			
 			// Verify we did not delete any data from actual data source
 			var dbSource = restoff();
 			return dbSource.get(testUri(userRepo)).then(function(users){
 				expect(Object.keys(dbSource.repository).length, "Repository length").to.equal(1);
-				expect(dbSource.repository[userRepo].length, userRepo + " repository length").to.equal(1);
-				expect(dbSource.repository[userRepo], userRepo + " object").to.deep.equals(users);
+				expect(dbSource.repositoryGet(userRepo).length, userRepo + " repository length").to.equal(1);
+				expect(dbSource.repositoryGet(userRepo), userRepo + " object").to.deep.equals(users);
 			});
 		});
 	});
@@ -188,13 +188,13 @@ describe ("restoff", function() {
 		return dbSource.get(testUri(userRepo)).then(function(users) {
 			return dbSource.get(testUri(addressRepo)) .then(function(addresses){
 				expect(Object.keys(dbSource.repository).length, "Repository length").to.equal(2);
-				expect(dbSource.repository[userRepo].length, userRepo + " repository length").to.equal(1);
-				expect(dbSource.repository[userRepo], userRepo + " object").to.deep.equals(users);
+				expect(dbSource.repositoryGet(userRepo).length, userRepo + " repository length").to.equal(1);
+				expect(dbSource.repositoryGet(userRepo), userRepo + " object").to.deep.equals(users);
 				expect(dbSource.repository[addressRepo].length, userRepo + " repository length").to.equal(1);
 				expect(dbSource.repository[addressRepo], addressRepo + " object").to.deep.equals(addresses);
 				dbSource.clearCacheAll();
 				expect(Object.keys(dbSource.repository).length, "Repository length").to.equal(2);
-				expect(dbSource.repository[userRepo], userRepo + " object").to.deep.equals([]);
+				expect(dbSource.repositoryGet(userRepo), userRepo + " object").to.deep.equals([]);
 				expect(dbSource.repository[addressRepo], addressRepo + " object").to.deep.equals([]);
 			});
 		});
@@ -223,8 +223,8 @@ describe ("restoff", function() {
 		var userRepo = "users" + testid;
 
 		return roff.get(testUri(userRepo)).then(function(users){
-			expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
-			expect(roff.repository[userRepo], userRepo  + " object").to.deep.equals(users);
+			expect(roff.repositorySize, "Repository length").to.equal(1);
+			expect(roff.repositoryGet(userRepo), userRepo  + " object").to.deep.equals(users);
 		});
 
 	});
@@ -239,8 +239,8 @@ describe ("restoff", function() {
 		var userRepo = "users" + testid;
 
 		return roff.get(testUri(userRepo)).then(function(users){
-			expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
-			expect(roff.repository[userRepo], userRepo + " object").to.deep.equals(users);
+			expect(roff.repositorySize, "Repository length").to.equal(1);
+			expect(roff.repositoryGet(userRepo), userRepo + " object").to.deep.equals(users);
 		});
 	});	
 
@@ -253,8 +253,8 @@ describe ("restoff", function() {
 		var userRepo = "users" + testid;
 
 		return roff.get(userRepo).then(function(users){
-			expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
-			expect(roff.repository[userRepo], userRepo + " object").to.deep.equals(users);
+			expect(roff.repositorySize, "Repository length").to.equal(1);
+			expect(roff.repositoryGet(userRepo), userRepo + " object").to.deep.equals(users);
 		}).catch(function(error) {
 			console.log(error);
 			expect(true, "Should have no error").to.equal(false);

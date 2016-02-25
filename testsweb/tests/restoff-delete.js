@@ -23,12 +23,10 @@ describe ("restoff delete", function() {
 		var userRepo = "users" + testid;
 
 		var roff = restoff();
-		expect(Object.keys(roff.repository).length, "Repository length").to.equal(0);
-
+		expect(roff.repositorySize, "Repository size").to.equal(0);
 		return roff.delete(testUri(userRepo+"/232")).then(function(result) {
-			expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
-			expect(roff.repository[userRepo], userRepo + " object").to.deep.equals([]);			
-			expect(roff.repository[userRepo], userRepo + " object").to.deep.equals([]);			
+			expect(roff.repositorySize, "Repository size").to.equal(1);
+			expect(roff.repositoryGet(userRepo), userRepo + " object").to.deep.equals([]);
 		}).catch(function(error) {
 			expect(true, "Promise should call the then.").to.be.false;
 		});
@@ -42,26 +40,26 @@ describe ("restoff delete", function() {
 		var userRepo = "users" + testid;
 		var roff = restoff();
 
-		expect(Object.keys(roff.repository).length, "Repository length").to.equal(0);
+		expect(roff.repositorySize, "Repository length").to.equal(0);
 
-		var usersToDelete = [{
+		var userToDelete = {
 			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68522",
 			"first_name": "Unhappy",
 			"last_name": "User"
-		}];
+		};
 
-		var userToDelete = usersToDelete[0];
-		expect(Object.keys(roff.repository).length, "Repository length").to.equal(0);
+		var usersToDelete = [];
+		usersToDelete["aedfa7a4-d748-11e5-b5d2-0a1d41d68522"] = userToDelete;
 
+		expect(roff.repositorySize, "Repository length").to.equal(0);
 		return roff.post(testUri(userRepo), userToDelete).then(function(result) {
-			expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
-			expect(roff.repository[userRepo].length, userRepo + " repository count ").to.equal(1);
-			expect(roff.repository[userRepo], userRepo + " object").to.deep.equals(usersToDelete);
+			expect(roff.repositorySize, "Repository length").to.equal(1);
+			expect(roff.repositoryGet(userRepo)["aedfa7a4-d748-11e5-b5d2-0a1d41d68522"], userRepo + " repository count ").to.deep.equals(userToDelete);
+			expect(roff.repositoryGet(userRepo), userRepo + " object").to.deep.equals(usersToDelete);
 
 			return roff.delete(testUri(userRepo + "/aedfa7a4-d748-11e5-b5d2-0a1d41d68522")).then(function(result) {
-				expect(Object.keys(roff.repository).length, "Repository length").to.equal(1);
-				expect(roff.repository[userRepo].length, userRepo + " repository count ").to.equal(0);
-				expect(roff.repository[userRepo], userRepo + " object").to.deep.equals([]);
+				expect(roff.repositorySize, "Repository length").to.equal(1);
+				expect(roff.repositoryGet(userRepo), userRepo + " object").to.deep.equals([]);
 			}).catch(function(error) {
 				console.log(error);
 				expect(true, "Promise should call the then.").to.be.false;
