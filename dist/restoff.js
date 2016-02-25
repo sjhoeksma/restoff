@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.0.16
+// version: 0.0.18
 // author: ProductOps
 // license: Copyright (C) 2016 ProductOps
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.0.16'; // version set through gulp build
+restlib["version-library"] = '0.0.18'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -94,22 +94,22 @@ RestOff.prototype.createError = function(request, uri) {
 	};
 }
 
-RestOff.prototype.autoQueryParam = function(name, value) {
+RestOff.prototype.autoQueryParamSet = function(name, value) {
 	this._autoParams[name] = value;
 	return this;
 }
 
-RestOff.prototype.autoQueryParamGet = function(name) {
+RestOff.prototype.autoQueryParamSetGet = function(name) {
 	return this._autoParams[name];
 }
 
 
-RestOff.prototype.autoHeaderParam = function(name, value) {
+RestOff.prototype.autoHeaderParamSet = function(name, value) {
 	this._autoHeaders[name] = value;
 	return this;
 }
 
-RestOff.prototype.autoHeaderParamGet = function(name) {
+RestOff.prototype.autoHeaderParamSetGet = function(name) {
 	return this._autoHeaders[name];
 }
 

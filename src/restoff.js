@@ -77,22 +77,22 @@ RestOff.prototype.createError = function(request, uri) {
 	};
 }
 
-RestOff.prototype.autoQueryParam = function(name, value) {
+RestOff.prototype.autoQueryParamSet = function(name, value) {
 	this._autoParams[name] = value;
 	return this;
 }
 
-RestOff.prototype.autoQueryParamGet = function(name) {
+RestOff.prototype.autoQueryParamSetGet = function(name) {
 	return this._autoParams[name];
 }
 
 
-RestOff.prototype.autoHeaderParam = function(name, value) {
+RestOff.prototype.autoHeaderParamSet = function(name, value) {
 	this._autoHeaders[name] = value;
 	return this;
 }
 
-RestOff.prototype.autoHeaderParamGet = function(name) {
+RestOff.prototype.autoHeaderParamSetGet = function(name) {
 	return this._autoHeaders[name];
 }
 

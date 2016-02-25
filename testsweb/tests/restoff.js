@@ -257,14 +257,14 @@ describe ("restoff", function() {
 		and it will remove any uri parameters when figuring out a repo name", function() {
 		var roff = restoff({
 			"rootUri" : ROOT_URI
-		}).autoQueryParam("access_token", "rj5aabcea");
+		}).autoQueryParamSet("access_token", "rj5aabcea");
 
 		expect(roff, "roff").to.be.an('object');
-		expect(roff.autoQueryParamGet("access_token"), "access_token").to.equal("rj5aabcea");
+		expect(roff.autoQueryParamSetGet("access_token"), "access_token").to.equal("rj5aabcea");
 
-		roff.autoQueryParam("access_token", "rj5aabcea2");
-		expect(roff.autoQueryParamGet("access_token"), "access_token").to.equal("rj5aabcea2");
-		roff.autoQueryParam("another_auto", "another_value");
+		roff.autoQueryParamSet("access_token", "rj5aabcea2");
+		expect(roff.autoQueryParamSetGet("access_token"), "access_token").to.equal("rj5aabcea2");
+		roff.autoQueryParamSet("another_auto", "another_value");
 
 		var generated = roff.uriGenerate("users");
 		expect(generated, "Generated uri").to.equal(ROOT_URI + "users?access_token=rj5aabcea2&another_auto=another_value");
@@ -283,10 +283,10 @@ describe ("restoff", function() {
 	it("14: should support adding headers automatically", function() {
 		var roff = restoff({
 			"rootUri" : ROOT_URI
-		}).autoHeaderParam("access_token", "rj5aabcea");
+		}).autoHeaderParamSet("access_token", "rj5aabcea");
 
 		expect(roff, "roff").to.be.an('object');
-		expect(roff.autoHeaderParamGet("access_token"), "access_token").to.equal("rj5aabcea");
+		expect(roff.autoHeaderParamSetGet("access_token"), "access_token").to.equal("rj5aabcea");
 
 		var userRepo = "users01";
 

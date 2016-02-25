@@ -1,6 +1,12 @@
 # REST Offline
 
-In development... Not "usable" yet.
+* In development... Not "usable" yet.
+* Next major features
+	* support put
+	* save/persist repositories
+	* reconciliation of changes between client and server
+	* support custom/non-standard RESTful endpoints (example: a request GET actually does a delete)
+	* partial loading of repositories in memory (currently 100% of all repositories persist in memory)
 
 Automatically synchronize your local client with backend server data using your existingish RESTful API and make that data available offline. 
 
@@ -58,10 +64,10 @@ function synchronize(rest, userId) {
 ### Functions and Properties
 
 
-* **autoHeaderParam(name, value)** - A header of ```name``` with ```value``` will be added to the header of every RESTful api call.
-* **autoHeaderParamGet(name)** - Returns the value of the header parameter with the provided ```name```.
-* **autoQueryParam(name, value)** - A parameter of ```name``` with ```value``` will be added/appended to every RESTful api call.
-* **autoQueryParamGet(name)** - Returns the value of the query parameter with the provided ```name```.
+* **autoHeaderParamSet(name, value)** - A header of ```name``` with ```value``` will be added to the header of every RESTful api call.
+* **autoHeaderParamSetGet(name)** - Returns the value of the header parameter with the provided ```name```.
+* **autoQueryParamSet(name, value)** - A parameter of ```name``` with ```value``` will be added/appended to every RESTful api call.
+* **autoQueryParamSetGet(name)** - Returns the value of the query parameter with the provided ```name```.
 * **clearCacheAll()** - Clears all caches. Doesn't delete data on the server.
 * **clearCacheBy(repoName)** - Clears the cache of a given repository. Doesn't delete data on the server.
 * **delete(uri)** - Deletes a resource from a remote server.
@@ -121,7 +127,7 @@ Let's override the rootUri:
 
 This will lead to our desired repository name of ```tickets```.
 
-### autoQueryParam(name, value)
+### autoQueryParamSet(name, value)
 
 A parameter of ```name``` with ```value``` will be added/appended to every RESTful api call. Useful for adding parameters such as an access token.
 
@@ -129,10 +135,10 @@ Example usage:
 
 ```javascript
 var roff = restoff()
-	.autoQueryParam("access_token", "rj5aabcea");
+	.autoQueryParamSet("access_token", "rj5aabcea");
 ```
 
-### autoQueryParamGet(name)
+### autoQueryParamSetGet(name)
 
 Returns the value of the query parameter with the provided ```name```.
 
@@ -140,12 +146,12 @@ Example usage:
 
 ```javascript
 var roff = restoff()
-	.autoQueryParam("access_token", "rj5aabcea");
-var paramVAlue = roff.autoQueryParamGet("access_token");
+	.autoQueryParamSet("access_token", "rj5aabcea");
+var paramVAlue = roff.autoQueryParamSetGet("access_token");
 
 ```
 
-### autoHeaderParam(name, value)
+### autoHeaderParamSet(name, value)
 
 A header of ```name``` with ```value``` will be added to the header of every RESTful api call.  Useful for adding parameters such as an access token.
 
@@ -153,10 +159,10 @@ Example usage:
 
 ```javascript
 var roff = restoff()
-	.autoHeaderParam("access_token", "rj5aabcea");
+	.autoHeaderParamSet("access_token", "rj5aabcea");
 ```
 
-### autoHeaderParamGet(name)
+### autoHeaderParamSetGet(name)
 
 Returns the value of the header parameter with the provided ```name```.
 
@@ -164,8 +170,8 @@ Example usage:
 
 ```javascript
 var roff = restoff()
-	.autoHeaderParam("access_token", "rj5aabcea");
-var paramVAlue = roff.autoHeaderParamGet("access_token");
+	.autoHeaderParamSet("access_token", "rj5aabcea");
+var paramVAlue = roff.autoHeaderParamSetGet("access_token");
 
 ```
 
@@ -258,7 +264,7 @@ restOff may add additional query parameters when restOff.get(uri) is called. Use
 Example usage:
 
 ```javascript
-var roff = restoff().autoQueryParam("access_token", "rj5aabcea");
+var roff = restoff().autoQueryParamSet("access_token", "rj5aabcea");
 var actualUri = roff.uriGenerate("http://test.development.com:4050/emailaddresses");
 expect(actualUri)).to.equal("http://test.development.com:4050/emailaddresses?access_token=rj5aabcea");
 
