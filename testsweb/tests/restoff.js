@@ -536,24 +536,24 @@ describe ("restoff", function() {
 	});
 
 
-	// Actual offline test: Comment out this code and make sure your internet
-	// connection is turned off
-	it("99: should work offline when it is 'really' offline", function() {
-		var roff = restoff();
+	// // Actual offline test: Comment out this code and make sure your internet
+	// // connection is turned off
+	// it("99: should work offline when it is 'really' offline", function() {
+	// 	var roff = restoff();
 
-		return roff.get("http://jsonplaceholder.typicode.com/posts").then(function(result){
-			expect(true, "Promise should call the catch.", false);			
-		}).catch(function (error) {
-			var errorExpected = {
-				message: "Network Error",
-				messageDetail: "",
-				status: 0,
-				uri: "http://jsonplaceholder.typicode.com/posts"
-			};
-			onlineStatusShouldEqual(roff, false, false, true, false);			
-			expect(error, "Offlinedata").to.deep.equals(errorExpected);
-		});
-	});
+	// 	return roff.get("http://jsonplaceholder.typicode.com/posts").then(function(result){
+	// 		expect(true, "Promise should call the catch.", false);			
+	// 	}).catch(function (error) {
+	// 		var errorExpected = {
+	// 			message: "Network Error",
+	// 			messageDetail: "",
+	// 			status: 0,
+	// 			uri: "http://jsonplaceholder.typicode.com/posts"
+	// 		};
+	// 		onlineStatusShouldEqual(roff, false, false, true, false);			
+	// 		expect(error, "Offlinedata").to.deep.equals(errorExpected);
+	// 	});
+	// });
 
 
 
