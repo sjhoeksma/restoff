@@ -215,8 +215,16 @@ RestOff.prototype.repositoryAddResource = function(uri, resource) {
 	//       So right now, we literally overwrite whatever is there.
 	if (resource instanceof Array) {
 		resource.forEach(function(aresource) {
-			that._repo[repositoryName][that.primaryKeyFor(repositoryName, aresource)] = aresource;
-			that.dbEngine(repositoryName).push(aresource);
+			var pkName = that.primaryKeyName;
+			var pk = that.primaryKeyFor(repositoryName, aresource);
+			that._repo[repositoryName][pk] = aresource;
+
+			var objDb = that.dbEngine(repositoryName).find({ id: pk });
+			if (undefined === objDb) {
+				that.dbEngine(repositoryName).push(aresource);
+			} else {
+			}
+			console.log(that.dbEngine(repositoryName).values());
 		});
 	} else {
 		this._repo[repositoryName][this.primaryKeyFor(repositoryName, resource)] = resource;
