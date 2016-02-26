@@ -177,10 +177,8 @@ RestOff.prototype.repoNameFrom = function(uri) {
 	return result;
 }
 
-RestOff.prototype.createError = function(request, uri) {
-	var message = request.statusText;
+RestOff.prototype.createError = function(request, uri, status, message) {
 	var messageDetail = request.responseText.replace(/\r?\n|\r/g, "");
-	var status = request.status;
 
 	if (0 === status) {
 		message = "Network Error";
@@ -248,9 +246,10 @@ RestOff.prototype.get = function(uri) {
 				} else if(200 === request.status) {
 					that._isOnline = true;
 					resolve(that.repoAdd(uriFinal, request.response));
-				} else {
+				} else { 
+					// all request values are the same for ERR_NAME_NOT_RESOLVED and ERR_INTERNET_DISCONNECTED so can't tell if we are online or not. :-(
 					that._isOnline = 0 !== request.status ? true : null;
-					reject(that.createError(request, uriFinal));
+					reject(that.createError(request, uriFinal, request.status, request.statusText));
 				}
 			} // else ignore other readyStates
 		};
@@ -277,7 +276,7 @@ RestOff.prototype.post = function(uri, resource) {
 					resolve(that.repoAddResource(uriFinal, resource)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
 				} else {
 					that._isOnline = 0 !== request.status ? true : null;
-					reject(that.createError(request, uriFinal)); 
+					reject(that.createError(request, uriFinal, request.status, request.statusText)); 
 				}
 			} // else ignore other readyStates
 		};
@@ -300,8 +299,24 @@ RestOff.prototype.put = function(uri, resource) {
 					that._isOnline = true;
 					resolve(that.repoAddResource(uriFinal, resource)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
 				} else {
+
+					var finalStatus = request.status;
+					var finalMessage = request.statusText;
 					that._isOnline = 0 !== request.status ? true : null;
-					reject(that.createError(request, uriFinal)); 
+					if (that.isForcedOffline) { // we are offline, but resource not found so 404 it.
+						var repoName = that.repoNameFrom(uriFinal);
+						var primaryKey = that.primaryKeyFor(resource);
+						if (that._dbRepo.find(repoName, that.primaryKeyName, primaryKey)) { // offline but found on client so add it
+							that.pendingAdd(uriFinal, resource, "PUT");
+							resolve(that.repoAddResource(uriFinal, resource));
+						} else {
+							finalStatus = 404;
+							finalMessage = "Not Found"
+							reject(that.createError(request, uriFinal, finalStatus, finalMessage));
+						}
+					} else {
+						reject(that.createError(request, uriFinal, request.status, request.statusText)); 
+					}
 				}
 			} // else ignore other readyStates
 		};
@@ -328,7 +343,7 @@ RestOff.prototype.put = function(uri, resource) {
 // 					that.repositoryDelete(uri);
 // 					resolve();
 // 				} else {
-// 					reject(that.createError(request, uri));					
+// 					reject(that.createError(request, uri, request.status, request.message));					
 // 				}
 // 			}
 // 		};

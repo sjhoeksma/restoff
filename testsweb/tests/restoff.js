@@ -475,18 +475,86 @@ describe ("restoff", function() {
 			dbRepoShouldBeEqual(roff, userRepo, result, 1);
 			return dbRepoExactlyEqual(roff, userRepo).then(function(result) { // verify posted to server
 				expect(result, "db repo the same").to.be.true;
-				roff.clearAll();
-				dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 				return roff.put(userRepo+"/aedfa7a4-d748-11e5-b5d2-0a1d41d68577", puttedUser).then(function(result) {
 					dbRepoShouldBeEqual(roff, userRepo, result, 1);
 					return dbRepoExactlyEqual(roff, userRepo).then(function(result) { // verify posted to server
 						expect(result, "db repo the same").to.be.true;
-						return roff.put(userRepo+"/aedfa7a4-d748-11e5-b5d2-0a1d41d68577", existingUser01); // Reset test with original data
+						return roff.put(userRepo+"/aedfa7a4-d748-11e5-b5d2-0a1d41d68577", existingUser01).then(function(result) {
+							dbRepoShouldBeEqual(roff, userRepo, result, 1);
+						}); // Reset test with original data
 					});
 				});
 			});
 		});
 	});
+
+
+	it("53: put should, when offline,\
+		put the resource when it is in the client database\
+		but NOT put a NEW sesource on the client and throw a 404 error.\
+		and add the request to pending", function() {
+
+		var newUser = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68508",
+			"first_name": "New",
+			"last_name": "User"
+		};
+
+		var puttedUser = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68577",
+			"first_name": "Happy3",
+			"last_name": "putted"
+		};
+
+		var userRepo = "users08";
+		var roff = restoff({ "rootUri" : ROOT_URI });
+		roff.clear(userRepo);
+		dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
+		return roff.get(userRepo).then(function(getResults) {
+			dbRepoShouldBeEqual(roff, userRepo, getResults, 3);
+			roff.forceOffline();
+			onlineStatusShouldEqual(roff, false, false, true, true);
+
+			return roff.put(userRepo+"/"+newUser.id, newUser).catch(function(error) {
+				var errorExpected = {
+					message: "Not Found",
+					messageDetail: "",
+					status: 404,
+					uri: "http://test.development.com:3000/" + userRepo + "/"+newUser.id
+				};
+
+				expect(error, "Error result").to.deep.equals(errorExpected);
+				onlineStatusShouldEqual(roff, false, false, true, true);
+				return roff.put(userRepo+"/"+puttedUser.id, puttedUser).then(function(result) {
+					var repoResource = roff.dbRepo.find(userRepo, "id", puttedUser.id);
+					expect(deepEqual(repoResource, result), "put on client").to.be.true;
+					pendingStatusCorrect(roff, result, "PUT", 0, ROOT_URI + userRepo + "/" + puttedUser.id, userRepo);
+
+				});
+			});
+		});
+	});
+
+
+	// Actual offline test: Comment out this code and make sure your internet
+	// connection is turned off
+	it("99: should work offline when it is 'really' offline", function() {
+		var roff = restoff();
+
+		return roff.get("http://jsonplaceholder.typicode.com/posts").then(function(result){
+			expect(true, "Promise should call the catch.", false);			
+		}).catch(function (error) {
+			var errorExpected = {
+				message: "Network Error",
+				messageDetail: "",
+				status: 0,
+				uri: "http://jsonplaceholder.typicode.com/posts"
+			};
+			onlineStatusShouldEqual(roff, false, false, true, false);			
+			expect(error, "Offlinedata").to.deep.equals(errorExpected);
+		});
+	});
+
 
 
 	// Test Helpers
@@ -522,6 +590,7 @@ describe ("restoff", function() {
 	}
 
 	function dbRepoExactlyEqual(roff, repoName) {
+
 		var promise = new Promise(function(resolve, reject) {		
 			// Verify client persisted database for repository is exactly equal
 			// to the table/data in the servers database
@@ -531,7 +600,7 @@ describe ("restoff", function() {
 			});
 
 			return roffDisabled.get(repoName).then(function(result) {
-				roff.persistanceDisabled = false; // to read db results
+				// roff.persistanceDisabled = false; // to read db results
 				resolve(dbResourceCompare(roff, repoName, result));
 			});
 		});
@@ -539,6 +608,7 @@ describe ("restoff", function() {
 	}
 
 	function dbResourceCompare(roff, repoName, resources) {
+		var result = true;
 		if (!(resources instanceof Array)) { // Make code easy: Always make it an array
 			resources = [resources];
 		}
@@ -546,7 +616,7 @@ describe ("restoff", function() {
 		var dbSize = roff.dbRepo.length(repoName);
 		if (dbSize !== resources.length) {
 			console.log ("Expected dbSize of " + dbSize + " to equal resource size of " + resources.length + " for repository " + repoName + ".");
-			return false;
+			result = false;
 		}
 
 		resources.forEach(function(resource, position) {
@@ -554,11 +624,11 @@ describe ("restoff", function() {
 			var dbResource = roff.dbRepo.find(repoName, roff.primaryKeyName, primaryKey);
 
 			if (false === deepEqual(resource, dbResource)) {
-				return false;
+				console.log("Mismatch between client and server database!!! Client %O and server %O", resource, dbResource);
+				result = false;
 			}
 		});
-
-		return true;
+		return result;
 	}
 
 	function deepEqual(x, y) {
@@ -586,34 +656,3 @@ describe ("restoff", function() {
 	}	
 
 });
-
-
-	// it("04: should, with a non-blank repo and when online,\
-	// 	post a new resource to server and local repository\
-	// 	and 404 (Not Found) for deletes should be ignored.", function() {
-	// 	var userRepo = "users04";
-	// 	var roff = restoff({ "rootUri" : ROOT_URI });
-	// 	var dbSource = restoff({ "rootUri" : ROOT_URI });
-	// 	var restDb = roff.dbEngine;
-	// 	dbClear(restDb);
-	// 	dbRepoShouldBeEqual(roff, restDb, userRepo, [], [], 0);
-
-	// 	// Clean up prior run just in case
-	// 	return roff.delete(userRepo+"/aedfa7a4-d748-11e5-b5d2-0a1d41d68577").then(function(result) {
-	// 		return roff.get(userRepo).then(function(sourceResult) {
-	// 			dbRepoShouldBeEqual(roff, restDb, userRepo, null, sourceResult, 1);
-	// 			return roff.post(userRepo, newuser01).then(function(result) {
-	// 				dbRepoShouldBeEqual(roff, restDb, userRepo, newuser01, sourceResult, 2);
-	// 				expect(roff.repositorySizeBy(userRepo), userRepo + " repository count").to.equal(2);
-	// 				expect(roff.repositoryGet(userRepo), userRepo + " object").to.deep.equals(result);
-	// 				return dbSource.get(userRepo).then(function(result) {
-	// 					expect(dbSource.repositorySizeBy(userRepo), userRepo + " repository count").to.equal(2);
-	// 					expect(dbSource.repositoryGet(userRepo), "Two repos should be the same").to.deep.equals(roff.repositoryGet(userRepo));
-	// 					return roff.delete(userRepo+"/aedfa7a4-d748-11e5-b5d2-0a1d41d68577"); // clean up
-	// 				});
-	// 			});
-	// 		});
-	// 	});
-	// });	
-
-

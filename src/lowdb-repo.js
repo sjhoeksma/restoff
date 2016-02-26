@@ -48,8 +48,10 @@ LowdbRepo.prototype.write = function(repoName, keyName, primaryKey, resource) {
 	if (undefined === this.find(repoName, keyName, primaryKey)) {
 		this._low(repoName).push(resource);
 	} else {
+		// console.log(resource);
+		// console.log(this.find(repoName, keyName, primaryKey));
 		var query = {};
-		query[this.primaryKeyName] = keyName;
+		query[keyName] = primaryKey;
 		this.dbEngine(repoName)
 			.chain()
 	  		.find(query)
