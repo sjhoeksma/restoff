@@ -17,7 +17,7 @@ LowdbRepo.prototype = Object.create(Object.prototype, {
 
 restlib.lowdbRepo = lowdbRepo;
 
-LowdbRepo.prototype.size = function(repoName) {
+LowdbRepo.prototype.length = function(repoName) {
 	return this._low(repoName).size();
 }
 
@@ -42,19 +42,18 @@ LowdbRepo.prototype.read = function(repoName) {
 }
 
 LowdbRepo.prototype.write = function(repoName, keyName, primaryKey, resource) {
-	// TODO: There is no consolodiation at this time but will come soonish.
-	//       So right now, we literally overwrite whatever is there.
+	// TODO: There is no consolodiation at this time
+	//       So, right now, we overwrite whatever is there without
+	//       verifying anything has changed.
 	if (undefined === this.find(repoName, keyName, primaryKey)) {
 		this._low(repoName).push(resource);
 	} else {
-		console.log("TODO");
-	// else {
-	// 	var query = {};
-	// 	query[this.primaryKeyName] = key;
-	// 	this.dbEngine(repoName)
-	// 		.chain()
-	//   		.find(query)
-	// 		.assign(resource)
-	// 		.value();
+		var query = {};
+		query[this.primaryKeyName] = keyName;
+		this.dbEngine(repoName)
+			.chain()
+	  		.find(query)
+			.assign(resource)
+			.value();
 	}
 }

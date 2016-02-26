@@ -94,12 +94,16 @@ function synchronize(rest, userId) {
 }
 ```
 
+### Important Notes
+
+* WARNING! When using lowdb, creating two instances of restoff with the same database name results in two different databases being persisted. Be sure to use the same restoff instance throughout your application.
+
 ### Functions and Properties
 
 * **autoHeaderParamSet(name, value)** - A header of ```name``` with ```value``` will be added to the header of every RESTful api call.
-* **autoHeaderParamSetGet(name)** - Returns the value of the header parameter with the provided ```name```.
+* **autoHeaderParamGet(name)** - Returns the value of the header parameter with the provided ```name```.
 * **autoQueryParamSet(name, value)** - A parameter of ```name``` with ```value``` will be added/appended to every RESTful api call.
-* **autoQueryParamSetGet(name)** - Returns the value of the query parameter with the provided ```name```.
+* **autoQueryParamGet(name)** - Returns the value of the query parameter with the provided ```name```.
 * **clearCacheAll()** - Clears all caches. Doesn't delete data on the server.
 * **clearCacheBy(repoName)** - Clears the cache of a given repository. Doesn't delete data on the server.
 * **delete(uri)** - Deletes a resource from a remote server.
@@ -171,7 +175,7 @@ var roff = restoff()
 	.autoQueryParamSet("access_token", "rj5aabcea");
 ```
 
-### autoQueryParamSetGet(name)
+### autoQueryParamGet(name)
 
 Returns the value of the query parameter with the provided ```name```.
 
@@ -180,7 +184,7 @@ Example usage:
 ```javascript
 var roff = restoff()
 	.autoQueryParamSet("access_token", "rj5aabcea");
-var paramVAlue = roff.autoQueryParamSetGet("access_token");
+var paramVAlue = roff.autoQueryParamGet("access_token");
 
 ```
 
@@ -195,7 +199,7 @@ var roff = restoff()
 	.autoHeaderParamSet("access_token", "rj5aabcea");
 ```
 
-### autoHeaderParamSetGet(name)
+### autoHeaderParamGet(name)
 
 Returns the value of the header parameter with the provided ```name```.
 
@@ -204,7 +208,7 @@ Example usage:
 ```javascript
 var roff = restoff()
 	.autoHeaderParamSet("access_token", "rj5aabcea");
-var paramVAlue = roff.autoHeaderParamSetGet("access_token");
+var paramVAlue = roff.autoHeaderParamGet("access_token");
 
 ```
 

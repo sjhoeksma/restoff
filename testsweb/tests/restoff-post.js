@@ -50,31 +50,6 @@ describe ("restoff post", function() {
 		});
 	});
 
-	it("03: should, with a blank repo and when online,\
-		    post a new resource to server and local repository", function() {
-		var userRepo = "users02";
-		var roff = restoff({ "rootUri" : ROOT_URI });
-		var dbSource = restoff({ "rootUri" : ROOT_URI });
-		var restDb = roff.dbEngine;
-
-		dbClear(restDb);
-		dbRepoShouldBeEqual(roff, restDb, userRepo, [], [], 0);
-
-		return roff.post(userRepo, newuser01).then(function(updatedResult) {
-			dbRepoShouldBeEqual(roff, restDb, userRepo, updatedResult, updatedResult, 1);
-			expect(dbSource.repositorySize, "Repository size").to.equal(0);
-			return dbSource.get(userRepo).then(function(result) {
-				console.log(roff.repositoryGet(userRepo));
-				console.log(newusers);
-				// expect(roff.repositoryGet(userRepo), userRepo + " repository equals").to.deep.equals(newusers);
-				// dbRepoShouldBeEqual(dbSource, restDb, userRepo, newusers, result, 1);
-				expect(dbSource.repositorySize, "Repository size").to.equal(1);
-				expect(roff.repositoryGet(userRepo), userRepo + " object").to.deep.equals(result);
-				expect(dbResourceCompare(restDb, userRepo, newusers), userRepo + " resource should equal database").to.be.true;
-			});
-
-		});
-	});
 
 	it("04: should, with a non-blank repo and when online,\
 		post a new resource to server and local repository\
