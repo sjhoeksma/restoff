@@ -44,7 +44,10 @@
     "gulp-uglify": "^1.5.2",
     "gulp-util": "^3.0.7",
     "json-server": "^0.8.8",
-    "mocha": "^2.4.5"
+    "lowdb": "^0.12.4",
+    "mocha": "^2.4.5",
+    "require": "^2.4.20",
+    "underscore-db": "file:node_modules/underscore-db"
   },
   "dependencies": {}
 }

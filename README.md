@@ -248,6 +248,7 @@ return roff.delete("http://test.development.com:4050/users/553fdf")
 .then(function(result){
 	// user was deleted
 });
+```
 
 ### get(uri)
 

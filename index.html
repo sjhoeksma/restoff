@@ -9,8 +9,12 @@
 	<body id="mocha">
 		<script src="../node_modules/mocha/mocha.js"></script>
 		<script src="../node_modules/chai/chai.js"></script>
-		<script src="../dist/restoff.js"></script>
+<!-- 		<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore.js"></script>
+ --><!--  		<script src="../node_modules/underscore-db/dist/underscore-db.js"></script> -->
+		<script src="http://npmcdn.com/lowdb@^0.12.4/dist/lowdb.min.js"></script>
+		<script src="../dist/restoff.min.js"></script>
 		<script>mocha.setup('bdd');</script>
+		<script src="./testsweb/tests/restoff-persist.js"></script>
 		<script src="./testsweb/tests/restoff-put.js"></script>
 		<script src="./testsweb/tests/restoff-delete.js"></script>
 		<script src="./testsweb/tests/restoff.js"></script>

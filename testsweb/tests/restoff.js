@@ -65,7 +65,7 @@ describe ("restoff", function() {
 	it("05: should handle config settings correctly", function() {
 		var roff = restoff();
 		expect(roff.rootUri, "rootUri").to.equal("");
-		expect(roff.dbName, "dbName").to.equal("restoff.json");
+		expect(roff.dbName, "dbName").to.equal("restoff");
 		roff.rootUri = ROOT_URI + "testsweb/testdata";
 		expect(roff.rootUri, "rootUri").to.equal(ROOT_URI + "testsweb/testdata");
 

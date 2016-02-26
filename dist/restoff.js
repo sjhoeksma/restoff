@@ -15,6 +15,15 @@ if (typeof module !== 'undefined' && module.exports) {
 } else {
 	root.restlib = restlib;
 }
+
+/*
+Note: We will be refactoring restoff to seperate repository features
+from the restoff features. Loose coupling, separation of concerns and the such.
+
+So, please don't judge us quite yet. :-)
+
+*/
+
 function restoff(config) {
 	var that = Object.create(RestOff.prototype);
 	that._isOnline = that.ONLINE_UNKNOWN;
@@ -24,9 +33,9 @@ function restoff(config) {
 	that._autoHeaders = {};
 
 	that._rootUri = (undefined !== config) ? config.rootUri ? config.rootUri : "" : "";
-	that._dbName = (undefined !== config) ? config.dbName ? config.dbName : "restoff.json" : "restoff.json";
+	that._dbName = (undefined !== config) ? config.dbName ? config.dbName : "restoff" : "restoff";
 	that._primaryKeyName = (undefined !== config) ? config.primaryKeyName ? config.primaryKeyName : "id" : "id";
-
+	that._dbEngine = low(that._dbName, { storage: low.localStorage }); // local storage
 	return that;
 }
 
@@ -49,6 +58,7 @@ RestOff.prototype = Object.create(Object.prototype, {
 	},
 	repository: { get: function() { return this._repo; }},
 	repositorySize: { get: function() { return Object.keys(this.repository).length; }},
+	dbEngine: { get: function() { return this._dbEngine; }},
 	isOnline: { get: function() { return this._isOnline === this.ONLINE; }},
 	isOffline: { get: function() { return this._isOnline === this.ONLINE_NOT; }},
 	isOnlineUnknown: { get: function() { return this._isOnline === this.ONLINE_UNKNOWN; }},
@@ -206,9 +216,12 @@ RestOff.prototype.repositoryAddResource = function(uri, resource) {
 	if (resource instanceof Array) {
 		resource.forEach(function(aresource) {
 			that._repo[repositoryName][that.primaryKeyFor(repositoryName, aresource)] = aresource;
+			that.dbEngine(repositoryName).push(aresource);
 		});
 	} else {
 		this._repo[repositoryName][this.primaryKeyFor(repositoryName, resource)] = resource;
+		// TODO: Write a test for this 
+		this.dbEngine(repositoryName).push(resource);
 	}
 	return this._repo[repositoryName];
 }
@@ -217,6 +230,9 @@ RestOff.prototype.repositoryGet = function(repositoryName) {
 	if (undefined === this._repo[repositoryName]) {
 		this._repo[repositoryName] = [];
 	}
+	// if (undefined === this.dbEngine(repositoryName)) {
+	// 	console.log ("NEED TO ADD IT");
+	// }
 	return this._repo[repositoryName];
 }
 
