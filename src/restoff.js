@@ -170,10 +170,10 @@ RestOff.prototype.repoNameFrom = function(uri) {
 // 		repoName = removeSearch[0];
 // 	}
 
-// 	var removeId = repoName.split("/");
-// 	if (removeId.length > 1) {
-// 		repoName = removeId[0];
-// 	}
+	var removeId = result.split("/"); // TODO Support nested resources
+	if (removeId.length > 1) {
+		result = removeId[0];
+	}
 	return result;
 }
 
@@ -296,12 +296,13 @@ RestOff.prototype.put = function(uri, resource) {
 		request.open("PUT", uriFinal, true);
 		request.onreadystatechange = function() {
 			if(request.__proto__.DONE === request.readyState2 ) {
-// 				if (200 === request.status) {
-// 					resolve(that.repoAddResource(uriFinal, resource)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
-// 				} else {
+				if (200 === request.status) {
+					that._isOnline = true;
+					resolve(that.repoAddResource(uriFinal, resource)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
+				} else {
 					that._isOnline = 0 !== request.status ? true : null;
 					reject(that.createError(request, uriFinal)); 
-// 				}
+				}
 			} // else ignore other readyStates
 		};
 		request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");

@@ -467,32 +467,24 @@ describe ("restoff", function() {
 			"first_name": "Happy3",
 			"last_name": "User3"
 		};
-
+		onlineStatusShouldEqual(roff, false, false, true, false);
 
 		// Assure test data is in the database
-		return roff.put(userRepo+"/aedfa7a4-d748-11e5-b5d2-0a1d41d68577", existingUser01).then(function(updatedResult1) {
-			// expect(roff.repositorySize, "Repository size").to.equal(1);
-			// expect(roff.repositoryGet(userRepo), userRepo + " object").to.deep.equals(updatedResult1);
-			// roff.clearCacheAll();
-			// expect(roff.repositoryGet(userRepo), userRepo + " object").to.deep.equals([]);
-
-			// return roff.put(userRepo+"/aedfa7a4-d748-11e5-b5d2-0a1d41d68577", puttedUser).then(function(updatedResult) {
-			// 	expect(roff.repositorySize, "Repository size").to.equal(1);
-			// 	expect(roff.repositoryGet(userRepo), userRepo + " object").to.deep.equals(updatedResult);
-			// 	var dbSource = restoff({
-			// 		"rootUri" : ROOT_URI
-			// 	});
-			// 	expect(dbSource.repositorySize, "Repository size").to.equal(0);
-
-			// 	return dbSource.get(userRepo).then(function(result) {
-			// 		expect(dbSource.repositorySize, "Repository size").to.equal(1);
-			// 		expect(roff.repositoryGet(userRepo), userRepo + " object").to.deep.equals(result);
-
-			// 		// Reset test with original data
-			// 		return roff.put(userRepo+"/aedfa7a4-d748-11e5-b5d2-0a1d41d68577", existingUser01);
-			// 	});
-
-			// });
+		return roff.put(userRepo+"/aedfa7a4-d748-11e5-b5d2-0a1d41d68577", existingUser01).then(function(result) {
+			onlineStatusShouldEqual(roff, true, false, false, false);
+			dbRepoShouldBeEqual(roff, userRepo, result, 1);
+			return dbRepoExactlyEqual(roff, userRepo).then(function(result) { // verify posted to server
+				expect(result, "db repo the same").to.be.true;
+				roff.clearAll();
+				dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
+				return roff.put(userRepo+"/aedfa7a4-d748-11e5-b5d2-0a1d41d68577", puttedUser).then(function(result) {
+					dbRepoShouldBeEqual(roff, userRepo, result, 1);
+					return dbRepoExactlyEqual(roff, userRepo).then(function(result) { // verify posted to server
+						expect(result, "db repo the same").to.be.true;
+						return roff.put(userRepo+"/aedfa7a4-d748-11e5-b5d2-0a1d41d68577", existingUser01); // Reset test with original data
+					});
+				});
+			});
 		});
 	});
 
