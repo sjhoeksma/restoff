@@ -11,6 +11,7 @@
   "source": [
     "src/util/header.js",
     "src/restoff.js",
+    "src/lowdb-repo.js",
     "src/util/footer.js"
   ],
   "repository": {

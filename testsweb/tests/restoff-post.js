@@ -170,12 +170,12 @@ describe ("restoff post", function() {
 		database.write();
 	}
 
-	function dbRepoGet(database, repositoryName) {
-		return database(repositoryName).value();
+	function dbRepoGet(database, repoName) {
+		return database(repoName).value();
 	}
 
-	function dbRepoSize(database, repositoryName) {
-		return database(repositoryName).size();
+	function dbRepoSize(database, repoName) {
+		return database(repoName).size();
 	}
 
 	function dbFind(database, repoName, pkName, pkValue) {

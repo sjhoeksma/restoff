@@ -8,8 +8,91 @@ describe ("restoff", function() {
 		}
 	}
 
-	it("01: should, when online, handle network errors", function() {
-		return restoff().get("http://idontexisthopefully.com").then(function(result) {
+	it("01: should not wipeout Object prototype and be a restoff", function() {
+		var roff = restoff();
+		expect(restoff, "restoff").to.be.an("function");
+		expect(roff, "restoff").to.be.an("object");
+	});
+
+	it("02: should start out as being unknown\
+		    for online/offline status", function() {
+		var roff = restoff();
+		onlineStatusShouldEqual(roff, false, false, true, false);
+	});
+
+	it("03: should handle config settings correctly", function() {
+		var roff = restoff();
+		expect(roff.dbRepo, "dbRepo").to.be.an("object");
+
+		expect(roff.rootUri, "rootUri").to.equal("");
+		roff.rootUri = ROOT_URI;
+		expect(roff.rootUri, "rootUri").to.equal(ROOT_URI);
+
+		expect(roff.primaryKeyName, "primaryKeyName").to.equal("id");
+		roff.primaryKeyName = "id3";
+		expect(roff.primaryKeyName, "primaryKeyName").to.equal("id3");
+
+		var roff2 = restoff({
+			"primaryKeyName" : "id2",
+			"rootUri" : ROOT_URI,
+			"dbRepo" : lowdbRepo({
+				"dbName" : "TestDb"
+			})
+		});
+		
+		expect(roff2.dbRepo.dbName, "repo.dbName").to.equal("TestDb");
+		expect(roff2.rootUri, "rootUri").to.equal(ROOT_URI);
+		expect(roff2.primaryKeyName, "primaryKeyName").to.equal("id2");
+	});
+
+
+	it("04: should, when online, get multiple resources\
+		    and store them on the client,\
+		    clear a single repository\
+			support a rootUri configuration,\
+		    have corrct online statuses\
+		    and still be available when offline", function() {
+		var userRepo = "users11";
+		var roff = restoff({ "rootUri" : ROOT_URI });
+		roff.dbRepo.clear(userRepo);
+		dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
+		onlineStatusShouldEqual(roff, false, false, true, false);
+		return roff.get(userRepo).then(function(result) {
+			onlineStatusShouldEqual(roff, true, false, false, false);
+			dbRepoShouldBeEqual(roff, userRepo, result, 3);
+			roff.forceOffline();
+			onlineStatusShouldEqual(roff, false, false, true, true);
+			return roff.get(userRepo).then(function(result){
+				dbRepoShouldBeEqual(roff, userRepo, result, 3);
+				onlineStatusShouldEqual(roff, false, true, false, true);
+			});
+		});
+	});
+
+	it("05: should, when online, get a single resources,\
+			clear multiple repositories\
+		    and store it on the client", function() {
+		var userRepo = "users12";
+		var userRepo2 = "users11";
+		var roff = restoff({ "rootUri" : ROOT_URI });
+		roff.dbRepo.clearAll();
+		dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
+		return roff.get(userRepo).then(function(result) {
+			dbRepoShouldBeEqual(roff, userRepo, result, 1);
+			return roff.get(userRepo2).then(function(result2){
+				dbRepoShouldBeEqual(roff, userRepo2, result2, 3);
+				dbRepoShouldBeEqual(roff, userRepo, result, 1);
+				roff.dbRepo.clearAll();
+				dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
+			});
+		});
+	});
+
+	it("06: should, when online, handle network errors", function() {
+		var roff = restoff();
+		roff.dbRepo.clearAll();
+
+		return roff.get("http://idontexisthopefully.com").then(function(result) {
 			expect(true, "Promise should call the catch.").to.be.false;			
 		}).catch(function(error) {
 			var errorExpected = {
@@ -19,16 +102,18 @@ describe ("restoff", function() {
 				uri: "http://idontexisthopefully.com"
 			};
 			expect(error, "Error result").to.deep.equals(errorExpected);
+			onlineStatusShouldEqual(roff, false, false, true, false);
 		});
 	});
 
-	it("02: should, when online, handle 404's'", function() {
-		var userRepo = "users44";
+	it("07: should, when online, handle 404\
+		    and when offline create a repository", function() {
+		var userRepo = "users100";
 
 		var roff = restoff({
 			"rootUri" : ROOT_URI
 		});
-		expect(roff.repositorySize, "Repository size").to.equal(0);
+		roff.dbRepo.clearAll();
 
 		return roff.get(userRepo).then(function(result) {
 			expect(true, "Promise should call the catch.").to.be.false;			
@@ -37,51 +122,88 @@ describe ("restoff", function() {
 				message: "Not Found",
 				messageDetail: "{}",
 				status: 404,
-				uri: "http://test.development.com:3000/users44"
+				uri: "http://test.development.com:3000/"+userRepo
 			};
 			expect(error, "Error result").to.deep.equals(errorExpected);
+			onlineStatusShouldEqual(roff, true, false, false, false);
+			roff.forceOffline();
+
 		});
 	});
 
+	// Test Helpers
 
-	it("03: should not wipeout Object prototype and be a restoff", function() {
-		expect(restoff, "restoff").to.not.eql(undefined);
+	function onlineStatusShouldEqual(roff, online, offline, unknown, forced) {
+		expect(roff.isStatusOnline, "isStatusOnline").to.equal(online);
+		expect(roff.isStatusOffline, "isStatusOffline").to.equal(offline);
+		expect(roff.isStatusUnknown, "isStatusUnknown").to.equal(unknown);
+		expect(roff.isForcedOffline, "isForcedOffline ").to.equal(forced);
+	}
 
-		var roff = restoff();
 
-		expect(roff.ONLINE_UNKNOWN, "ONLINE_UNKNOWN").to.equal(null);
-		expect(roff.ONLINE, "ONLINE").to.equal(true);
-		expect(roff.ONLINE_NOT, "ONLINE_NOT").to.equal(false);
-	});
+	function dbRepoShouldBeEqual(roff, repoName, resource, size) {
+		var dbRepo = roff.dbRepo;
+		expect(dbRepo.size(repoName), repoName + " repo size").to.equal(size);
+		if (undefined !== resource)  {
+			expect(dbResourceCompare(roff, repoName, resource), "db repo the same").to.be.true;
+		}
+	}
 
-	it("04: should have an unknown online status", function() {
-		var roff = restoff();
-		expect(roff.isOnline, "isOnline").to.be.false;
-		expect(roff.isOffline, "isOnline").to.be.false;
-		expect(roff.isOnlineUnknown, "isOnline").to.be.true;
-		expect(roff.isForcedOffline, "isForcedOffline ").to.be.false;
-	});
+	function dbResourceCompare(roff, repoName, resources) {
+		var resourceSize = 1;
+		if (resources instanceof Array) {
+			resourceSize = resources.length;
+		}
+		var dbSize = roff.dbRepo.size(repoName);
+		if (dbSize !== resourceSize) {
+			console.log ("Expected dbSize of " + dbSize + " to equal resource size of " + resourceSize + " for repository " + repoName + ".");
+			return false;
+		}
 
-	it("05: should handle config settings correctly", function() {
-		var roff = restoff();
-		expect(roff.rootUri, "rootUri").to.equal("");
-		expect(roff.dbName, "dbName").to.equal("restoff");
-		roff.rootUri = ROOT_URI + "testsweb/testdata";
-		expect(roff.rootUri, "rootUri").to.equal(ROOT_URI + "testsweb/testdata");
+		resources.forEach(function(resource, position) {
+			var primaryKey = roff.primaryKeyFor(resource);
+			var dbResource = roff.dbRepo.find(repoName, roff.primaryKeyName, primaryKey);
 
-		roff.dbName = "new.json";
-		expect(roff.dbName, "dbName").to.equal("new.json");
-		expect(roff.primaryKeyName, "primaryKeyName").to.equal("id");
-
-		var roff2 = restoff({
-			"rootUri" : ROOT_URI + "testsweb/testdata2",
-			"dbName" : "loki.json",
-			"primaryKeyName" : "id2"
+			if (false === deepEqual(resource, dbResource)) {
+				return false;
+			}
 		});
-		expect(roff2.rootUri, "rootUri").to.equal(ROOT_URI + "testsweb/testdata2");
-		expect(roff2.dbName, "dbName").to.equal("loki.json");
-		expect(roff2.primaryKeyName, "primaryKeyName").to.equal("id2");
-	});
+
+		return true;
+	}
+
+	function deepEqual(x, y) {
+		if ((typeof x == "object" && x != null) && (typeof y == "object" && y != null)) {
+			if (Object.keys(x).length != Object.keys(y).length) {
+				return false;
+			}
+
+			for (var prop in x) {
+				if (y.hasOwnProperty(prop)) {  
+					if (! deepEqual(x[prop], y[prop])) {
+						return false;
+					}
+				}
+				else {
+					return false;
+				}
+			}
+		return true;
+		} else if (x !== y) {
+			return false;
+		} else {
+			return true;
+		}
+	}	
+
+	/*
+
+
+
+
+
+
+
 	
 	it("06: should access a valid endpoint while connected\
 		and return back a javascript object", function() {
@@ -311,6 +433,8 @@ describe ("restoff", function() {
 			expect(true, "Should have no error").to.equal(false);
 		});
 	});
+
+	*/
 
 });
 
