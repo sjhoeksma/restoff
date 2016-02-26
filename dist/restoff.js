@@ -197,11 +197,34 @@ RestOff.prototype.primaryKeyFor = function(repositoryName, resource) {
 	return result;
 }
 
+RestOff.prototype.repositoryFind = function(repositoryName, key) {
+	var query = {};
+	query[this.primaryKeyName] = key;
+	return this.dbEngine(repositoryName).find(query);
+}
+
 // TODO: Refactor... Repo should be it's own thing
 RestOff.prototype.repositoryAdd = function(uri, result) {
 	var resource = JSON.parse(result);
 	// TODO: Check for non-json result
 	return this.repositoryAddResource(uri, resource);
+}
+
+RestOff.prototype.repositoryPutPost = function(repositoryName, key, resource) {
+	// TODO: There is no consolodiation at this time but will come soonish.
+	//       So right now, we literally overwrite whatever is there.
+	this._repo[repositoryName][key] = resource;
+	if (undefined === this.repositoryFind(repositoryName, key)) {
+		this.dbEngine(repositoryName).push(resource);
+	} else {
+		var query = {};
+		query[this.primaryKeyName] = key;
+		this.dbEngine(repositoryName)
+			.chain()
+	  		.find(query)
+			.assign(resource)
+			.value();
+	}
 }
 
 RestOff.prototype.repositoryAddResource = function(uri, resource) {
@@ -210,26 +233,14 @@ RestOff.prototype.repositoryAddResource = function(uri, resource) {
 	if (undefined === this._repo[repositoryName]) {
 		this._repo[repositoryName] = [];
 	}
-
-	// TODO: There is no consolodiation at this time but will come soonish.
-	//       So right now, we literally overwrite whatever is there.
 	if (resource instanceof Array) {
 		resource.forEach(function(aresource) {
-			var pkName = that.primaryKeyName;
-			var pk = that.primaryKeyFor(repositoryName, aresource);
-			that._repo[repositoryName][pk] = aresource;
-
-			var objDb = that.dbEngine(repositoryName).find({ id: pk });
-			if (undefined === objDb) {
-				that.dbEngine(repositoryName).push(aresource);
-			} else {
-			}
-			console.log(that.dbEngine(repositoryName).values());
+			var key = that.primaryKeyFor(repositoryName, aresource);
+			that.repositoryPutPost(repositoryName, key, aresource);
 		});
 	} else {
-		this._repo[repositoryName][this.primaryKeyFor(repositoryName, resource)] = resource;
-		// TODO: Write a test for this 
-		this.dbEngine(repositoryName).push(resource);
+		var key = this.primaryKeyFor(repositoryName, resource);
+		this.repositoryPutPost(repositoryName, key, resource);
 	}
 	return this._repo[repositoryName];
 }
@@ -238,9 +249,10 @@ RestOff.prototype.repositoryGet = function(repositoryName) {
 	if (undefined === this._repo[repositoryName]) {
 		this._repo[repositoryName] = [];
 	}
-	// if (undefined === this.dbEngine(repositoryName)) {
-	// 	console.log ("NEED TO ADD IT");
-	// }
+	if (undefined === this.dbEngine(repositoryName)) {
+		console.log ("NEED TO ADD IT");
+	}
+	// return this.dbEngine(repositoryName).value();
 	return this._repo[repositoryName];
 }
 
@@ -271,6 +283,8 @@ RestOff.prototype.clearCacheBy = function(repositoryName) {
 	if (undefined !== this._repo[repositoryName]) {
 		this._repo[repositoryName] = [];
 	}
+	// delete this.dbEngine.object[repositoryName];
+	// this.dbEngine.write();
 }
 
 RestOff.prototype.clearCacheAll = function() {
@@ -280,6 +294,8 @@ RestOff.prototype.clearCacheAll = function() {
 			that._repo[value] = [];
 		}
 	);
+	this.dbEngine.object = {};
+	this.dbEngine.write();
 }
 
 RestOff.prototype.get = function(uri) {
@@ -301,7 +317,7 @@ RestOff.prototype.get = function(uri) {
 				// net:ERR_CONNECTION_REFUSED only has an onreadystatechange of request.__proto__.DONE
 			} else if(request.__proto__.DONE === request.readyState2 ) {
 				if ((request.__proto__.UNSENT === request.status) && (that.isForcedOffline)) {
-						// that._isOnline = that.ONLINE_NOT; // TODO: Write a test to cover this line of code
+					// that._isOnline = that.ONLINE_NOT; // TODO: Write a test to cover this line of code
 					var repositoryName = that.repositoryNameFrom(uriFinal);
 					if (undefined === that.repository[repositoryName]) {
 						that.repositoryAddResource(uriFinal, []); // offline and first call to the endpoint made
