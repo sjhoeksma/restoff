@@ -10,6 +10,7 @@ function restoff(config) {
 	}
 	that._autoParams = {};
 	that._autoHeaders = {};
+	that._pending = [];
 
 	that._rootUri = (undefined !== config) ? config.rootUri ? config.rootUri : "" : "";
 	that._primaryKeyName = (undefined !== config) ? config.primaryKeyName ? config.primaryKeyName : "id" : "id";
@@ -20,6 +21,7 @@ function restoff(config) {
 function RestOff() {}
 RestOff.prototype = Object.create(Object.prototype, {
 	dbRepo: { get: function() { return this._dbRepo; }},
+	pending: { get: function() { return this._pending; }},
 	isStatusOnline: { get: function() { return this._isOnline === true; }},
 	isStatusOffline: { get: function() { return this._isOnline === false; }},
 	isStatusUnknown: { get: function() { return this._isOnline === null; }},
@@ -61,6 +63,28 @@ RestOff.prototype = Object.create(Object.prototype, {
 	deleteSomeTime: { get: function() { return this._isOnline === true; }}
 });
 
+RestOff.prototype.clearAll = function(force) {
+	force = undefined === force ? false : force;
+	if ((this.pending.length > 0) && (false === force)) {
+		throw new Error("Submit pending changes before clearing database or call clearAll(true) to force.");
+	}
+	this._dbRepo.clearAll();
+	this._pending = [];
+}
+
+RestOff.prototype.clear = function(repoName, force) {
+	force = undefined === force ? false : force;
+	if ((this.pending.length > 0) && (false === force)) {
+		throw new Error("Submit pending changes before clearing database or call clear(repoName, true) to force.");
+	}
+	this._dbRepo.clear(repoName);
+	this._pending.forEach(function (pendingItem, index, array) {
+		if (repoName === pendingItem.repoName) {
+			array.splice(index, 1);
+		}
+	});
+}
+
 RestOff.prototype.uriGenerate = function(uri) {
 	var result = uri;
 	if (result.indexOf("http") === -1) { // missing domain/protocol/etc.
@@ -87,6 +111,7 @@ RestOff.prototype.uriGenerate = function(uri) {
 RestOff.prototype.forceOffline = function(resource) {
 	this._forcedOffline = true;
 	this._isOnline = null;
+	return this;
 }
 
 RestOff.prototype.primaryKeyFor = function(resource) {
@@ -187,6 +212,20 @@ RestOff.prototype.autoHeaderParamGet = function(name) {
 	return this._autoHeaders[name];
 }
 
+// TODO: Add dbCallType
+RestOff.prototype.pendingAdd = function(uriFinal, resource, restCall) {
+	var result = {
+		"restCall" : restCall,
+		"resource" : resource,
+		"clientTime" : new Date(),
+		"uri" : uriFinal,
+		"repoName" : this.repoNameFrom(uriFinal)
+	}
+	this._pending.push(result);
+	return result;
+}
+
+
 RestOff.prototype.get = function(uri) {
 	var that = this;
 	var promise = new Promise(function(resolve, reject) {
@@ -202,9 +241,6 @@ RestOff.prototype.get = function(uri) {
 		);
 
 		request.onreadystatechange = function() {
-			// if(request.__proto__.HEADERS_RECEIVED === request.readyState2) {
-			// 	// net:ERR_CONNECTION_REFUSED only has an onreadystatechange of request.__proto__.DONE
-			// } else
            if(request.__proto__.DONE === request.readyState2 ) {
 				if ((request.__proto__.UNSENT === request.status) && (that.isForcedOffline)) {
 					that._isOnline = false;
@@ -232,11 +268,17 @@ RestOff.prototype.post = function(uri, resource) {
 		request.open("POST", uriFinal, true);
 		request.onreadystatechange = function() {
 			if(request.__proto__.DONE === request.readyState2 ) {
-// 				if (201 === request.status) {
+				if ((request.__proto__.UNSENT === request.status) && (that.isForcedOffline)) {
+					that._isOnline = false;
+					that.pendingAdd(uriFinal, resource, "POST");
+					resolve(that.repoAddResource(uriFinal, resource));
+				} else if (201 === request.status) {
+					that._isOnline = true;
 					resolve(that.repoAddResource(uriFinal, resource)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
-// 				} else {
-// 					reject(that.createError(request, uriFinal)); 
-// 				}
+				} else {
+					that._isOnline = 0 !== request.status ? true : null;
+					reject(that.createError(request, uriFinal)); 
+				}
 			} // else ignore other readyStates
 		};
 		request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
@@ -245,30 +287,28 @@ RestOff.prototype.post = function(uri, resource) {
 	return promise;
 }
 
-// RestOff.prototype.put = function(uri, resource) {
-// 	var that = this;
-// 	var promise = new Promise(function(resolve, reject) {
-// 		var request = that.getRequest;
-// 		var uriFinal = that.uriGenerate(uri);
-// 		var body = JSON.stringify(resource);
-// 		request.open("PUT", uriFinal, true);
-// 		request.onreadystatechange = function() {
-// 			if(request.__proto__.DONE === request.readyState2 ) {
-// 				// TODO: We should pull the final resource from the
-// 				//       returned URI and add that to our repository
-// 				//       but need a better backend system for testing
+RestOff.prototype.put = function(uri, resource) {
+	var that = this;
+	var promise = new Promise(function(resolve, reject) {
+		var request = that.getRequest;
+		var uriFinal = that.uriGenerate(uri);
+		var body = JSON.stringify(resource);
+		request.open("PUT", uriFinal, true);
+		request.onreadystatechange = function() {
+			if(request.__proto__.DONE === request.readyState2 ) {
 // 				if (200 === request.status) {
-// 					resolve(that.repoAddResource(uriFinal, resource));
+// 					resolve(that.repoAddResource(uriFinal, resource)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
 // 				} else {
-// 					reject(that.createError(request, uriFinal)); 
+					that._isOnline = 0 !== request.status ? true : null;
+					reject(that.createError(request, uriFinal)); 
 // 				}
-// 			} // else ignore other readyStates
-// 		};
-// 		request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-// 		request.send(body);
-// 	});
-// 	return promise;
-// }
+			} // else ignore other readyStates
+		};
+		request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+		request.send(body);
+	});
+	return promise;
+}
 
 // RestOff.prototype.delete = function(uri) {
 // 	var that = this;
