@@ -3,10 +3,14 @@
 * In development... Not "usable" yet.
 * Next major features
 	* reconciliation of changes between client and server
-	* support custom/non-standard RESTful endpoints (example: a request GET actually does a delete)
-	* support put/post updates where resource is changed on the server (requires better mockable restapi backend for testing)
-	* partial loading of repositories in memory (currently 100% of all repositories persist in memory)
+	* support getting a sub-set of a collection when offline
+	* support non-standard get/put/post.
+		- Example: a request GET actually does a delete
+	* major cleanup of documentation
+	* support put/post updates where resource is changed on the server
+		- requires better mockable restapi backend for testing)
 	* support nested resources (example: /users/45/addresses)
+	* support non-standard restful api: ability to map a user
 
 Automatically synchronize your local client with backend server data using your existingish RESTful API and make that data available offline. 
 

@@ -302,6 +302,7 @@ RestOff.prototype.put = function(uri, resource) {
 					var finalMessage = request.statusText;
 					that._isOnline = 0 !== request.status ? true : null;
 					if (that.isForcedOffline) { // we are offline, but resource not found so 404 it.
+						that._isOnline = false;
 						var repoName = that.repoNameFrom(uriFinal);
 						var primaryKey = that.primaryKeyFor(resource);
 						if (that._dbRepo.find(repoName, that.primaryKeyName, primaryKey)) { // offline but found on client so add it

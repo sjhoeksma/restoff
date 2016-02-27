@@ -536,7 +536,7 @@ describe ("restoff", function() {
 				};
 
 				expect(error, "Error result").to.deep.equals(errorExpected);
-				onlineStatusShouldEqual(roff, false, false, true, true);
+				onlineStatusShouldEqual(roff, false, true, false, true);
 				return roff.put(userRepo+"/"+puttedUser.id, puttedUser).then(function(result) {
 					var repoResource = roff.dbRepo.find(userRepo, "id", puttedUser.id);
 					expect(deepEqual(repoResource, result), "put on client").to.be.true;

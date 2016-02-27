@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.0.20
+// version: 0.0.21
 // author: ProductOps
 // license: Copyright (C) 2016 ProductOps
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.0.20'; // version set through gulp build
+restlib["version-library"] = '0.0.21'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -319,6 +319,7 @@ RestOff.prototype.put = function(uri, resource) {
 					var finalMessage = request.statusText;
 					that._isOnline = 0 !== request.status ? true : null;
 					if (that.isForcedOffline) { // we are offline, but resource not found so 404 it.
+						that._isOnline = false;
 						var repoName = that.repoNameFrom(uriFinal);
 						var primaryKey = that.primaryKeyFor(resource);
 						if (that._dbRepo.find(repoName, that.primaryKeyName, primaryKey)) { // offline but found on client so add it
