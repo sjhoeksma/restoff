@@ -281,6 +281,29 @@ describe ("restoff", function() {
 		});
 	});
 
+	// dbActions Differ From RESTful Action
+
+	// Get - Postins
+	// Get - Put
+	// Get - Delete
+	// Get - Get
+
+	// Postins - Postins
+	// Postins - Put
+	// Postins - Delete
+	// Postins - Get
+
+	// Put - Postins
+	// Put - Put
+	// Put - Delete
+	// Put - Get
+
+	// Delete - Postins
+	// Delete - Put
+	// Delete - Delete
+	// Delete - Get
+
+
 	// POST ------------------------------------------------------
 
 	var newuser01 = {
