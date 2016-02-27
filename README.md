@@ -1,6 +1,17 @@
 # REST Offline
 
-* In development... Semi "usable". Try it out.
+Rest Offline uses your existing RESTful APIs to synchronize client/server data allowing your application to run even when it goes offline.
+
+* Database Agnostic and Schemaless
+	* Works with any database backend
+	* Works against multiple databases
+	* No need to worry about database changes
+* Still run applications when they go offline
+	* Reconcile any changes made while the application was offline (this feature is currently in development)
+* Supports resources in the following formats:
+	* Json
+* Allows you to program around your RESTful API and not your backend databases
+	* Best to follow [RESTful best known practices][rest-best-practices]
 * Next major features
 	* reconciliation of changes between client and server
 	* support non-standard get/put/post.
@@ -10,13 +21,6 @@
 		- requires better mockable restapi backend for testing)
 	* support nested resources (example: /users/45/addresses)
 	* support non-standard restful api: ability to map a user
-
-Automatically synchronize your local client with backend server data using your existingish RESTful API and make that data available offline.
-
-Cavets:
-* results must be Json
-* Need to follow [RESTful best known practices][rest-best-practices].
-	* Working on support for non-standard calls.
 
 # RestOff Usage
 

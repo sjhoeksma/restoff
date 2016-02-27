@@ -38,7 +38,7 @@ LowdbRepo.prototype.find = function(repoName, keyName, primaryKey) {
 }
 
 LowdbRepo.prototype.read = function(repoName, query) {
-	if ((undefined !== query) || (null !== query)) {
+	if ((undefined !== query) && (null !== query)) {
 		return this._low(repoName).find(query);
 	} else {
 		return this._low(repoName).value();
