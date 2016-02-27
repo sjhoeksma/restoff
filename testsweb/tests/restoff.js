@@ -59,7 +59,7 @@ describe ("restoff", function() {
 		return roff.get(userRepo).then(function(result) {
 			onlineStatusShouldEqual(roff, true, false, false, false);
 			dbRepoShouldBeEqual(roff, userRepo, result, 3);
-			return dbRepoExactlyEqual(roff, userRepo).then(function(result) {
+			return dbRepoExactlyEqual(roff, userRepo, true).then(function(result) {
 				expect(result, "db repo the same").to.be.true;
 				expect(roff.forceOffline(), "support method chaining").to.be.an("object");
 				onlineStatusShouldEqual(roff, false, false, true, true);
@@ -85,7 +85,7 @@ describe ("restoff", function() {
 			return roff.get(userRepo2).then(function(result2){
 				dbRepoShouldBeEqual(roff, userRepo2, result2, 3);
 				dbRepoShouldBeEqual(roff, userRepo, result, 1);
-				return dbRepoExactlyEqual(roff, userRepo).then(function(result) {
+				return dbRepoExactlyEqual(roff, userRepo, true).then(function(result) {
 					expect(result, "db repo the same").to.be.true;
 					roff.clearAll();
 					dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
@@ -326,7 +326,7 @@ describe ("restoff", function() {
 
 		return roff.post(userRepo, newuser01).then(function(updatedResult) {
 			dbRepoShouldBeEqual(roff, userRepo, updatedResult, 1);
-			return dbRepoExactlyEqual(roff, userRepo).then(function(result) { // verify posted to server
+			return dbRepoExactlyEqual(roff, userRepo, true).then(function(result) { // verify posted to server
 				expect(result, "db repo the same").to.be.true;
 			});
 		});
@@ -363,13 +363,13 @@ describe ("restoff", function() {
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 			return roff.get(userRepo).then(function(result) {
 				dbRepoShouldBeEqual(roff, userRepo, result, 1);
-				return dbRepoExactlyEqual(roff, userRepo).then(function(result) { // verify posted to server
+				return dbRepoExactlyEqual(roff, userRepo, true).then(function(result) { // verify posted to server
 					expect(result, "db repo the same").to.be.true;
 					return roff.post(userRepo, editedUser).then(function(result) {
 						dbRepoShouldBeEqual(roff, userRepo, result, 1);
 						return roff.post(userRepo, existingUser).then(function(result) { // rest test again
 							dbRepoShouldBeEqual(roff, userRepo, result, 1);
-							return dbRepoExactlyEqual(roff, userRepo).then(function(result) { // verify posted to server
+							return dbRepoExactlyEqual(roff, userRepo, true).then(function(result) { // verify posted to server
 								expect(result, "db repo the same").to.be.true;
 							});
 						});
@@ -529,11 +529,11 @@ describe ("restoff", function() {
 		return roff.put(userRepo + "/" + existingUser01.id, existingUser01).then(function(result) {
 			onlineStatusShouldEqual(roff, true, false, false, false);
 			dbRepoShouldBeEqual(roff, userRepo, result, 1);
-			return dbRepoExactlyEqual(roff, userRepo).then(function(result) { // verify posted to server
+			return dbRepoExactlyEqual(roff, userRepo, true).then(function(result) { // verify posted to server
 				expect(result, "db repo the same").to.be.true;
 				return roff.put(userRepo + "/" + puttedUser.id, puttedUser).then(function(result) {
 					dbRepoShouldBeEqual(roff, userRepo, result, 1);
-					return dbRepoExactlyEqual(roff, userRepo).then(function(result) { // verify posted to server
+					return dbRepoExactlyEqual(roff, userRepo, true).then(function(result) { // verify posted to server
 						expect(result, "db repo the same").to.be.true;
 						existingUser01.last_name = "User3"; // TODO: Figure out why last_name of existingUser01 gets set to "putted".
 						return roff.put(userRepo + "/" + existingUser01.id, existingUser01).then(function(result) {
@@ -695,6 +695,102 @@ describe ("restoff", function() {
 		});
 	});
 
+
+	// Reconciliation
+
+	// Action              -  Server Only                | Client Only            | Both
+	// A   Post Insert     -  1 DONE Get and Overwrite   | 2 Write to Server      | 3 Same primary key!!!
+	// B   Post/Put Update -  1 DONE Get and Overwrite   | 2 Write to Server      | 3 Reconciliation
+	// C   Delete          -  1 DONE Delete Local        | 2 Delete Remote        | 3 Nothing to do
+	// D     Update           1 Updated ? Do What?       |   2 Updated ? Do What?
+
+	it("70 A1, B1, C1: should reconcile when server has an\
+	 			       put/insert/post/delete and client doesn't,\
+	 			       server by overwriting value on client", function() {
+
+		var user01 = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
+			"first_name": "Happy3",
+			"last_name": "User3"
+		};
+		var user01Update = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
+			"first_name": "Happy3",
+			"last_name": "Position"
+		};
+
+		var user02 = {
+			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
+			"first_name": "Existing",
+			"last_name": "New Name"
+		};
+
+		var user02Post = {
+			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
+			"first_name": "Existing",
+			"last_name": "Posted"
+		};
+	
+		var user03Delete = {
+			"id": "9783df16-0d70-4364-a1ee-3cb39818fd13",
+			"first_name": "Joyous",
+			"last_name": "WillDelete"
+		};
+
+		var user04New = {
+			"id": "9783df16-0d70-4364-a1ee-3cb39818fd14",
+			"first_name": "Joyous",
+			"last_name": "And New"
+		};
+
+
+		var userRepo = "users15";
+		var roff = restoff({ "rootUri" : ROOT_URI });
+		roff.clear(userRepo);
+		dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
+
+		
+		return roff.post(userRepo, user01).then(function(result) {
+			return roff.post(userRepo, user02).then(function(result) {
+				return roff.post(userRepo, user03Delete).then(function(result) { 
+					return roff.delete(userRepo + "/" + user04New.id).then(function(result) { // Above 4 rest test
+						return dbRepoExactlyEqual(roff, userRepo, true).then(function(result) { // verify posted to server
+							expect(result, "db repo the same").to.be.true;
+							roff.persistanceDisabled = true; // Make updates without making them locally
+							return roff.put(userRepo + "/" + user01Update.id, user01Update).then(function(result) {
+								return roff.post(userRepo, user02Post).then(function(result) {
+									return roff.post(userRepo, user04New).then(function(result) {
+										return roff.delete(userRepo + "/" + user03Delete.id).then(function(result) { // Above 4 rest test
+											roff.persistanceDisabled = false;
+											return dbRepoExactlyEqual(roff, userRepo, false).then(function(result) { // verify posted to server
+												expect(result, "db repo the same").to.be.false;
+												return roff.get(userRepo).then(function(result) {
+													dbRepoShouldBeEqual(roff, userRepo, result, 3); // one was deleted one was added
+													return dbRepoExactlyEqual(roff, userRepo, true).then(function(result) { // verify posted to server
+														expect(result, "db repo the same").to.be.true;
+														return roff.post(userRepo, user01).then(function(result) { // Return to prior dbState
+															return roff.post(userRepo, user02).then(function(result) {
+																return roff.post(userRepo, user03Delete).then(function(result) { 
+																	return roff.delete(userRepo + "/" + user04New.id).then(function(result) { // Above 4 restart test
+																	});
+																});
+															});
+														});
+													});
+												});
+											});
+										});
+									});
+								});
+							});
+						});
+					});
+				});
+			});
+		});
+	});
+
+
 	// // Actual offline test: Comment out this code and make sure your internet
 	// // connection is turned off
 	// it("99: should work offline when it is 'really' offline", function() {
@@ -721,8 +817,8 @@ describe ("restoff", function() {
 	function pendingStatusCorrect(roff, resource, callAction, statusPosition, finalUri, repoName) {
 		var status = roff.pending[statusPosition];
 		expect(roff.pending.length, "pending post").to.not.equal(0);
-		expect(status.restCall, "status restCall").to.equal(callAction);
-		expect(deepEqual(status.resource, resource), "status resource").to.equal(true);
+		expect(status.restMethod, "status restMethod").to.equal(callAction);
+		expect(deepEqual(status.resources, resource), "status resource").to.equal(true);
 		expect(status.clientTime, "status resource").to.be.an("date");
 		expect(status.uri, "status uri").to.equal(finalUri)
 		expect(status.repoName, "status repoName").to.equal(repoName)
@@ -744,11 +840,11 @@ describe ("restoff", function() {
 	function dbRepoShouldBeEqual(roff, repoName, resource, len) {
 		expect(roff.dbRepo.length(repoName), repoName + " repo and db length").to.equal(len);
 		if (undefined !== resource)  {
-			expect(dbResourceCompare(roff, repoName, resource), "db repo the same").to.be.true;
+			expect(dbResourceCompare(roff, repoName, resource, true), "db repo the same").to.be.true;
 		}
 	}
 
-	function dbRepoExactlyEqual(roff, repoName) {
+	function dbRepoExactlyEqual(roff, repoName, similarExpected) {
 
 		var promise = new Promise(function(resolve, reject) {		
 			// Verify client persisted database for repository is exactly equal
@@ -760,21 +856,29 @@ describe ("restoff", function() {
 
 			return roffDisabled.get(repoName).then(function(result) {
 				// roff.persistanceDisabled = false; // to read db results
-				resolve(dbResourceCompare(roff, repoName, result));
+				resolve(dbResourceCompare(roff, repoName, result, similarExpected));
 			});
 		});
 		return promise;
 	}
 
-	function dbResourceCompare(roff, repoName, resources) {
+	function dbResourceCompare(roff, repoName, resources, similarExpected) {
 		var result = true;
 		if (!(resources instanceof Array)) { // Make code easy: Always make it an array
 			resources = [resources];
 		}
 
+		if (null === roff.dbRepo) {
+			console.log("WARNING! persistanceDisabled is disabled. Please enable before comparing databases.");
+			return !similarExpected;
+		}
+
 		var dbSize = roff.dbRepo.length(repoName);
 		if (dbSize !== resources.length) {
-			console.log ("Expected dbSize of " + dbSize + " to equal resource size of " + resources.length + " for repository " + repoName + ".");
+			if (similarExpected) {
+				console.log ("Expected dbSize of " + dbSize + " to equal resource size of " + resources.length + " for repository " + repoName + ".");
+				console.log("Mismatch between client and server database!!! Resource returned %O. Database %O", resources, roff.dbRepo.read(repoName));
+			}
 			result = false;
 		}
 
@@ -783,7 +887,9 @@ describe ("restoff", function() {
 			var dbResource = roff.dbRepo.find(repoName, roff.primaryKeyName, primaryKey);
 
 			if (false === deepEqual(resource, dbResource)) {
-				console.log("Mismatch between client and server database!!! Client %O and server %O", resource, dbResource);
+				if (similarExpected) {
+					console.log("Mismatch between client and server database!!! Client %O and server %O", resource, dbResource);
+				}
 				result = false;
 			}
 		});

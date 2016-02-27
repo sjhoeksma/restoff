@@ -63,28 +63,6 @@ RestOff.prototype = Object.create(Object.prototype, {
 	deleteSomeTime: { get: function() { return this._isOnline === true; }}
 });
 
-RestOff.prototype.clearAll = function(force) {
-	force = undefined === force ? false : force;
-	if ((this.pending.length > 0) && (false === force)) {
-		throw new Error("Submit pending changes before clearing database or call clearAll(true) to force.");
-	}
-	this._dbRepo.clearAll();
-	this._pending = [];
-}
-
-RestOff.prototype.clear = function(repoName, force) {
-	force = undefined === force ? false : force;
-	if ((this.pending.length > 0) && (false === force)) {
-		throw new Error("Submit pending changes before clearing database or call clear(repoName, true) to force.");
-	}
-	this._dbRepo.clear(repoName);
-	this._pending.forEach(function (pendingItem, index, array) {
-		if (repoName === pendingItem.repoName) {
-			array.splice(index, 1);
-		}
-	});
-}
-
 RestOff.prototype.uriGenerate = function(uri) {
 	var result = uri;
 	if (result.indexOf("http") === -1) { // missing domain/protocol/etc.
@@ -108,79 +86,117 @@ RestOff.prototype.uriGenerate = function(uri) {
 	}
 	return result;
 }
+
+RestOff.prototype.uriRec = function(uri, restMethod, resources) {
+	var uriResult = {
+		uriOriginal: uri,
+		primaryKey : "",
+		uriFinal : this.uriGenerate(uri),
+		primaryKeyName : this.primaryKeyName,
+		restMethod : restMethod,
+		resources : resources
+	};
+
+	var result = uri.replace(this.rootUri, "");
+
+	var search = result.split("?");
+	if (search.length > 1) {
+		result = search[0];
+		uriResult.search = search[1]
+	}
+
+	var uriPrimaryKey = result.split("/"); 
+	if (uriPrimaryKey.length > 1) {
+		result = uriPrimaryKey[0];
+		uriResult.primaryKey = uriPrimaryKey[1]; // TODO Support nested resources
+	}
+
+	// TODO: Check if resource PK != uri pk and warn
+	if (("" === uriResult.primaryKey) && (undefined !== resources) && (null !== resources) && (undefined !== resources[this.primaryKeyName])) {
+		uriResult.primaryKey = resources[this.primaryKeyName];
+	}
+	uriResult.repoName = result;
+	return uriResult;
+}
+
+RestOff.prototype.primaryKeyFor = function(resource) {
+	var result = resource[this.primaryKeyName];
+	if (undefined === resource[this.primaryKeyName]) {
+		
+		console.log("Warning: resource %O did not have a primaryKey ", resource); // TODO: Write tests for this
+	}
+	return result;
+}
+
+
+RestOff.prototype.clearAll = function(force) {
+	force = undefined === force ? false : force;
+	if ((this.pending.length > 0) && (false === force)) {
+		throw new Error("Submit pending changes before clearing database or call clearAll(true) to force.");
+	}
+	this._dbRepo.clearAll();
+	this._pending = [];
+}
+
+RestOff.prototype.clear = function(repoName, force) {
+	force = undefined === force ? false : force;
+	if ((this.pending.length > 0) && (false === force)) {
+		throw new Error("Submit pending changes before clearing database or call clear(repoName, true) to force.");
+	}
+	this._dbRepo.clear(repoName);
+	this._pending.forEach(function (pendingItem, index, array) {
+		if (repoName === pendingItem.repoName) {
+			array.splice(index, 1);
+		}
+	});
+}
+
 RestOff.prototype.forceOffline = function(resource) {
 	this._forcedOffline = true;
 	this._isOnline = null;
 	return this;
 }
 
-RestOff.prototype.primaryKeyFor = function(resource) {
-	var result = resource[this.primaryKeyName];
-	if (undefined === resource[this.primaryKeyName]) {
-		// TODO: Write tests for this
-		console.log("Warning: resource did not have a primaryKey " + result);
-	}
-	return result;
-}
-
-
-RestOff.prototype.repoAdd = function(uri, result) {
-	var resource = JSON.parse(result);
-	// TODO: Check for non-json result
-	return this.repoAddResource(uri, resource);
-}
-
-RestOff.prototype.repoGet = function(uri) {
+RestOff.prototype.repoGet = function(uriRec) {
 	var query;
-	var primaryKey = this.primaryKeyFrom(uri);
-
-	if ("" !== primaryKey) {
+	if ("" !== uriRec.primaryKey) {
 		query = {};
-		query[this.primaryKeyName] = primaryKey;
+		query[uriRec.primaryKeyName] = uriRec.primaryKey;
 	}
 
-	return this.persistanceDisabled ? [] : this.dbRepo.read(this.repoNameFrom(uri), query);
+	return this.persistanceDisabled ? [] : this.dbRepo.read(uriRec.repoName, query);
 }
 
-RestOff.prototype.repoAddResource = function(uri, resources) {
-	var resourceArray = (resources instanceof Array) ? resources : [resources]; // make logic easier
+RestOff.prototype.repoFind = function(uriRec) {
+	return this._dbRepo.find(uriRec.repoName, uriRec.primaryKeyName, uriRec.primaryKey)	
+}
+
+RestOff.prototype.repoAdd = function(uriRec, resourceRaw) {
+	uriRec.resources = JSON.parse(resourceRaw); // TODO: Check for non-json result and throw error/convert/support images/etc.
+	return this.repoAddResource(uriRec);
+}
+
+
+RestOff.prototype.repoAddResource = function(uriRec) {
+	var resourceArray = (uriRec.resources instanceof Array) ? uriRec.resources : [uriRec.resources]; // make logic easier
 	if (!this.persistanceDisabled) {
 		var that = this;
-		var repoName = this.repoNameFrom(uri);
+		// TODO: Check for soft deletes so we don't need to get all the records from the database
+		if (("" === uriRec.primaryKey) && ("GET" === uriRec.restMethod)) {  // Complete get, doing a merge because we don't have soft_delete
+		     this.clear(uriRec.repoName); // TODO: What do we do when there are pending changes
+		}
 		resourceArray.forEach(function(resource) {
 			var primaryKey = that.primaryKeyFor(resource);
-			that.dbRepo.write(repoName, that.primaryKeyName, primaryKey, resource);
+			that.dbRepo.write(uriRec.repoName, that.primaryKeyName, primaryKey, resource);
 		});
 	} // else don't persist
-	return resources;
+	return uriRec.resources;
 }
 
-RestOff.prototype._uriClean = function(uri) {
-	var result = uri.replace(this.rootUri, "");
-
-	var removeSearch = result.split("?");
-	if (removeSearch.length > 1) {
-		result = removeSearch[0];
+RestOff.prototype.repoDeleteResource = function(uriRec) {
+	if (!this.persistanceDisabled) {
+    	this.dbRepo.delete(uriRec.repoName, uriRec.primaryKeyName, uriRec.primaryKey);
 	}
-	return result;
-}
-
-RestOff.prototype.repoNameFrom = function(uri) {
-	var result = this._uriClean(uri);
-	var removeId = result.split("/"); // TODO Support nested resources
-	if (removeId.length > 1) {
-		result = removeId[0];
-	}
-	return result;
-}
-
-RestOff.prototype.primaryKeyFrom = function(uri) {
-	var result = this._uriClean(uri);
-	var removeId = result.split("/"); // TODO Support nested resources
-	if (removeId.length > 1) {
-		result = removeId[1];
-	}
-	return result;
 }
 
 RestOff.prototype.createError = function(request, uri, status, message) {
@@ -217,30 +233,30 @@ RestOff.prototype.autoHeaderParamGet = function(name) {
 }
 
 // TODO: Add dbCallType
-RestOff.prototype.pendingAdd = function(uriFinal, resource, restCall) {
+RestOff.prototype.pendingAdd = function(uriRec) {
 	var result = {
-		"restCall" : restCall,
-		"resource" : resource,
+		"restMethod" : uriRec.restMethod,
+		"resources" : uriRec.resources,
 		"clientTime" : new Date(),
-		"uri" : uriFinal,
-		"repoName" : this.repoNameFrom(uriFinal)
+		"uri" : uriRec.uriFinal,
+		"repoName" : uriRec.repoName
 	}
 	this._pending.push(result);
 	return result;
 }
-
 
 RestOff.prototype.get = function(uri) {
 	var that = this;
 	var promise = new Promise(function(resolve, reject) {
 
 		var request = that.getRequest;
-		var uriFinal = that.uriGenerate(uri); // TODO: Write a test to cover that.uriGenerate(uri) if possible
-		request.open("GET", uriFinal, true); // true: asynchronous 
+		var uriR = that.uriRec(uri, "GET");
+
+		request.open("GET", uriR.uriFinal, true); // true: asynchronous 
 		var autoHeaders = that._autoHeaders;
 		Object.keys(autoHeaders).forEach(
 			function(key) {
-				request.setRequestHeader(key, autoHeaders[key]); // TODO: Write a test to cover this if possible
+				request.setRequestHeader(key, autoHeaders[key]); // TODO: Write a test to cover this
 			}
 		);
 
@@ -248,14 +264,14 @@ RestOff.prototype.get = function(uri) {
            if(request.__proto__.DONE === request.readyState2 ) {
 				if ((request.__proto__.UNSENT === request.status) && (that.isForcedOffline)) {
 					that._isOnline = false;
-					resolve(that.repoGet(uriFinal));
+					resolve(that.repoGet(uriR));
 				} else if(200 === request.status) {
 					that._isOnline = true;
-					resolve(that.repoAdd(uriFinal, request.response));
+					resolve(that.repoAdd(uriR, request.response));
 				} else { 
 					// all request values are the same for ERR_NAME_NOT_RESOLVED and ERR_INTERNET_DISCONNECTED so can't tell if we are online or not. :-(
 					that._isOnline = 0 !== request.status ? true : null;
-					reject(that.createError(request, uriFinal, request.status, request.statusText));
+					reject(that.createError(request, uriR.uriFinal, request.status, request.statusText));
 				}
 			} // else ignore other readyStates
 		};
@@ -268,21 +284,21 @@ RestOff.prototype.post = function(uri, resource) {
 	var that = this;
 	var promise = new Promise(function(resolve, reject) {
 		var request = that.getRequest;
-		var uriFinal = that.uriGenerate(uri);
+		var uriR = that.uriRec(uri, "POST", resource);
 		var body = JSON.stringify(resource);
-		request.open("POST", uriFinal, true);
+		request.open("POST", uriR.uriFinal, true);
 		request.onreadystatechange = function() {
 			if(request.__proto__.DONE === request.readyState2 ) {
 				if ((request.__proto__.UNSENT === request.status) && (that.isForcedOffline)) {
 					that._isOnline = false;
-					that.pendingAdd(uriFinal, resource, "POST");
-					resolve(that.repoAddResource(uriFinal, resource));
+					that.pendingAdd(uriR);
+					resolve(that.repoAddResource(uriR));
 				} else if (201 === request.status) {
 					that._isOnline = true;
-					resolve(that.repoAddResource(uriFinal, resource)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
+					resolve(that.repoAddResource(uriR)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
 				} else {
 					that._isOnline = 0 !== request.status ? true : null;
-					reject(that.createError(request, uriFinal, request.status, request.statusText)); 
+					reject(that.createError(request, uriR.uriFinal, request.status, request.statusText)); 
 				}
 			} // else ignore other readyStates
 		};
@@ -296,34 +312,31 @@ RestOff.prototype.put = function(uri, resource) {
 	var that = this;
 	var promise = new Promise(function(resolve, reject) {
 		var request = that.getRequest;
-		var uriFinal = that.uriGenerate(uri);
+		var uriR = that.uriRec(uri, "PUT", resource);
 		var body = JSON.stringify(resource);
-		request.open("PUT", uriFinal, true);
+		request.open("PUT", uriR.uriFinal, true);
 		request.onreadystatechange = function() {
 			if(request.__proto__.DONE === request.readyState2 ) {
 				if (200 === request.status) {
 					that._isOnline = true;
-					resolve(that.repoAddResource(uriFinal, resource)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
+					resolve(that.repoAddResource(uriR)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
 				} else {
-
 					var finalStatus = request.status;
 					var finalMessage = request.statusText;
 					that._isOnline = 0 !== request.status ? true : null;
 					if (that.isForcedOffline) { // we are offline, but resource not found so 404 it.
 						that._isOnline = false;
-						var repoName = that.repoNameFrom(uriFinal);
-						var primaryKey = that.primaryKeyFor(resource);
-						if (that._dbRepo.find(repoName, that.primaryKeyName, primaryKey)) { // offline but found on client so add it
-							that.pendingAdd(uriFinal, resource, "PUT");
-							resolve(that.repoAddResource(uriFinal, resource));
+						if (that.repoFind(uriR)) { // offline but found resource on client so add it
+							that.pendingAdd(uriR);
+							resolve(that.repoAddResource(uriR));
 						} else {
 							finalStatus = 404;
 							finalMessage = "Not Found"
-							reject(that.createError(request, uriFinal, finalStatus, finalMessage));
+							reject(that.createError(request, uriR.uriFinal, finalStatus, finalMessage));
 						}
 					} else {
 						that._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
-						reject(that.createError(request, uriFinal, request.status, request.statusText)); 
+						reject(that.createError(request, uriR.uriFinal, request.status, request.statusText));
 					}
 				}
 			} // else ignore other readyStates
@@ -339,32 +352,28 @@ RestOff.prototype.delete = function(uri) {
 
 	var promise = new Promise(function(resolve, reject) {
 		var request = that.getRequest;
-		var uriFinal = that.uriGenerate(uri);
-		request.open("DELETE", that.uriGenerate(uriFinal), true);
+		var uriR = that.uriRec(uri, "DELETE");
+		request.open("DELETE", uriR.uriFinal, true);
 		request.onreadystatechange = function(){
 			if(request.__proto__.DONE === request.readyState2 ) {
-				var repoName = that.repoNameFrom(uriFinal);
-				var primaryKeyName = that.primaryKeyName;
-				var primaryKey = that.primaryKeyFrom(uriFinal);
-
 				if ((request.__proto__.UNSENT === request.status) && (that.isForcedOffline)) {
 					that._isOnline = false; // TODO: Write a test for this line of code
-					that.pendingAdd(uriFinal, undefined, "DELETE");
-					that.dbRepo.delete(repoName, primaryKeyName, primaryKey);
+					that.pendingAdd(uriR);
+					that.repoDeleteResource(uriR); // TODO: Add test to cover repoDeleteResource below: was direct call to dbRoot.delete
 					resolve();
 				} else if (200 === request.status) {
 					that._isOnline = true; // TODO: Write a test for this line of code
-					that.dbRepo.delete(repoName, primaryKeyName, primaryKey);
+					that.repoDeleteResource(uriR);
 					resolve();
 				} else if (404 === request.status) {
 					that._isOnline = true;
-					// No Worries. Resource wasn't on the server and now it won't be in our
-					// local repository either (if it is even there)
-					that.dbRepo.delete(repoName, primaryKeyName, primaryKey);
+					// 404 means resource wasn't on the server and now it won't be in our
+					// local repository either
+					that.repoDeleteResource(uriR); // TODO: Add test to cover repoDeleteResource below: was direct call to dbRoot.delete
 					resolve();
 				} else {
 					that._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
-					reject(that.createError(request, uri, request.status, request.message));					
+					reject(that.createError(request, uri, request.status, request.message));
 				}
 			} // else ignore other readyStates
 		};
