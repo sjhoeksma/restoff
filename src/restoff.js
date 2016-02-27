@@ -131,7 +131,15 @@ RestOff.prototype.repoAdd = function(uri, result) {
 }
 
 RestOff.prototype.repoGet = function(uri) {
-	return this.persistanceDisabled ? [] : this.dbRepo.read(this.repoNameFrom(uri));
+	var query;
+	var primaryKey = this.primaryKeyFrom(uri);
+
+	if ("" !== primaryKey) {
+		query = {};
+		query[this.primaryKeyName] = primaryKey;
+	}
+
+	return this.persistanceDisabled ? [] : this.dbRepo.read(this.repoNameFrom(uri), query);
 }
 
 RestOff.prototype.repoAddResource = function(uri, resources) {

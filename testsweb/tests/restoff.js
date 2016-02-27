@@ -250,14 +250,36 @@ describe ("restoff", function() {
 
 	it("13: should, when offline and have records,\
 			return a subset of data from the persisted\
-			data store.", function () {
+			data store. Calling get again with a subset of\
+			data, when no changes have occured on the server,\
+			result in those get being added to the client\
+			repository.", function () {
 
-		// TODO: Load a set from the database
-		//       Go offline
-		//       Query just one element and only get that as a result
+		var userReturned =  {
+			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa",
+			"first_name": "Existing",
+			"last_name": "New Name"
+		};
 
+		var roff = restoff({ "rootUri" : ROOT_URI });
+		var userRepo = "users11";
+
+		roff.clearAll();
+		dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
+
+		return roff.get(userRepo).then(function(users) {
+			dbRepoShouldBeEqual(roff, userRepo, users, 3);
+			return roff.get(userRepo + "/" + "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa").then(function (userOnline) {
+				dbRepoShouldBeEqual(roff, userRepo, users, 3); // no changes to existing repository
+				expect(deepEqual(userReturned, userOnline), " users returned should be the same").to.be.true;
+				roff.forceOffline();
+				return roff.get(userRepo + "/" + "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa").then(function (userWhileOffline) {
+					dbRepoShouldBeEqual(roff, userRepo, users, 3); // no changes to existing repository
+					expect(deepEqual(userReturned, userWhileOffline), " users returned should be the same").to.be.true;
+				});
+			});
+		});
 	});
-
 
 	// POST ------------------------------------------------------
 

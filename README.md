@@ -1,9 +1,8 @@
 # REST Offline
 
-* In development... Not "usable" yet.
+* In development... Semi "usable". Try it out.
 * Next major features
 	* reconciliation of changes between client and server
-	* support getting a sub-set of a collection when offline
 	* support non-standard get/put/post.
 		- Example: a request GET actually does a delete
 	* major cleanup of documentation
@@ -12,9 +11,12 @@
 	* support nested resources (example: /users/45/addresses)
 	* support non-standard restful api: ability to map a user
 
-Automatically synchronize your local client with backend server data using your existingish RESTful API and make that data available offline. 
+Automatically synchronize your local client with backend server data using your existingish RESTful API and make that data available offline.
 
-Cavets are the results must be Json and you should follow [RESTful best known practices][rest-best-practices].
+Cavets:
+* results must be Json
+* Need to follow [RESTful best known practices][rest-best-practices].
+	* Working on support for non-standard calls.
 
 # RestOff Usage
 
@@ -81,17 +83,24 @@ return roff.put("users/ffa454", existingUser).then(function(result){
 
 Example usage of synchronize subsets of resources based on user.
 
-```
+```javascript
 var rest = restoff({
 	"rootUri" : "http://api.example.com/"
 });
 
-function synchronize(rest, userId) {
-	rest.get("users/" + userId);
-	rest.get("books?ownedby="+userId);
-	rest.get("addresses?userid="+userId);
+function synchronize(roff, userId) {
+	roff.get("users/" + userId);
+	roff.get("books?ownedby="+userId);
+	roff.get("addresses?userid="+userId);
 	...
+	roff.forcedOffline(); // Let's go offline or unplug from the internet
+
+	roff.get("users/" + userId).then(function(result) {
+		// Yep! We can work offline.
+	});
+
 }
+
 ```
 
 ### Important Notes

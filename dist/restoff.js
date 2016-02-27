@@ -148,7 +148,15 @@ RestOff.prototype.repoAdd = function(uri, result) {
 }
 
 RestOff.prototype.repoGet = function(uri) {
-	return this.persistanceDisabled ? [] : this.dbRepo.read(this.repoNameFrom(uri));
+	var query;
+	var primaryKey = this.primaryKeyFrom(uri);
+
+	if ("" !== primaryKey) {
+		query = {};
+		query[this.primaryKeyName] = primaryKey;
+	}
+
+	return this.persistanceDisabled ? [] : this.dbRepo.read(this.repoNameFrom(uri), query);
 }
 
 RestOff.prototype.repoAddResource = function(uri, resources) {
@@ -422,8 +430,12 @@ LowdbRepo.prototype.find = function(repoName, keyName, primaryKey) {
 	return this._low(repoName).find(query);
 }
 
-LowdbRepo.prototype.read = function(repoName) {
-	return this._low(repoName).value();
+LowdbRepo.prototype.read = function(repoName, query) {
+	if ((undefined !== query) || (null !== query)) {
+		return this._low(repoName).find(query);
+	} else {
+		return this._low(repoName).value();
+	}
 }
 
 LowdbRepo.prototype.write = function(repoName, keyName, primaryKey, resource) {
