@@ -355,7 +355,12 @@ RestOff.prototype.delete = function(uri) {
 				var primaryKeyName = that.primaryKeyName;
 				var primaryKey = that.primaryKeyFrom(uriFinal);
 
-				if (200 === request.status) {
+				if ((request.__proto__.UNSENT === request.status) && (that.isForcedOffline)) {
+					that._isOnline = false; // TODO: Write a test for this line of code
+					that.pendingAdd(uriFinal, undefined, "DELETE");
+					that.dbRepo.delete(repoName, primaryKeyName, primaryKey);
+					resolve();
+				} else if (200 === request.status) {
 					that._isOnline = true; // TODO: Write a test for this line of code
 					that.dbRepo.delete(repoName, primaryKeyName, primaryKey);
 					resolve();

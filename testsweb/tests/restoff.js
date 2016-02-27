@@ -597,13 +597,12 @@ describe ("restoff", function() {
 
 	});
 
-
-	it("62: should, with a blank repo and when online,\
+	it("62: delete should, with a blank repo and when online,\
 	        do nothing because we can't delete something\
 	        we don't have the key of", function() {
 	});
 
-	it("63: should, when online, handle network errors", function() {
+	it("63: delete should, when online, handle network errors", function() {
 		var userRepo = "users";
 		var roff = restoff({ "rootUri" : ROOT_URI });
 		roff.clear(userRepo);
@@ -623,7 +622,33 @@ describe ("restoff", function() {
 		});
 	});
 
+	it("64: delete should, when offline,\
+		delete the resource when it is in the client database\
+		and add the request to pending", function() {
 
+		var userToDelete = {
+			"id": "aedfa5a4-d748-11e5-b5d2-0a1d41d68508",
+			"first_name": "Go",
+			"last_name": "Away"
+		};
+
+		var userRepo = "user14";
+		var roff = restoff({ "rootUri" : ROOT_URI });
+		roff.clear(userRepo);
+		dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
+		return roff.post(userRepo, userToDelete).then(function(getResults) {
+			dbRepoShouldBeEqual(roff, userRepo, getResults, 1);
+			roff.forceOffline();
+			onlineStatusShouldEqual(roff, false, false, true, true);
+			return roff.delete(userRepo + "/" + userToDelete.id).then(function(getResults) {
+				onlineStatusShouldEqual(roff, false, true, false, true);
+				dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
+				pendingStatusCorrect(roff, undefined, "DELETE", 0, ROOT_URI + userRepo + "/" + userToDelete.id, userRepo);
+			});
+		}).catch(function(error) {
+			console.log(error);
+		});
+	});
 
 	// // Actual offline test: Comment out this code and make sure your internet
 	// // connection is turned off

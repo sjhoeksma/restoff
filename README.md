@@ -2,10 +2,6 @@
 
 * In development... Not "usable" yet.
 * Next major features
-	* save/persist repositories
-	* support post when offline
-	* support put when offline
-	* support delete when offline
 	* reconciliation of changes between client and server
 	* support custom/non-standard RESTful endpoints (example: a request GET actually does a delete)
 	* support put/post updates where resource is changed on the server (requires better mockable restapi backend for testing)
