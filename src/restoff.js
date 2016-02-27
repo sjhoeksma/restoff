@@ -135,44 +135,42 @@ RestOff.prototype.repoGet = function(uri) {
 }
 
 RestOff.prototype.repoAddResource = function(uri, resources) {
+	var resourceArray = (resources instanceof Array) ? resources : [resources]; // make logic easier
 	if (!this.persistanceDisabled) {
 		var that = this;
 		var repoName = this.repoNameFrom(uri);
-		if (resources instanceof Array) {
-			resources.forEach(function(resource) {
-				var primaryKey = that.primaryKeyFor(resource);
-				that.dbRepo.write(repoName, that.primaryKeyName, primaryKey, resource);
-			});
-		} else {
-			var primaryKey = this.primaryKeyFor(resources);
-			that.dbRepo.write(repoName, that.primaryKeyName, primaryKey, resources);
-		}
+		resourceArray.forEach(function(resource) {
+			var primaryKey = that.primaryKeyFor(resource);
+			that.dbRepo.write(repoName, that.primaryKeyName, primaryKey, resource);
+		});
 	} // else don't persist
 	return resources;
 }
 
-RestOff.prototype.repoNameFrom = function(uri) {
+RestOff.prototype._uriClean = function(uri) {
 	var result = uri.replace(this.rootUri, "");
 
-	// if ("" === rootUri) {
-// 		// No rootUri so assume rootUri is part of uri
-// 		var url = document.createElement('a');
-// 		url.href = uri;
-// 		rootUri = url.protocol + "//" + url.hostname + (url.port ? ':' + url.port : "");
-	// }
+	var removeSearch = result.split("?");
+	if (removeSearch.length > 1) {
+		result = removeSearch[0];
+	}
+	return result;
+}
 
-// 	var repoName = uri.replace(rootUri, "");
-// 	if ("/" === repoName[0]) {
-// 		repoName = repoName.slice(1,repoName.length);
-// 	}
-// 	var removeSearch = repoName.split("?");
-// 	if (removeSearch.length > 1) {
-// 		repoName = removeSearch[0];
-// 	}
-
+RestOff.prototype.repoNameFrom = function(uri) {
+	var result = this._uriClean(uri);
 	var removeId = result.split("/"); // TODO Support nested resources
 	if (removeId.length > 1) {
 		result = removeId[0];
+	}
+	return result;
+}
+
+RestOff.prototype.primaryKeyFrom = function(uri) {
+	var result = this._uriClean(uri);
+	var removeId = result.split("/"); // TODO Support nested resources
+	if (removeId.length > 1) {
+		result = removeId[1];
 	}
 	return result;
 }
@@ -315,6 +313,7 @@ RestOff.prototype.put = function(uri, resource) {
 							reject(that.createError(request, uriFinal, finalStatus, finalMessage));
 						}
 					} else {
+						that._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
 						reject(that.createError(request, uriFinal, request.status, request.statusText)); 
 					}
 				}
@@ -326,96 +325,38 @@ RestOff.prototype.put = function(uri, resource) {
 	return promise;
 }
 
-// RestOff.prototype.delete = function(uri) {
-// 	var that = this;
+RestOff.prototype.delete = function(uri) {
+	var that = this;
 
-// 	var promise = new Promise(function(resolve, reject) {
-// 		var request = that.getRequest;
-// 		request.open("DELETE", that.uriGenerate(uri), true);
-// 		request.onreadystatechange = function(){
-// 			if(request.__proto__.DONE === request.readyState2 ) {
-// 				if (200 === request.status) {
-// 					that.repositoryDelete(uri);
-// 					resolve();
-// 				} else if (404 === request.status) {
-// 					// No Worries. Resource wasn't on the server and now it won't be in our
-// 					// local repository either (if it is even there)
-// 					that.repositoryDelete(uri);
-// 					resolve();
-// 				} else {
-// 					reject(that.createError(request, uri, request.status, request.message));					
-// 				}
-// 			}
-// 		};
-// 		request.send();
-// 	});
-// 	return promise;
-// }
+	var promise = new Promise(function(resolve, reject) {
+		var request = that.getRequest;
+		var uriFinal = that.uriGenerate(uri);
+		request.open("DELETE", that.uriGenerate(uriFinal), true);
+		request.onreadystatechange = function(){
+			if(request.__proto__.DONE === request.readyState2 ) {
+				var repoName = that.repoNameFrom(uriFinal);
+				var primaryKeyName = that.primaryKeyName;
+				var primaryKey = that.primaryKeyFrom(uriFinal);
+
+				if (200 === request.status) {
+					that._isOnline = true; // TODO: Write a test for this line of code
+					that.dbRepo.delete(repoName, primaryKeyName, primaryKey);
+					resolve();
+				} else if (404 === request.status) {
+					that._isOnline = true;
+					// No Worries. Resource wasn't on the server and now it won't be in our
+					// local repository either (if it is even there)
+					that.dbRepo.delete(repoName, primaryKeyName, primaryKey);
+					resolve();
+				} else {
+					that._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
+					reject(that.createError(request, uri, request.status, request.message));					
+				}
+			} // else ignore other readyStates
+		};
+		request.send();
+	});
+	return promise;
+}
 
 restlib.restoff = restoff;
-
-
-
-
-// RestOff.prototype.repositorySizeBy = function(repoName) {
-// 	return Object.keys(this.repositoryGet(repoName)).length;
-// }
-
-// RestOff.prototype.repositoryFind = function(repoName, key) {
-// 	var query = {};
-// 	query[this.primaryKeyName] = key;
-// 	return this.dbEngine(repoName).find(query);
-// }
-
-// RestOff.prototype.repositoryGet = function(repoName) {
-// 	if (undefined === this._repo[repoName]) {
-// 		this._repo[repoName] = [];
-// 	}
-// 	if (undefined === this.dbEngine(repoName)) {
-// 		console.log ("NEED TO ADD IT");
-// 	}
-// 	// return this.dbEngine(repoName).value();
-// 	return this._repo[repoName];
-// }
-
-// RestOff.prototype.repositoryResourceGet = function(repoName, resourceId) {
-// 	if (undefined === this._repo[repoName]) {
-// 		this._repo[repoName] = [];
-// 		return this._repo[repoName];
-// 	}
-// 	return this._repo[repoName][resourceId];
-// }
-
-// RestOff.prototype.repositoryDelete = function(uri) {
-// 	var that = this;
-// 	var aUri = document.createElement("a");
-// 	aUri.href = uri;
-// 	var repoName = aUri.pathname.split("/")[1];
-// 	var idToRemove = aUri.pathname.split("/")[2];
-// 	if (undefined === this._repo[repoName]) {
-// 		this._repo[repoName] = [];
-// 	}
-
-// 	if (undefined !== this._repo[repoName][idToRemove]) {
-// 		delete this._repo[repoName][idToRemove];
-// 	}
-// }
-
-// RestOff.prototype.clearCacheBy = function(repoName) {
-// 	if (undefined !== this._repo[repoName]) {
-// 		this._repo[repoName] = [];
-// 	}
-// 	// delete this.dbEngine.object[repoName];
-// 	// this.dbEngine.write();
-// }
-
-// RestOff.prototype.clearCacheAll = function() {
-// 	var that = this;
-// 	Object.keys(this.repository).forEach(
-// 		function(value) {
-// 			that._repo[value] = [];
-// 		}
-// 	);
-// 	this.dbEngine.object = {};
-// 	this.dbEngine.write();
-// }

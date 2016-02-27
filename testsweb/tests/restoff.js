@@ -248,6 +248,17 @@ describe ("restoff", function() {
 		});
 	});	
 
+	it("13: should, when offline and have records,\
+			return a subset of data from the persisted\
+			data store.", function () {
+
+		// TODO: Load a set from the database
+		//       Go offline
+		//       Query just one element and only get that as a result
+
+	});
+
+
 	// POST ------------------------------------------------------
 
 	var newuser01 = {
@@ -470,16 +481,17 @@ describe ("restoff", function() {
 		onlineStatusShouldEqual(roff, false, false, true, false);
 
 		// Assure test data is in the database
-		return roff.put(userRepo+"/aedfa7a4-d748-11e5-b5d2-0a1d41d68577", existingUser01).then(function(result) {
+		return roff.put(userRepo + "/" + existingUser01.id, existingUser01).then(function(result) {
 			onlineStatusShouldEqual(roff, true, false, false, false);
 			dbRepoShouldBeEqual(roff, userRepo, result, 1);
 			return dbRepoExactlyEqual(roff, userRepo).then(function(result) { // verify posted to server
 				expect(result, "db repo the same").to.be.true;
-				return roff.put(userRepo+"/aedfa7a4-d748-11e5-b5d2-0a1d41d68577", puttedUser).then(function(result) {
+				return roff.put(userRepo + "/" + puttedUser.id, puttedUser).then(function(result) {
 					dbRepoShouldBeEqual(roff, userRepo, result, 1);
 					return dbRepoExactlyEqual(roff, userRepo).then(function(result) { // verify posted to server
 						expect(result, "db repo the same").to.be.true;
-						return roff.put(userRepo+"/aedfa7a4-d748-11e5-b5d2-0a1d41d68577", existingUser01).then(function(result) {
+						existingUser01.last_name = "User3"; // TODO: Figure out why last_name of existingUser01 gets set to "putted".
+						return roff.put(userRepo + "/" + existingUser01.id, existingUser01).then(function(result) {
 							dbRepoShouldBeEqual(roff, userRepo, result, 1);
 						}); // Reset test with original data
 					});
@@ -534,6 +546,83 @@ describe ("restoff", function() {
 			});
 		});
 	});
+
+
+	it("60: delete should, when online, handle a 404\
+			(resource not found) by 'ignoring' them", function() {
+		var userRepo = "users44";
+
+		var roff = restoff({ "rootUri" : ROOT_URI });
+		roff.clear(userRepo);
+		dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
+
+		return roff.delete(userRepo + "/232").then(function(result) {
+			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
+			onlineStatusShouldEqual(roff, true, false, false, false);
+		}).catch(function(error) {
+			console.log(error);
+			expect(true, "Promise should call the then.").to.be.false;
+		});
+
+	});
+
+	it("61: delete should, when online, delete an existing\
+		     resource on the client and server", function() {
+
+		var userToDelete = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68522",
+			"first_name": "Unhappy",
+			"last_name": "User"
+		};
+		var usersToDelete = [];
+		usersToDelete["aedfa7a4-d748-11e5-b5d2-0a1d41d68522"] = userToDelete;
+
+		var userRepo = "users06";
+		var roff = restoff({ "rootUri" : ROOT_URI });
+		roff.clear(userRepo);
+		dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
+
+		return roff.post(userRepo, userToDelete).then(function(result) {
+			dbRepoShouldBeEqual(roff, userRepo, result, 1);
+			return roff.delete(userRepo + "/" + userToDelete.id).then(function(result) {
+				onlineStatusShouldEqual(roff, true, false, false, false);
+				dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
+			}).catch(function(error) {
+				console.log(error);
+				expect(true, "Promise should call the then.").to.be.false;
+			});
+
+		});
+
+
+	});
+
+
+	it("62: should, with a blank repo and when online,\
+	        do nothing because we can't delete something\
+	        we don't have the key of", function() {
+	});
+
+	it("63: should, when online, handle network errors", function() {
+		var userRepo = "users";
+		var roff = restoff({ "rootUri" : ROOT_URI });
+		roff.clear(userRepo);
+		dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
+
+
+		return roff.delete("http://idontexisthopefully.com/users/001").then(function(result) {
+			expect(true, "Promise should call the catch.", false);
+		}).catch(function(error) {
+			var errorExpected = {
+				message: "Network Error",
+				messageDetail: "",
+				status: 0,
+				uri: "http://idontexisthopefully.com/users/001"
+			};
+			expect(error, "Error result").to.deep.equals(errorExpected);
+		});
+	});
+
 
 
 	// // Actual offline test: Comment out this code and make sure your internet

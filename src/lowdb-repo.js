@@ -48,8 +48,6 @@ LowdbRepo.prototype.write = function(repoName, keyName, primaryKey, resource) {
 	if (undefined === this.find(repoName, keyName, primaryKey)) {
 		this._low(repoName).push(resource);
 	} else {
-		// console.log(resource);
-		// console.log(this.find(repoName, keyName, primaryKey));
 		var query = {};
 		query[keyName] = primaryKey;
 		this.dbEngine(repoName)
@@ -58,4 +56,10 @@ LowdbRepo.prototype.write = function(repoName, keyName, primaryKey, resource) {
 			.assign(resource)
 			.value();
 	}
+}
+
+LowdbRepo.prototype.delete = function(repoName, keyName, primaryKey) {
+	var query = {};
+	query[keyName] = primaryKey;
+	return this._low(repoName).remove(query);
 }
