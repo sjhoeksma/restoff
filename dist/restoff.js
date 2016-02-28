@@ -76,8 +76,7 @@ RestOff.prototype = Object.create(Object.prototype, {
 			}
 			return request;
 		}
-	},
-	deleteSomeTime: { get: function() { return this._isOnline === true; }}
+	}
 });
 
 RestOff.prototype.uriGenerate = function(uri) {
