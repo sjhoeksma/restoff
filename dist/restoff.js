@@ -216,8 +216,8 @@ RestOff.prototype.repoDeleteResource = function(uriRec) {
 	}
 }
 
-RestOff.prototype.createError = function(request, uri, status, message) {
-	var messageDetail = request.responseText.replace(/\r?\n|\r/g, "");
+RestOff.prototype.createError = function(responseText, uri, status, message) {
+	var messageDetail = responseText.replace(/\r?\n|\r/g, "");
 
 	if (0 === status) {
 		message = "Network Error";
@@ -249,7 +249,7 @@ RestOff.prototype.autoHeaderParamGet = function(name) {
 	return this._autoHeaders[name];
 }
 
-// TODO: Add dbCallType
+// TODO: Add database calling type
 RestOff.prototype.pendingAdd = function(uriRec) {
 	var result = {
 		"restMethod" : uriRec.restMethod,
@@ -262,35 +262,135 @@ RestOff.prototype.pendingAdd = function(uriRec) {
 	return result;
 }
 
+// "delete" database actions
+RestOff.prototype._dbDelete = function(uriR, request, resolve, reject) {
+	if(request.__proto__.DONE === request.readyState2 ) {
+		if ((request.__proto__.UNSENT === request.status) && (this.isForcedOffline)) {
+			this._isOnline = false; // TODO: Write a test for this line of code
+			this.pendingAdd(uriR);
+			this.repoDeleteResource(uriR); // TODO: Add test to cover repoDeleteResource below: was direct call to dbRoot.delete
+			resolve();
+		} else if (200 === request.status) {
+			this._isOnline = true; // TODO: Write a test for this line of code
+			this.repoDeleteResource(uriR);
+			resolve();
+		} else if (404 === request.status) {
+			this._isOnline = true;
+			// 404 means resource wasn't on the server and now it won't be in our
+			// local repository either
+			this.repoDeleteResource(uriR); // TODO: Add test to cover repoDeleteResource below: was direct call to dbRoot.delete
+			resolve();
+		} else {
+			this._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
+			reject(this.createError(request.responseText, uriR.uriFinal, request.status, request.message));
+		}
+	} // else ignore other readyStates
+}
+
+// "get" database actions
+RestOff.prototype._dbGet = function(uriR, request, resolve, reject) {
+	var request = uriR.request;
+	if(4 === request.readyState ) { // Done = 4
+		if ((0 === request.status) && (this.isForcedOffline)) { // 0 = unsent
+			this._isOnline = false;
+			resolve(this.repoGet(uriR));
+		} else if(200 === request.status) {
+			this._isOnline = true;
+			resolve(this.repoAdd(uriR, request.response));
+		} else { 
+			// all request values are the same for ERR_NAME_NOT_RESOLVED and 
+			// ERR_INTERNET_DISCONNECTED so can't tell if we are online or not. :-(
+			this._isOnline = 0 !== request.status ? true : null;
+			reject(this.createError(uriR.request.responseText, uriR.uriFinal, request.status, request.statusText));
+		}
+	} // else ignore other readyStates
+}
+
+// "post" database actions
+RestOff.prototype._dbPost = function(uriR, request, resolve, reject) {
+	if(request.__proto__.DONE === request.readyState2 ) { // Done = 4
+		if ((request.__proto__.UNSENT === request.status) && (this.isForcedOffline)) { // 0 = unsent
+			this._isOnline = false;
+			this.pendingAdd(uriR);
+			resolve(this.repoAddResource(uriR));
+		} else if (201 === request.status) {
+			this._isOnline = true;
+			resolve(this.repoAddResource(uriR)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
+		} else {
+			this._isOnline = 0 !== request.status ? true : null;
+			reject(this.createError(request.responseText, uriR.uriFinal, request.status, request.statusText)); 
+		}
+	} // else ignore other readyStates
+}
+
+// "put" database actions
+RestOff.prototype._dbPut = function(uriR, request, resolve, reject) {
+	if(request.__proto__.DONE === request.readyState2 ) {
+		if (200 === request.status) {
+			this._isOnline = true;
+			resolve(this.repoAddResource(uriR)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
+		} else {
+			var finalStatus = request.status;
+			var finalMessage = request.statusText;
+			this._isOnline = 0 !== request.status ? true : null;
+			if (this.isForcedOffline) { // we are offline, but resource not found so 404 it.
+				this._isOnline = false;
+				if (this.repoFind(uriR)) { // offline but found resource on client so add it
+					this.pendingAdd(uriR);
+					resolve(this.repoAddResource(uriR));
+				} else {
+					finalStatus = 404;
+					finalMessage = "Not Found"
+					reject(this.createError(request.responseText, uriR.uriFinal, finalStatus, finalMessage));
+				}
+			} else {
+				this._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
+				reject(this.createError(request.responseText, uriR.uriFinal, request.status, request.statusText));
+			}
+		}
+	} // else ignore other readyStates
+}
+
+RestOff.prototype.delete = function(uri) {
+	var that = this;
+
+	var promise = new Promise(function(resolve, reject) {
+		var request = that.getRequest;
+		var uriR = that.uriRec(uri, "DELETE");
+		request.open("DELETE", uriR.uriFinal, true);
+		request.onreadystatechange = function(){
+			that._dbDelete(uriR, request, resolve, reject);
+		};
+		request.send();
+	});
+	return promise;
+}
+
+RestOff.prototype._requestHeaderSet = function(request) {
+	var autoHeaders = this._autoHeaders;
+	Object.keys(autoHeaders).forEach(
+		function(key) {
+			request.setRequestHeader(key, autoHeaders[key]); // TODO: Write a test to cover this
+		}
+	);
+}
+
 RestOff.prototype.get = function(uri) {
 	var that = this;
 	var promise = new Promise(function(resolve, reject) {
-
 		var request = that.getRequest;
 		var uriR = that.uriRec(uri, "GET");
-
 		request.open("GET", uriR.uriFinal, true); // true: asynchronous 
-		var autoHeaders = that._autoHeaders;
-		Object.keys(autoHeaders).forEach(
-			function(key) {
-				request.setRequestHeader(key, autoHeaders[key]); // TODO: Write a test to cover this
-			}
-		);
-
+		that._requestHeaderSet(request);
 		request.onreadystatechange = function() {
-           if(request.__proto__.DONE === request.readyState2 ) {
-				if ((request.__proto__.UNSENT === request.status) && (that.isForcedOffline)) {
-					that._isOnline = false;
-					resolve(that.repoGet(uriR));
-				} else if(200 === request.status) {
-					that._isOnline = true;
-					resolve(that.repoAdd(uriR, request.response));
-				} else { 
-					// all request values are the same for ERR_NAME_NOT_RESOLVED and ERR_INTERNET_DISCONNECTED so can't tell if we are online or not. :-(
-					that._isOnline = 0 !== request.status ? true : null;
-					reject(that.createError(request, uriR.uriFinal, request.status, request.statusText));
-				}
-			} // else ignore other readyStates
+			uriR.request = {
+				readyState : request.readyState2,
+				status : request.status,
+				statusText : request.statusText,
+				response: request.response,
+				responseText: request.responseText
+			};
+			that._dbGet(uriR, request, resolve, reject);
 		};
 		request.send();
 	});
@@ -305,19 +405,7 @@ RestOff.prototype.post = function(uri, resource) {
 		var body = JSON.stringify(resource);
 		request.open("POST", uriR.uriFinal, true);
 		request.onreadystatechange = function() {
-			if(request.__proto__.DONE === request.readyState2 ) {
-				if ((request.__proto__.UNSENT === request.status) && (that.isForcedOffline)) {
-					that._isOnline = false;
-					that.pendingAdd(uriR);
-					resolve(that.repoAddResource(uriR));
-				} else if (201 === request.status) {
-					that._isOnline = true;
-					resolve(that.repoAddResource(uriR)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
-				} else {
-					that._isOnline = 0 !== request.status ? true : null;
-					reject(that.createError(request, uriR.uriFinal, request.status, request.statusText)); 
-				}
-			} // else ignore other readyStates
+			that._dbPost(uriR, request, resolve, reject);
 		};
 		request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
 		request.send(body);
@@ -333,30 +421,7 @@ RestOff.prototype.put = function(uri, resource) {
 		var body = JSON.stringify(resource);
 		request.open("PUT", uriR.uriFinal, true);
 		request.onreadystatechange = function() {
-			if(request.__proto__.DONE === request.readyState2 ) {
-				if (200 === request.status) {
-					that._isOnline = true;
-					resolve(that.repoAddResource(uriR)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
-				} else {
-					var finalStatus = request.status;
-					var finalMessage = request.statusText;
-					that._isOnline = 0 !== request.status ? true : null;
-					if (that.isForcedOffline) { // we are offline, but resource not found so 404 it.
-						that._isOnline = false;
-						if (that.repoFind(uriR)) { // offline but found resource on client so add it
-							that.pendingAdd(uriR);
-							resolve(that.repoAddResource(uriR));
-						} else {
-							finalStatus = 404;
-							finalMessage = "Not Found"
-							reject(that.createError(request, uriR.uriFinal, finalStatus, finalMessage));
-						}
-					} else {
-						that._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
-						reject(that.createError(request, uriR.uriFinal, request.status, request.statusText));
-					}
-				}
-			} // else ignore other readyStates
+			that._dbPut(uriR, request, resolve, reject);
 		};
 		request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
 		request.send(body);
@@ -364,42 +429,9 @@ RestOff.prototype.put = function(uri, resource) {
 	return promise;
 }
 
-RestOff.prototype.delete = function(uri) {
-	var that = this;
 
-	var promise = new Promise(function(resolve, reject) {
-		var request = that.getRequest;
-		var uriR = that.uriRec(uri, "DELETE");
-		request.open("DELETE", uriR.uriFinal, true);
-		request.onreadystatechange = function(){
-			if(request.__proto__.DONE === request.readyState2 ) {
-				if ((request.__proto__.UNSENT === request.status) && (that.isForcedOffline)) {
-					that._isOnline = false; // TODO: Write a test for this line of code
-					that.pendingAdd(uriR);
-					that.repoDeleteResource(uriR); // TODO: Add test to cover repoDeleteResource below: was direct call to dbRoot.delete
-					resolve();
-				} else if (200 === request.status) {
-					that._isOnline = true; // TODO: Write a test for this line of code
-					that.repoDeleteResource(uriR);
-					resolve();
-				} else if (404 === request.status) {
-					that._isOnline = true;
-					// 404 means resource wasn't on the server and now it won't be in our
-					// local repository either
-					that.repoDeleteResource(uriR); // TODO: Add test to cover repoDeleteResource below: was direct call to dbRoot.delete
-					resolve();
-				} else {
-					that._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
-					reject(that.createError(request, uri, request.status, request.message));
-				}
-			} // else ignore other readyStates
-		};
-		request.send();
-	});
-	return promise;
-}
 
-restlib.restoff = restoff;
+restlib.restoff = restoff; 
 function lowdbRepo(config) {
 	var that = Object.create(LowdbRepo.prototype);
 	that._dbName = (undefined !== config) ? config.dbName ? config.dbName : "restoff" : "restoff";
