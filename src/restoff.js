@@ -88,7 +88,7 @@ RestOff.prototype.uriGenerate = function(uri) {
 
 RestOff.prototype.uriRec = function(uri, restMethod, resources) {
 	var uriResult = {
-		uriOriginal: uri,
+		uri: uri,
 		primaryKey : "",
 		uriFinal : this.uriGenerate(uri),
 		primaryKeyName : this.primaryKeyName,
