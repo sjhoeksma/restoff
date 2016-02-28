@@ -288,24 +288,28 @@ RestOff.prototype._uriAddRequest = function(uriR, request) {
 
 RestOff.prototype._dbDelete = function(uriR, request, resolve, reject) {
 	if(4 === request.readyState2 ) { // Done = 4
-		if ((0 === request.status) && (this.isForcedOffline)) { // 0 = unsent
-			this._isOnline = false;
-			this.pendingAdd(uriR);
-			this.repoDeleteResource(uriR);
-			resolve();
-		} else if ((200 === request.status) || 
-				   (202 === request.status) ||
-				   (204 === request.status)) { // TODO: Write test for 202 and 204
-			this._isOnline = true;
-			this.repoDeleteResource(uriR);
-			resolve();
-		} else if (404 === request.status) {
-			this._isOnline = true;
-			this.repoDeleteResource(uriR); // 404: remove from client if exist
-			resolve();
-		} else {
-			this._isOnline = null;
-			reject(this.createError(uriR));
+		switch (request.status) {
+			case 200: case 202: case 204: // TODO: Write test for 202 and 204
+				this._isOnline = true;
+				this.repoDeleteResource(uriR);
+				resolve();
+			break;
+			case 404:
+				this._isOnline = true;
+				this.repoDeleteResource(uriR); // 404 but will remove from client anyway
+				resolve();
+			break;
+			case 0:
+				if (this.isForcedOffline) {
+					this._isOnline = false;
+					this.pendingAdd(uriR);
+					this.repoDeleteResource(uriR);
+					resolve();
+				} else {
+					this._isOnline = null;
+					reject(this.createError(uriR));
+				}		
+			break;
 		}
 	} // else ignore other readyStates
 }
@@ -322,7 +326,7 @@ RestOff.prototype._dbGet = function(uriR, resolve, reject) {
 		} else { 
 			// all request values are the same for ERR_NAME_NOT_RESOLVED and 
 			// ERR_INTERNET_DISCONNECTED so can't tell if we are online or not. :-(
-			this._isOnline = 0 !== request.status ? true : null;
+			this._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
 			reject(this.createError(uriR));
 
 		}
@@ -339,7 +343,7 @@ RestOff.prototype._dbPost = function(uriR, request, resolve, reject) {
 			this._isOnline = true;
 			resolve(this.repoAddResource(uriR)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
 		} else {
-			this._isOnline = 0 !== request.status ? true : null;
+			this._isOnline = 0 !== request.status ? true : null;  // TODO: Write test for this line of code
 			reject(this.createError(uriR));
 		}
 	} // else ignore other readyStates
