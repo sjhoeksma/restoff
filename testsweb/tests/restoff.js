@@ -594,16 +594,23 @@ describe ("restoff", function() {
 
 
 	it("60: delete should, when online, handle a 404\
-			(resource not found) by 'ignoring' them", function() {
+			(resource not found) by 'ignoring' them. \
+			Should also ignore when persistanceDisabled is true", function() {
 		var userRepo = "users44";
 
 		var roff = restoff({ "rootUri" : ROOT_URI });
 		roff.clear(userRepo);
 		dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 
-		return roff.delete(userRepo + "/232").then(function(result) {
+		return roff.delete(userRepo).then(function(result) {
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 			onlineStatusShouldEqual(roff, true, false, false, false);
+			roff.persistanceDisabled = true;
+			return roff.delete(userRepo).then(function(result) {
+				roff.persistanceDisabled = false;
+				dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
+				onlineStatusShouldEqual(roff, true, false, false, false);
+			});			
 		}).catch(function(error) {
 			console.log(error);
 			expect(true, "Promise should call the then.").to.be.false;
@@ -664,6 +671,7 @@ describe ("restoff", function() {
 				uri: "http://idontexisthopefully.com/users/001"
 			};
 			expect(error, "Error result").to.deep.equals(errorExpected);
+			onlineStatusShouldEqual(roff, false, false, true, false);
 		});
 	});
 
@@ -690,11 +698,30 @@ describe ("restoff", function() {
 				dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 				pendingStatusCorrect(roff, undefined, "DELETE", 0, ROOT_URI + userRepo + "/" + userToDelete.id, userRepo);
 			});
-		}).catch(function(error) {
-			console.log(error);
 		});
 	});
 
+	it("65: delete should, when offline and persistanceDisabled,\
+		not delete the resource when it is in the client database\
+		and not add the request to pending", function() {
+
+		var userToDelete = {
+			"id": "aedfa5a4-d748-11e5-b5d2-0a1d41d68508",
+			"first_name": "Go",
+			"last_name": "Away"
+		};
+
+		var userRepo = "user14";
+		var roff = restoff({ "rootUri" : ROOT_URI }).forceOffline();
+		roff.clear(userRepo);
+		dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
+		roff.persistanceDisabled = true;
+		return roff.delete(userRepo + "/" + userToDelete.id).then(function(getResults) {
+			roff.persistanceDisabled = false;
+			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
+			expect(roff.pending[0], "should not be pending").to.be.undefined;
+		});
+	});
 
 	// Reconciliation
 

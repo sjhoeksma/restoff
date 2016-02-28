@@ -216,20 +216,23 @@ RestOff.prototype.repoDeleteResource = function(uriRec) {
 	}
 }
 
-RestOff.prototype.createError = function(responseText, uri, status, message) {
-	var messageDetail = responseText.replace(/\r?\n|\r/g, "");
+RestOff.prototype.createError = function(uriR, responseText, uri, status, message) {
+	var request = uriR.request;
+	var messageDetail = request.responseText.replace(/\r?\n|\r/g, "");
+	var message = request.statusText;
 
-	if (0 === status) {
+	if (0 === request.status) {
 		message = "Network Error";
 	}
 
 	return {
 		"message" : message,
 		"messageDetail" : messageDetail,
-		"status": status,
-		"uri": uri
+		"status": request.status,
+		"uri": uriR.uriFinal
 	};
 }
+
 
 RestOff.prototype.autoQueryParamSet = function(name, value) {
 	this._autoParams[name] = value;
@@ -258,37 +261,57 @@ RestOff.prototype.pendingAdd = function(uriRec) {
 		"uri" : uriRec.uriFinal,
 		"repoName" : uriRec.repoName
 	}
-	this._pending.push(result);
+	if (!this.persistanceDisabled) {
+		this._pending.push(result);
+	}
 	return result;
 }
 
-// "delete" database actions
+RestOff.prototype._requestHeaderSet = function(request) {
+	var autoHeaders = this._autoHeaders;
+	Object.keys(autoHeaders).forEach(
+		function(key) {
+			request.setRequestHeader(key, autoHeaders[key]); // TODO: Write a test to cover this
+		}
+	);
+}
+
+RestOff.prototype._uriAddRequest = function(uriR, request) {
+	uriR.request = {
+		readyState : request.readyState2,
+		status : request.status,
+		statusText : request.statusText,
+		response: request.response,
+		responseText: request.responseText
+	};
+	return uriR;
+}
+
 RestOff.prototype._dbDelete = function(uriR, request, resolve, reject) {
-	if(request.__proto__.DONE === request.readyState2 ) {
-		if ((request.__proto__.UNSENT === request.status) && (this.isForcedOffline)) {
-			this._isOnline = false; // TODO: Write a test for this line of code
+	if(4 === request.readyState2 ) { // Done = 4
+		if ((0 === request.status) && (this.isForcedOffline)) { // 0 = unsent
+			this._isOnline = false;
 			this.pendingAdd(uriR);
-			this.repoDeleteResource(uriR); // TODO: Add test to cover repoDeleteResource below: was direct call to dbRoot.delete
+			this.repoDeleteResource(uriR);
 			resolve();
-		} else if (200 === request.status) {
-			this._isOnline = true; // TODO: Write a test for this line of code
+		} else if ((200 === request.status) || 
+				   (202 === request.status) ||
+				   (204 === request.status)) { // TODO: Write test for 202 and 204
+			this._isOnline = true;
 			this.repoDeleteResource(uriR);
 			resolve();
 		} else if (404 === request.status) {
 			this._isOnline = true;
-			// 404 means resource wasn't on the server and now it won't be in our
-			// local repository either
-			this.repoDeleteResource(uriR); // TODO: Add test to cover repoDeleteResource below: was direct call to dbRoot.delete
+			this.repoDeleteResource(uriR); // 404: remove from client if exist
 			resolve();
 		} else {
-			this._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
-			reject(this.createError(request.responseText, uriR.uriFinal, request.status, request.message));
+			this._isOnline = null;
+			reject(this.createError(uriR));
 		}
 	} // else ignore other readyStates
 }
 
-// "get" database actions
-RestOff.prototype._dbGet = function(uriR, request, resolve, reject) {
+RestOff.prototype._dbGet = function(uriR, resolve, reject) {
 	var request = uriR.request;
 	if(4 === request.readyState ) { // Done = 4
 		if ((0 === request.status) && (this.isForcedOffline)) { // 0 = unsent
@@ -301,15 +324,15 @@ RestOff.prototype._dbGet = function(uriR, request, resolve, reject) {
 			// all request values are the same for ERR_NAME_NOT_RESOLVED and 
 			// ERR_INTERNET_DISCONNECTED so can't tell if we are online or not. :-(
 			this._isOnline = 0 !== request.status ? true : null;
-			reject(this.createError(uriR.request.responseText, uriR.uriFinal, request.status, request.statusText));
+			reject(this.createError(uriR));
+
 		}
 	} // else ignore other readyStates
 }
 
-// "post" database actions
 RestOff.prototype._dbPost = function(uriR, request, resolve, reject) {
-	if(request.__proto__.DONE === request.readyState2 ) { // Done = 4
-		if ((request.__proto__.UNSENT === request.status) && (this.isForcedOffline)) { // 0 = unsent
+	if(4 === request.readyState2 ) { // Done = 4
+		if ((0 === request.status) && (this.isForcedOffline)) { // 0 = unsent
 			this._isOnline = false;
 			this.pendingAdd(uriR);
 			resolve(this.repoAddResource(uriR));
@@ -318,14 +341,13 @@ RestOff.prototype._dbPost = function(uriR, request, resolve, reject) {
 			resolve(this.repoAddResource(uriR)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
 		} else {
 			this._isOnline = 0 !== request.status ? true : null;
-			reject(this.createError(request.responseText, uriR.uriFinal, request.status, request.statusText)); 
+			reject(this.createError(uriR));
 		}
 	} // else ignore other readyStates
 }
 
-// "put" database actions
 RestOff.prototype._dbPut = function(uriR, request, resolve, reject) {
-	if(request.__proto__.DONE === request.readyState2 ) {
+	if(4 === request.readyState2 ) { // Done = 4
 		if (200 === request.status) {
 			this._isOnline = true;
 			resolve(this.repoAddResource(uriR)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
@@ -339,97 +361,63 @@ RestOff.prototype._dbPut = function(uriR, request, resolve, reject) {
 					this.pendingAdd(uriR);
 					resolve(this.repoAddResource(uriR));
 				} else {
-					finalStatus = 404;
-					finalMessage = "Not Found"
-					reject(this.createError(request.responseText, uriR.uriFinal, finalStatus, finalMessage));
+					uriR.request.status = 404;
+					uriR.request.statusText = "Not Found";
+					reject(this.createError(uriR));
 				}
 			} else {
 				this._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
-				reject(this.createError(request.responseText, uriR.uriFinal, request.status, request.statusText));
+				reject(this.createError(uriR));
 			}
 		}
 	} // else ignore other readyStates
 }
 
-RestOff.prototype.delete = function(uri) {
+RestOff.prototype._restCall = function(uri, restMethod, resource) {
 	var that = this;
-
 	var promise = new Promise(function(resolve, reject) {
 		var request = that.getRequest;
-		var uriR = that.uriRec(uri, "DELETE");
-		request.open("DELETE", uriR.uriFinal, true);
-		request.onreadystatechange = function(){
-			that._dbDelete(uriR, request, resolve, reject);
+		var uriR = that.uriRec(uri, restMethod, resource);
+		var body = JSON.stringify(resource);
+		request.open(uriR.restMethod, uriR.uriFinal, true); // true: asynchronous
+		that._requestHeaderSet(request);
+		request.onreadystatechange = function() {
+			that._uriAddRequest(uriR, request);
+			if ("GET" === uriR.restMethod) {
+				that._dbGet(uriR, resolve, reject);
+			} else if ("POST" === uriR.restMethod) {
+				that._dbPost(uriR, request, resolve, reject);
+			} else if ("PUT" === uriR.restMethod) {
+				that._dbPut(uriR, request, resolve, reject);
+			} else if ("DELETE" === uriR.restMethod) {
+				that._dbDelete(uriR, request, resolve, reject);				
+			} // else do nothing
 		};
-		request.send();
+		if (("POST" === uriR.restMethod) || ("PUT" === uriR.restMethod)) {
+			request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+			request.send(body);
+		} else {
+			request.send();
+		}
 	});
 	return promise;
 }
 
-RestOff.prototype._requestHeaderSet = function(request) {
-	var autoHeaders = this._autoHeaders;
-	Object.keys(autoHeaders).forEach(
-		function(key) {
-			request.setRequestHeader(key, autoHeaders[key]); // TODO: Write a test to cover this
-		}
-	);
+RestOff.prototype.delete = function(uri) {
+	return this._restCall(uri, "DELETE");
 }
 
 RestOff.prototype.get = function(uri) {
-	var that = this;
-	var promise = new Promise(function(resolve, reject) {
-		var request = that.getRequest;
-		var uriR = that.uriRec(uri, "GET");
-		request.open("GET", uriR.uriFinal, true); // true: asynchronous 
-		that._requestHeaderSet(request);
-		request.onreadystatechange = function() {
-			uriR.request = {
-				readyState : request.readyState2,
-				status : request.status,
-				statusText : request.statusText,
-				response: request.response,
-				responseText: request.responseText
-			};
-			that._dbGet(uriR, request, resolve, reject);
-		};
-		request.send();
-	});
-	return promise;
+	return this._restCall(uri, "GET");
 }
 
 RestOff.prototype.post = function(uri, resource) {
-	var that = this;
-	var promise = new Promise(function(resolve, reject) {
-		var request = that.getRequest;
-		var uriR = that.uriRec(uri, "POST", resource);
-		var body = JSON.stringify(resource);
-		request.open("POST", uriR.uriFinal, true);
-		request.onreadystatechange = function() {
-			that._dbPost(uriR, request, resolve, reject);
-		};
-		request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-		request.send(body);
-	});
-	return promise;
+	return this._restCall(uri, "POST", resource);
 }
 
 RestOff.prototype.put = function(uri, resource) {
-	var that = this;
-	var promise = new Promise(function(resolve, reject) {
-		var request = that.getRequest;
-		var uriR = that.uriRec(uri, "PUT", resource);
-		var body = JSON.stringify(resource);
-		request.open("PUT", uriR.uriFinal, true);
-		request.onreadystatechange = function() {
-			that._dbPut(uriR, request, resolve, reject);
-		};
-		request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-		request.send(body);
-	});
-	return promise;
+	return this._restCall(uri, "PUT", resource);
 }
-
-
 
 restlib.restoff = restoff; 
 function lowdbRepo(config) {
