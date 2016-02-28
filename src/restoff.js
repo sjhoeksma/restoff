@@ -366,15 +366,22 @@ RestOff.prototype._restCall = function(uri, restMethod, resource) {
 		that._requestHeaderSet(request);
 		request.onreadystatechange = function() {
 			that._uriAddRequest(uriR, request);
-			if ("GET" === uriR.restMethod) {
-				that._dbGet(uriR, resolve, reject);
-			} else if ("POST" === uriR.restMethod) {
-				that._dbPost(uriR, request, resolve, reject);
-			} else if ("PUT" === uriR.restMethod) {
-				that._dbPut(uriR, request, resolve, reject);
-			} else if ("DELETE" === uriR.restMethod) {
-				that._dbDelete(uriR, request, resolve, reject);				
-			} // else do nothing
+			switch(uriR.restMethod) {
+				case "GET":
+					that._dbGet(uriR, resolve, reject);
+				break;
+				case "POST":
+					that._dbPost(uriR, request, resolve, reject);
+				break;
+				case "PUT":
+					that._dbPut(uriR, request, resolve, reject);
+				break;
+				case "DELETE":
+					that._dbDelete(uriR, request, resolve, reject);				
+				break;
+				// default: Not required
+
+			}
 		};
 		if (("POST" === uriR.restMethod) || ("PUT" === uriR.restMethod)) {
 			request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
