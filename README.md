@@ -107,6 +107,24 @@ function synchronize(roff, userId) {
 
 ```
 
+## Running Exclusively On The Client
+
+You can have your RESTful API run 100% on the client never hitting the backend server:
+
+```javascript
+var rest = restoff({
+	"rootUri" : "http://api.example.com/",
+	"clientOnly" : true
+});
+
+return rest.put("users", { Name : "Happy User"}).then(function(result) {
+	rest.get("users").then(function(result)) {
+		// never hit backend server
+	});
+});
+```
+
+
 ### Important Notes
 
 * WARNING! When using lowdb, creating two instances of restoff with the same database name results in two different databases being persisted. Be sure to use the same restoff instance throughout your application.
@@ -381,6 +399,12 @@ if (!roff.isOnline) {
 
 This can be very useful if your customer wants to see how their application behaves when it is offline. For example, a customer could force a reload of all information. Then forceOffline() and see if they have the information they need before going to a location that has no internet access or cellphone access.
 
+
+## FAQ
+
+* What is the difference between ```offlineOnly``` and ```forcedOffline```?
+	- ```forcedOffline``` will line up any pending changes that are then synchronized when the client comes back online.
+	- ```offlineOnly``` does not log any "pending changes" because the repository will never be synchronzied with a backend service.
 
 # Setup
 

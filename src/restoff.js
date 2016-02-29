@@ -14,6 +14,7 @@ function restoff(config) {
 
 	that._rootUri = (undefined !== config) ? config.rootUri ? config.rootUri : "" : "";
 	that._primaryKeyName = (undefined !== config) ? config.primaryKeyName ? config.primaryKeyName : "id" : "id";
+	that._clientOnly = (undefined !== config) ? config.clientOnly ? config.clientOnly : false : false;
 
 	return that;
 }
@@ -26,6 +27,12 @@ RestOff.prototype = Object.create(Object.prototype, {
 	isStatusOffline: { get: function() { return this._isOnline === false; }},
 	isStatusUnknown: { get: function() { return this._isOnline === null; }},
 	isForcedOffline: { get: function() { return this._forcedOffline; }},
+	clientOnly: {
+		get: function() { return this._clientOnly; },
+		set: function(value) {
+			this._clientOnly = value;
+		}
+	},
 	persistanceDisabled: {
 		get: function() { return this._persistanceDisabled; },
 		set: function(value) {
@@ -51,7 +58,7 @@ RestOff.prototype = Object.create(Object.prototype, {
 			// We use readyState2 and override it to trick the request into
 			// thinking it is complete. Why readyState2? Because readyState
 			// has no setter (request.readyState = 4 throws an exception).
-			if (this.isForcedOffline) {
+			if ((this.isForcedOffline) || (this.clientOnly)) {
 				request.__defineGetter__('readyState2', function(){return request.__proto__.DONE;});
 				request.send = function() { this.onreadystatechange(); }
 			} else {
@@ -243,6 +250,8 @@ RestOff.prototype.pendingAdd = function(uriRec) {
 		"uri" : uriRec.uriFinal,
 		"repoName" : uriRec.repoName
 	}
+
+
 	if (!this.persistanceDisabled) {
 		this._pending.push(result);
 	}
@@ -283,9 +292,11 @@ RestOff.prototype._dbDelete = function(uriR, resolve, reject) {
 			resolve();
 		break;
 		case 0:
-			if (this.isForcedOffline) {
+			if ((this.isForcedOffline || this.clientOnly)) {
 				this._isOnline = false;
-				this.pendingAdd(uriR);
+				if (!this.clientOnly) {
+					this.pendingAdd(uriR);
+				}
 				this.repoDeleteResource(uriR);
 				resolve();
 			} else {
@@ -306,7 +317,7 @@ RestOff.prototype._dbGet = function(uriR, resolve, reject) {
 			resolve(this.repoAdd(uriR, request.response));
 		break;
 		case 0: case 404:
-			if (this.isForcedOffline) {
+			if ((this.isForcedOffline) || (this.clientOnly)) {
 				this._isOnline = false;
 				resolve(this.repoGet(uriR));
 			} else {
@@ -321,17 +332,17 @@ RestOff.prototype._dbGet = function(uriR, resolve, reject) {
 
 RestOff.prototype._dbPost = function(uriR, resolve, reject) {
 	var request = uriR.request;
-
-	var request = uriR.request;
 	switch (request.status) {
 		case 201:
 			this._isOnline = true;
 			resolve(this.repoAddResource(uriR)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
 		break;
 		case 0: case 404:
-			if (this.isForcedOffline) {
+			if ((this.isForcedOffline) || (this.clientOnly)) {
 				this._isOnline = false;
-				this.pendingAdd(uriR);
+				if (!this.clientOnly) {
+					this.pendingAdd(uriR);
+				}
 				resolve(this.repoAddResource(uriR));
 			} else {
 				this._isOnline = 0 !== request.status ? true : null;  // TODO: Write test for this line of code
@@ -354,10 +365,12 @@ RestOff.prototype._dbPut = function(uriR, resolve, reject) {
 			var finalStatus = request.status;
 			var finalMessage = request.statusText;
 			this._isOnline = 0 !== request.status ? true : null;
-			if (this.isForcedOffline) { // we are offline, but resource not found so 404 it.
+			if ((this.isForcedOffline) || (this.clientOnly)) { // we are offline, but resource not found so 404 it.
 				this._isOnline = false;
 				if (this.repoFind(uriR)) { // offline but found resource on client so add it
-					this.pendingAdd(uriR);
+					if (!this.clientOnly) {
+						this.pendingAdd(uriR);
+					}
 					resolve(this.repoAddResource(uriR));
 				} else {
 					uriR.request.status = 404;

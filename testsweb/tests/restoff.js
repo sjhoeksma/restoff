@@ -32,17 +32,23 @@ describe ("restoff", function() {
 		roff.primaryKeyName = "id3";
 		expect(roff.primaryKeyName, "primaryKeyName").to.equal("id3");
 
+		expect(roff.clientOnly, "clientOnly").to.be.false;
+		roff.clientOnly = true;
+		expect(roff.clientOnly, "clientOnly").to.be.true;
+
 		var roff2 = restoff({
 			"primaryKeyName" : "id2",
 			"rootUri" : ROOT_URI,
 			"dbRepo" : lowdbRepo({
 				"dbName" : "TestDb"
-			})
+			}),
+			"clientOnly" : true
 		});
 		
 		expect(roff2.dbRepo.dbName, "repo.dbName").to.equal("TestDb");
 		expect(roff2.rootUri, "rootUri").to.equal(ROOT_URI);
 		expect(roff2.primaryKeyName, "primaryKeyName").to.equal("id2");
+		expect(roff2.clientOnly, "clientOnly").to.be.true;
 	});
 
 	it("04: get should, when online, get multiple resources\
@@ -281,6 +287,42 @@ describe ("restoff", function() {
 		});
 	});
 
+
+	it("14: get, when clientOnly is true, should persist the data locally\
+			and there should be no pending changes for update/put/delete", function() {
+
+		var roff = restoff({
+			"rootUri" : ROOT_URI,
+			"clientOnly" : true
+		});
+		var userRepo = "users11";
+		var pendingRepo = "clientOnly";
+
+		var pendingRec = {
+			"id": "9783df16-0d70-4362-a1ee-3cb39818fd13",
+			"restMethod" : "PUT",
+			"uri" : "http://www.whatever.com"
+		}
+		roff.clearAll();
+		return roff.get(userRepo).then(function(result) { // useres11 has 3 records but since we are clientOnly, our repo should still be empty.
+			expect(roff.dbRepo.length(userRepo), "repository should be empty when clientOnly is true").to.equal(0);
+			return roff.delete(pendingRepo + "/" + pendingRec.id).then(function() { // 'restart' testing
+				expect(roff.dbRepo.length(pendingRepo), "repository should be empty when clientOnly is true").to.equal(0);
+				pendingStatusEmpty(roff); // should have no pending
+					return roff.post(pendingRepo, pendingRec).then(function(result) {
+					expect(roff.dbRepo.length(pendingRepo), "repository should have one record").to.equal(1);
+					pendingStatusEmpty(roff); // should have no pending
+					return roff.put(pendingRepo + "/" + pendingRec.id, pendingRec).then(function(result) {
+						expect(roff.dbRepo.length(pendingRepo), "repository should have one record").to.equal(1);
+						pendingStatusEmpty(roff); // should have no pending
+					});
+				});
+			});
+		}).catch(function(error) {
+			console.log(error);
+		});
+	});
+
 	// dbActions Differ From RESTful Action
 
 	// Get - Postins
@@ -305,6 +347,8 @@ describe ("restoff", function() {
 
 
 	// POST ------------------------------------------------------
+
+	// TODO: Handle logic to warn a user when they call POST without a resource
 
 	var newuser01 = {
 		"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68577",
@@ -438,20 +482,23 @@ describe ("restoff", function() {
 			dbRepoShouldBeEqual(roff, userRepo, result, 1);
 			roff.clearAll(true);
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
-			expect(roff.pending.length, "pending post").to.equal(0); // should clear all pending
+			pendingStatusEmpty(roff);
 			return roff.post(userRepo, newuser01).then(function(result) {
 				dbRepoShouldBeEqual(roff, userRepo, result, 1);
 				return roff.post("user201", newuser01).then(function(result) { // get another pending so we can test clearing of just one repo
-					expect(roff.pending.length, "pending post").to.equal(2); // should clear only one pending
+					pendingStatusCount(roff, 2);
 					dbRepoShouldBeEqual(roff, "user201", result, 1);
 					roff.clear("user201", true);
-					expect(roff.pending.length, "pending post").to.equal(1); // should clear only one pending
+					pendingStatusCount(roff, 1); // should clear only one pending
 					pendingStatusCorrect(roff, result, "POST", 0, ROOT_URI + userRepo, userRepo);
 				});
 			});
 
 		});
 	});
+
+	// PUT ------------------------------------------------------
+	// TODO: Handle logic to warn a user when they call POST without a resource
 
 	it("50: put should, when online,\
 		    should NOT put a new resource to server and local repository\
@@ -850,6 +897,15 @@ describe ("restoff", function() {
 		expect(status.uri, "status uri").to.equal(finalUri)
 		expect(status.repoName, "status repoName").to.equal(repoName)
 	}
+
+	function pendingStatusEmpty(roff) {
+		pendingStatusCount(roff, 0);
+	}
+
+	function pendingStatusCount(roff, count) {
+		expect(roff.pending.length, "pending post").to.equal(count);
+	}
+
 
 	function onlineStatusShouldEqual(roff, online, offline, unknown, forced) {
 		expect(roff.isStatusOnline, "isStatusOnline").to.equal(online);
