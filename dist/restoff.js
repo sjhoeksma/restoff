@@ -123,9 +123,6 @@ RestOff.prototype.uriGenerate = function(uri) {
 }
 
 RestOff.prototype.uriRec = function(uri, restMethod, resources, options) {
-
-	// var final = Object.assign({}, options);
-
 	var uriResult = {
 		uri: uri,
 		primaryKey : "",
