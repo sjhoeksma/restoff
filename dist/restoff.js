@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.1.0
+// version: 0.1.1
 // author: ProductOps
 // license: Copyright (C) 2016 ProductOps
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.1.0'; // version set through gulp build
+restlib["version-library"] = '0.1.1'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -32,6 +32,7 @@ function restoff(config) {
 	that._rootUri = (undefined !== config) ? config.rootUri ? config.rootUri : "" : "";
 	that._primaryKeyName = (undefined !== config) ? config.primaryKeyName ? config.primaryKeyName : "id" : "id";
 	that._clientOnly = (undefined !== config) ? config.clientOnly ? config.clientOnly : false : false;
+	that._forcedOffline = (undefined !== config) ? config.forcedOffline ? config.forcedOffline : false : false;
 
 	return that;
 }
@@ -43,7 +44,13 @@ RestOff.prototype = Object.create(Object.prototype, {
 	isStatusOnline: { get: function() { return this._isOnline === true; }},
 	isStatusOffline: { get: function() { return this._isOnline === false; }},
 	isStatusUnknown: { get: function() { return this._isOnline === null; }},
-	isForcedOffline: { get: function() { return this._forcedOffline; }},
+	forcedOffline: {
+		get: function() { return this._forcedOffline; },
+		set: function(value) {
+			this._forcedOffline = value;
+			this._isOnline = null;
+		}
+	},
 	clientOnly: {
 		get: function() { return this._clientOnly; },
 		set: function(value) {
@@ -64,27 +71,39 @@ RestOff.prototype = Object.create(Object.prototype, {
 	rootUri: {
 		get: function() { return this._rootUri; },
 		set: function(value) { this._rootUri = value; }
-	},
-	getRequest: {
-		get: function() {
-			var request = window.XMLHttpRequest ?
-				new XMLHttpRequest() : // Mozilla, Safari, ...
-				new ActiveXObject("Microsoft.XMLHTTP"); // IE 8 and older
-
-			// ForceOffline overrides send() which now simply calls onreadystatechange
-			// We use readyState2 and override it to trick the request into
-			// thinking it is complete. Why readyState2? Because readyState
-			// has no setter (request.readyState = 4 throws an exception).
-			if ((this.isForcedOffline) || (this.clientOnly)) {
-				request.__defineGetter__('readyState2', function(){return request.__proto__.DONE;});
-				request.send = function() { this.onreadystatechange(); }
-			} else {
-				request.__defineGetter__('readyState2', function(){ return this.readyState; });
-			}
-			return request;
-		}
 	}
 });
+
+
+RestOff.prototype._requestGet = function(uriR) {
+	var request = window.XMLHttpRequest ?
+		new XMLHttpRequest() : // Mozilla, Safari, ...
+		new ActiveXObject("Microsoft.XMLHTTP"); // IE 8 and older
+
+	// ForceOffline overrides send() which now simply calls onreadystatechange
+	// We use readyState2 and override it to trick the request into
+	// thinking it is complete. Why readyState2? Because readyState
+	// has no setter (request.readyState = 4 throws an exception).
+	if ((this._forcedOfflineGet(uriR)) || (this._clientOnlyGet(uriR))) {
+		request.__defineGetter__('readyState2', function(){return request.__proto__.DONE;});
+		request.send = function() { this.onreadystatechange(); }
+	} else {
+		request.__defineGetter__('readyState2', function(){ return this.readyState; });
+	}
+	return request;
+}
+
+RestOff.prototype._clientOnlyGet = function(uriRec) {
+	return uriRec.options ? uriRec.options.clientOnly : this.clientOnly;
+}
+
+RestOff.prototype._forcedOfflineGet = function(uriRec) {
+	return uriRec.options ? uriRec.options.forcedOffline : this.forcedOffline;
+}
+
+RestOff.prototype._persistanceDisabledGet = function(uriRec) {
+	return uriRec.options ? uriRec.options.persistanceDisabled : this.persistanceDisabled;
+}
 
 RestOff.prototype.uriGenerate = function(uri) {
 	var result = uri;
@@ -110,14 +129,15 @@ RestOff.prototype.uriGenerate = function(uri) {
 	return result;
 }
 
-RestOff.prototype.uriRec = function(uri, restMethod, resources) {
+RestOff.prototype.uriRec = function(uri, restMethod, resources, options) {
 	var uriResult = {
 		uri: uri,
 		primaryKey : "",
 		uriFinal : this.uriGenerate(uri),
 		primaryKeyName : this.primaryKeyName,
 		restMethod : restMethod,
-		resources : resources
+		resources : resources,
+		options : options
 	};
 
 	var result = uri.replace(this.rootUri, "");
@@ -151,7 +171,6 @@ RestOff.prototype.primaryKeyFor = function(resource) {
 	return result;
 }
 
-
 RestOff.prototype.clearAll = function(force) {
 	force = undefined === force ? false : force;
 	if ((this.pending.length > 0) && (false === force)) {
@@ -174,20 +193,13 @@ RestOff.prototype.clear = function(repoName, force) {
 	});
 }
 
-RestOff.prototype.forceOffline = function(resource) {
-	this._forcedOffline = true;
-	this._isOnline = null;
-	return this;
-}
-
 RestOff.prototype.repoGet = function(uriRec) {
 	var query;
 	if ("" !== uriRec.primaryKey) {
 		query = {};
 		query[uriRec.primaryKeyName] = uriRec.primaryKey;
 	}
-
-	return this.persistanceDisabled ? [] : this.dbRepo.read(uriRec.repoName, query);
+	return this._persistanceDisabledGet(uriRec) ? [] : this.dbRepo.read(uriRec.repoName, query);
 }
 
 RestOff.prototype.repoFind = function(uriRec) {
@@ -202,7 +214,7 @@ RestOff.prototype.repoAdd = function(uriRec, resourceRaw) {
 
 RestOff.prototype.repoAddResource = function(uriRec) {
 	var resourceArray = (uriRec.resources instanceof Array) ? uriRec.resources : [uriRec.resources]; // make logic easier
-	if (!this.persistanceDisabled) {
+	if (!this._persistanceDisabledGet(uriRec)) {
 		var that = this;
 		// TODO: Check for soft deletes so we don't need to get all the records from the database
 		if (("" === uriRec.primaryKey) && ("GET" === uriRec.restMethod)) {  // Complete get, doing a merge because we don't have soft_delete
@@ -217,7 +229,7 @@ RestOff.prototype.repoAddResource = function(uriRec) {
 }
 
 RestOff.prototype.repoDeleteResource = function(uriRec) {
-	if (!this.persistanceDisabled) {
+	if (!this._persistanceDisabledGet(uriRec)) {
     	this.dbRepo.delete(uriRec.repoName, uriRec.primaryKeyName, uriRec.primaryKey);
 	}
 }
@@ -268,8 +280,7 @@ RestOff.prototype.pendingAdd = function(uriRec) {
 		"repoName" : uriRec.repoName
 	}
 
-
-	if (!this.persistanceDisabled) {
+	if (!this._persistanceDisabledGet(uriRec)) {
 		this._pending.push(result);
 	}
 	return result;
@@ -309,9 +320,10 @@ RestOff.prototype._dbDelete = function(uriR, resolve, reject) {
 			resolve();
 		break;
 		case 0:
-			if ((this.isForcedOffline || this.clientOnly)) {
+			var clientOnly = this._clientOnlyGet(uriR);
+			if (this._forcedOfflineGet(uriR) || clientOnly) {
 				this._isOnline = false;
-				if (!this.clientOnly) {
+				if (!clientOnly) {
 					this.pendingAdd(uriR);
 				}
 				this.repoDeleteResource(uriR);
@@ -334,7 +346,8 @@ RestOff.prototype._dbGet = function(uriR, resolve, reject) {
 			resolve(this.repoAdd(uriR, request.response));
 		break;
 		case 0: case 404:
-			if ((this.isForcedOffline) || (this.clientOnly)) {
+			var clientOnly = this._clientOnlyGet(uriR);
+			if (this._forcedOfflineGet(uriR) || clientOnly) {
 				this._isOnline = false;
 				resolve(this.repoGet(uriR));
 			} else {
@@ -355,9 +368,10 @@ RestOff.prototype._dbPost = function(uriR, resolve, reject) {
 			resolve(this.repoAddResource(uriR)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
 		break;
 		case 0: case 404:
-			if ((this.isForcedOffline) || (this.clientOnly)) {
+			var clientOnly = this._clientOnlyGet(uriR);
+			if (this._forcedOfflineGet(uriR) || clientOnly) {
 				this._isOnline = false;
-				if (!this.clientOnly) {
+				if (!clientOnly) {
 					this.pendingAdd(uriR);
 				}
 				resolve(this.repoAddResource(uriR));
@@ -382,10 +396,11 @@ RestOff.prototype._dbPut = function(uriR, resolve, reject) {
 			var finalStatus = request.status;
 			var finalMessage = request.statusText;
 			this._isOnline = 0 !== request.status ? true : null;
-			if ((this.isForcedOffline) || (this.clientOnly)) { // we are offline, but resource not found so 404 it.
+			var clientOnly = this._clientOnlyGet(uriR);
+			if (this._forcedOfflineGet(uriR) || clientOnly) { // we are offline, but resource not found so 404 it.
 				this._isOnline = false;
 				if (this.repoFind(uriR)) { // offline but found resource on client so add it
-					if (!this.clientOnly) {
+					if (!clientOnly) {
 						this.pendingAdd(uriR);
 					}
 					resolve(this.repoAddResource(uriR));
@@ -398,15 +413,14 @@ RestOff.prototype._dbPut = function(uriR, resolve, reject) {
 				this._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
 				reject(this.createError(uriR));
 			}
-
 	}
 }
 
-RestOff.prototype._restCall = function(uri, restMethod, resource) {
+RestOff.prototype._restCall = function(uri, restMethod, options, resource) {
 	var that = this;
 	var promise = new Promise(function(resolve, reject) {
-		var request = that.getRequest;
-		var uriR = that.uriRec(uri, restMethod, resource);
+		var uriR = that.uriRec(uri, restMethod, resource, options);
+		var request = that._requestGet(uriR);
 		var body = JSON.stringify(resource);
 		request.open(uriR.restMethod, uriR.uriFinal, true); // true: asynchronous
 		that._requestHeaderSet(request);
@@ -440,20 +454,20 @@ RestOff.prototype._restCall = function(uri, restMethod, resource) {
 	return promise;
 }
 
-RestOff.prototype.delete = function(uri) {
-	return this._restCall(uri, "DELETE");
+RestOff.prototype.delete = function(uri, options) {
+	return this._restCall(uri, "DELETE", options);
 }
 
-RestOff.prototype.get = function(uri) {
-	return this._restCall(uri, "GET");
+RestOff.prototype.get = function(uri, options) {
+	return this._restCall(uri, "GET", options);
 }
 
-RestOff.prototype.post = function(uri, resource) {
-	return this._restCall(uri, "POST", resource);
+RestOff.prototype.post = function(uri, resource, options) {
+	return this._restCall(uri, "POST", options, resource);
 }
 
-RestOff.prototype.put = function(uri, resource) {
-	return this._restCall(uri, "PUT", resource);
+RestOff.prototype.put = function(uri, resource, options) {
+	return this._restCall(uri, "PUT", options, resource);
 }
 
 restlib.restoff = restoff; 
