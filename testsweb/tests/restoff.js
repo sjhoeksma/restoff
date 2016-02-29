@@ -685,7 +685,7 @@ describe ("restoff", function() {
 			"last_name": "Away"
 		};
 
-		var userRepo = "user14";
+		var userRepo = "users14";
 		var roff = restoff({ "rootUri" : ROOT_URI });
 		roff.clear(userRepo);
 		dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
