@@ -269,75 +269,88 @@ RestOff.prototype._uriAddRequest = function(uriR, request) {
 	return uriR;
 }
 
-RestOff.prototype._dbDelete = function(uriR, request, resolve, reject) {
-	if(4 === request.readyState2 ) { // Done = 4
-		switch (request.status) {
-			case 200: case 202: case 204: // TODO: Write test for 202 and 204
-				this._isOnline = true;
+RestOff.prototype._dbDelete = function(uriR, resolve, reject) {
+	var request = uriR.request;
+	switch (request.status) {
+		case 200: case 202: case 204: // TODO: Write test for 202 and 204
+			this._isOnline = true;
+			this.repoDeleteResource(uriR);
+			resolve();
+		break;
+		case 404:
+			this._isOnline = true;
+			this.repoDeleteResource(uriR); // 404 but will remove from client anyway
+			resolve();
+		break;
+		case 0:
+			if (this.isForcedOffline) {
+				this._isOnline = false;
+				this.pendingAdd(uriR);
 				this.repoDeleteResource(uriR);
 				resolve();
-			break;
-			case 404:
-				this._isOnline = true;
-				this.repoDeleteResource(uriR); // 404 but will remove from client anyway
-				resolve();
-			break;
-			case 0:
-				if (this.isForcedOffline) {
-					this._isOnline = false;
-					this.pendingAdd(uriR);
-					this.repoDeleteResource(uriR);
-					resolve();
-				} else {
-					this._isOnline = null;
-					reject(this.createError(uriR));
-				}		
-			break;
-		}
-	} // else ignore other readyStates
+			} else {
+				this._isOnline = null;
+				reject(this.createError(uriR));
+			}		
+		break;
+		default:
+			console.log ("WARNING: Unsupported HTTP response.");
+	}
 }
 
 RestOff.prototype._dbGet = function(uriR, resolve, reject) {
 	var request = uriR.request;
-	if(4 === request.readyState ) { // Done = 4
-		if ((0 === request.status) && (this.isForcedOffline)) { // 0 = unsent
-			this._isOnline = false;
-			resolve(this.repoGet(uriR));
-		} else if(200 === request.status) {
+	switch (request.status) {
+		case 200:
 			this._isOnline = true;
 			resolve(this.repoAdd(uriR, request.response));
-		} else { 
-			// all request values are the same for ERR_NAME_NOT_RESOLVED and 
-			// ERR_INTERNET_DISCONNECTED so can't tell if we are online or not. :-(
-			this._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
-			reject(this.createError(uriR));
-
-		}
-	} // else ignore other readyStates
+		break;
+		case 0: case 404:
+			if (this.isForcedOffline) {
+				this._isOnline = false;
+				resolve(this.repoGet(uriR));
+			} else {
+				this._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
+				reject(this.createError(uriR));
+			}
+		break;
+		default:
+			console.log ("WARNING: Unsupported HTTP response.");
+	}
 }
 
-RestOff.prototype._dbPost = function(uriR, request, resolve, reject) {
-	if(4 === request.readyState2 ) { // Done = 4
-		if ((0 === request.status) && (this.isForcedOffline)) { // 0 = unsent
-			this._isOnline = false;
-			this.pendingAdd(uriR);
-			resolve(this.repoAddResource(uriR));
-		} else if (201 === request.status) {
+RestOff.prototype._dbPost = function(uriR, resolve, reject) {
+	var request = uriR.request;
+
+	var request = uriR.request;
+	switch (request.status) {
+		case 201:
 			this._isOnline = true;
 			resolve(this.repoAddResource(uriR)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
-		} else {
-			this._isOnline = 0 !== request.status ? true : null;  // TODO: Write test for this line of code
-			reject(this.createError(uriR));
-		}
-	} // else ignore other readyStates
+		break;
+		case 0: case 404:
+			if (this.isForcedOffline) {
+				this._isOnline = false;
+				this.pendingAdd(uriR);
+				resolve(this.repoAddResource(uriR));
+			} else {
+				this._isOnline = 0 !== request.status ? true : null;  // TODO: Write test for this line of code
+				reject(this.createError(uriR));
+			}
+		break;
+		default:
+			console.log ("WARNING: Unsupported HTTP response.");
+	}
 }
 
-RestOff.prototype._dbPut = function(uriR, request, resolve, reject) {
-	if(4 === request.readyState2 ) { // Done = 4
-		if (200 === request.status) {
+RestOff.prototype._dbPut = function(uriR, resolve, reject) {
+	var request = uriR.request;
+	switch (request.status) {
+		case 200:
 			this._isOnline = true;
 			resolve(this.repoAddResource(uriR)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
-		} else {
+		break;
+		default:
 			var finalStatus = request.status;
 			var finalMessage = request.statusText;
 			this._isOnline = 0 !== request.status ? true : null;
@@ -355,8 +368,8 @@ RestOff.prototype._dbPut = function(uriR, request, resolve, reject) {
 				this._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
 				reject(this.createError(uriR));
 			}
-		}
-	} // else ignore other readyStates
+
+	}
 }
 
 RestOff.prototype._restCall = function(uri, restMethod, resource) {
@@ -368,23 +381,24 @@ RestOff.prototype._restCall = function(uri, restMethod, resource) {
 		request.open(uriR.restMethod, uriR.uriFinal, true); // true: asynchronous
 		that._requestHeaderSet(request);
 		request.onreadystatechange = function() {
-			that._uriAddRequest(uriR, request);
-			switch(uriR.restMethod) {
-				case "GET":
-					that._dbGet(uriR, resolve, reject);
-				break;
-				case "POST":
-					that._dbPost(uriR, request, resolve, reject);
-				break;
-				case "PUT":
-					that._dbPut(uriR, request, resolve, reject);
-				break;
-				case "DELETE":
-					that._dbDelete(uriR, request, resolve, reject);				
-				break;
-				// default: Not required
-
-			}
+			if(4 === request.readyState2) { // Done = 4
+				that._uriAddRequest(uriR, request);
+				switch(uriR.restMethod) {
+					case "GET":
+						that._dbGet(uriR, resolve, reject);
+					break;
+					case "POST":
+						that._dbPost(uriR, resolve, reject);
+					break;
+					case "PUT":
+						that._dbPut(uriR, resolve, reject);
+					break;
+					case "DELETE":
+						that._dbDelete(uriR, resolve, reject);				
+					break;
+					// default: Not required
+				}
+			} // else ignore other readyStates
 		};
 		if (("POST" === uriR.restMethod) || ("PUT" === uriR.restMethod)) {
 			request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
