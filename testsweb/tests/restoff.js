@@ -36,19 +36,27 @@ describe ("restoff", function() {
 		roff.clientOnly = true;
 		expect(roff.clientOnly, "clientOnly").to.be.true;
 
+		expect(roff.forcedOffline, "forcedOffline").to.be.false;
+		roff.forcedOffline = true;
+		expect(roff.forcedOffline, "forcedOffline").to.be.true;
+
+
+
 		var roff2 = restoff({
 			"primaryKeyName" : "id2",
 			"rootUri" : ROOT_URI,
 			"dbRepo" : lowdbRepo({
 				"dbName" : "TestDb"
 			}),
-			"clientOnly" : true
+			"clientOnly" : true,
+			"forcedOffline" : true
 		});
 		
 		expect(roff2.dbRepo.dbName, "repo.dbName").to.equal("TestDb");
 		expect(roff2.rootUri, "rootUri").to.equal(ROOT_URI);
 		expect(roff2.primaryKeyName, "primaryKeyName").to.equal("id2");
 		expect(roff2.clientOnly, "clientOnly").to.be.true;
+		expect(roff2.forcedOffline, "forcedOffline").to.be.true;
 	});
 
 	it("04: get should, when online, get multiple resources\
@@ -67,7 +75,7 @@ describe ("restoff", function() {
 			dbRepoShouldBeEqual(roff, userRepo, result, 3);
 			return dbRepoExactlyEqual(roff, userRepo, true).then(function(result) {
 				expect(result, "db repo the same").to.be.true;
-				expect(roff.forceOffline(), "support method chaining").to.be.an("object");
+				roff.forcedOffline = true;
 				onlineStatusShouldEqual(roff, false, false, true, true);
 				return roff.get(userRepo).then(function(result){
 					dbRepoShouldBeEqual(roff, userRepo, result, 3);
@@ -139,7 +147,10 @@ describe ("restoff", function() {
 			};
 			expect(error, "Error result").to.deep.equals(errorExpected);
 			onlineStatusShouldEqual(roff, true, false, false, false);
-			roff.forceOffline();
+			roff.forcedOffline = true;
+			return roff.get(userRepo).then(function(result) {
+				expect(roff.dbRepo.length(userRepo), "repository should exist").to.equal(0);
+			});
 
 		});
 	});
@@ -177,7 +188,7 @@ describe ("restoff", function() {
 			roff.persistanceDisabled = false; // to read db results
 			dbRepoShouldBeEmptyAndResourceNotEmpty(roff, userRepo, result);
 			roff.persistanceDisabled = true;
-			roff.forceOffline();
+			roff.forcedOffline = true;
 			return roff.get(userRepo).then(function(result2) {
 				roff.persistanceDisabled = false; // to read db results
 				dbRepoShouldBeEqual(roff, userRepo, result2, 0); // when offline repo is also empty
@@ -278,7 +289,7 @@ describe ("restoff", function() {
 			return roff.get(userRepo + "/" + "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa").then(function (userOnline) {
 				dbRepoShouldBeEqual(roff, userRepo, users, 3); // no changes to existing repository
 				expect(deepEqual(userReturned, userOnline), " users returned should be the same").to.be.true;
-				roff.forceOffline();
+				roff.forcedOffline = true;
 				return roff.get(userRepo + "/" + "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa").then(function (userWhileOffline) {
 					dbRepoShouldBeEqual(roff, userRepo, users, 3); // no changes to existing repository
 					expect(deepEqual(userReturned, userWhileOffline), " users returned should be the same").to.be.true;
@@ -318,10 +329,162 @@ describe ("restoff", function() {
 					});
 				});
 			});
-		}).catch(function(error) {
-			console.log(error);
 		});
 	});
+
+	it("15: get, when clientOnly properties are true, should persist the data locally\
+			and there should be no pending changes for update/put/delete", function() {
+
+		var roff = restoff({
+			"rootUri" : ROOT_URI
+		});
+		var userRepo = "users11";
+		var pendingRepo = "offlineOnly";
+
+		var pendingRec = {
+			"id": "9783df16-0d70-4362-a1ee-3cb39818fd13",
+			"restMethod" : "PUT",
+			"uri" : "http://www.whatever.com"
+		}
+		roff.clearAll();
+		return roff.delete(pendingRepo + "/" + pendingRec.id).then(function() { // reset test for delete
+			expect(roff.dbRepo.length(pendingRepo), "should have just one record").to.equal(0);
+			return roff.get(userRepo, {clientOnly:true}).then(function(result) { // useres11 is still a client
+				expect(roff.dbRepo.length(userRepo), "repository should be empty when clientOnly is true").to.equal(0); // client only
+				return roff.post(pendingRepo, pendingRec, {clientOnly:true}).then(function(result) {
+					expect(roff.dbRepo.length(pendingRepo), "repository should have one record").to.equal(1);
+					pendingStatusEmpty(roff); // should have no pending
+					return dbRepoExactlyEqual(roff, pendingRepo, false).then(function(result) {
+						expect(result, "clientOnly was true so should not be equal").to.be.false;
+						return roff.put(pendingRepo + "/" + pendingRec.id, pendingRec, {clientOnly:true}).then(function(result) {
+							expect(roff.dbRepo.length(pendingRepo), "repository should have one record").to.equal(1);
+							pendingStatusEmpty(roff); // should have no pending
+							return dbRepoExactlyEqual(roff, pendingRepo, false).then(function(result) {
+								expect(result, "clientOnly was true so should not be equal").to.be.false;
+								return roff.post(pendingRepo, pendingRec).then(function(result) {
+									expect(roff.dbRepo.length(pendingRepo), "should have just one record").to.equal(1);
+									return dbRepoExactlyEqual(roff, pendingRepo, true).then(function(result) {
+										expect(result, "Initial db/repo to be equal").to.be.true;
+										return roff.delete(pendingRepo + "/" + pendingRec.id, {clientOnly:true}).then(function() { // for delete, while clientOnly, shoud not delete
+											expect(roff.dbRepo.length(pendingRepo), "repository should be empty when clientOnly is true").to.equal(0);
+											pendingStatusEmpty(roff); // should have no pending
+											return dbRepoExactlyEqual(roff, pendingRepo, false).then(function(result) {
+												expect(result, "db/repo should not be equal when clientOnly").to.be.false;
+												return roff.delete(pendingRepo + "/" + pendingRec.id).then(function() { // clean up test
+												});
+											});
+										});
+									});
+								});
+							});
+						});
+					});
+				});
+			});
+		});
+	});
+
+	it("16: get, when forcedOffline properties are true, should persist the data locally\
+			and there SHOULD BE pending changes for update/put/delete", function() {
+
+		var roff = restoff({
+			"rootUri" : ROOT_URI
+		});
+		var userRepo = "users11";
+		var pendingRepo = "forcedOffline";
+
+		var pendingRec = {
+			"id": "9783df16-0d70-4362-a1ee-3cb39818fd13",
+			"restMethod" : "PUT",
+			"uri" : "http://www.whatever.com"
+		}
+		roff.clearAll();
+		return roff.delete(pendingRepo + "/" + pendingRec.id).then(function() { // reset test for delete
+			expect(roff.dbRepo.length(pendingRepo), "should have just one record").to.equal(0);
+			return roff.get(userRepo, {forcedOffline:true}).then(function(result) { // useres11 is still a client
+				expect(roff.dbRepo.length(userRepo), "repository should be empty when forcedOffline is true").to.equal(0); // forcedOffline
+				return roff.post(pendingRepo, pendingRec, {forcedOffline:true}).then(function(result) {
+					expect(roff.dbRepo.length(pendingRepo), "repository should have one record").to.equal(1);
+					pendingStatusCount(roff, 1); // should have one pending
+					return dbRepoExactlyEqual(roff, pendingRepo, false).then(function(result) {
+						expect(result, "forcedOffline was true so should not be equal").to.be.false;
+						return roff.put(pendingRepo + "/" + pendingRec.id, pendingRec, {forcedOffline:true}).then(function(result) {
+							expect(roff.dbRepo.length(pendingRepo), "repository should have one record").to.equal(1);
+							pendingStatusCount(roff, 2); // should have two pending
+							return dbRepoExactlyEqual(roff, pendingRepo, false).then(function(result) {
+								expect(result, "forcedOffline was true so should not be equal").to.be.false;
+								return roff.post(pendingRepo, pendingRec).then(function(result) {
+									expect(roff.dbRepo.length(pendingRepo), "should have just one record").to.equal(1);
+									return dbRepoExactlyEqual(roff, pendingRepo, true).then(function(result) {
+										expect(result, "Initial db/repo to be equal").to.be.true;
+										return roff.delete(pendingRepo + "/" + pendingRec.id, {forcedOffline:true}).then(function() { // for delete, while forcedOffline, should not delete
+											expect(roff.dbRepo.length(pendingRepo), "repository should be empty when forcedOffline is true").to.equal(0);
+											pendingStatusCount(roff, 3); // should have three pending
+											return dbRepoExactlyEqual(roff, pendingRepo, false).then(function(result) {
+												expect(result, "db/repo should not be equal when forcedOffline").to.be.false;
+												return roff.delete(pendingRepo + "/" + pendingRec.id).then(function() { // clean up test
+												});
+											});
+										});
+									});
+								});
+							});
+						});
+					});
+				});
+			});
+		});
+	});
+
+	it("17: get, when persistanceDisabled properties are true, should not persist the data locally\
+			and there SHOULD BE no pending changes for update/put/delete.\
+			persistanceDisabled is ignored for get", function() {
+
+		var roff = restoff({
+			"rootUri" : ROOT_URI
+		});
+		var userRepo = "users11";
+		var pendingRepo = "persistanceDisabled";
+
+		var pendingRec = {
+			"id": "9783df16-0d70-4362-a1ee-3cb39818fd13",
+			"restMethod" : "PUT",
+			"uri" : "http://www.whatever.com"
+		}
+		roff.clearAll();
+		return roff.delete(pendingRepo + "/" + pendingRec.id).then(function() { // reset test for delete
+			expect(roff.dbRepo.length(pendingRepo), "should have just one record").to.equal(0);
+			return roff.get(userRepo, {forcedOffline: false, persistanceDisabled:false}).then(function(result) { // useres11 is still a client
+				expect(roff.dbRepo.length(userRepo), "repository should be empty when persistanceDisabled is true").to.equal(3);
+				return roff.get(userRepo, {forcedOffline: true, persistanceDisabled:true}).then(function(result) { // useres11 is still a client
+					expect(result.length, "repository should be empty when persistanceDisabled is true").to.equal(0);
+					return roff.post(pendingRepo, pendingRec, {forcedOffline: true, persistanceDisabled:true}).then(function(result) {
+						expect(roff.dbRepo.length(pendingRepo), "repository should have no records").to.equal(0);
+						pendingStatusCount(roff, 0); // should have no pending
+						return roff.post(pendingRepo, pendingRec, {persistanceDisabled:true}).then(function(result) {
+							expect(roff.dbRepo.length(pendingRepo), "repository should have no records").to.equal(0);
+							pendingStatusCount(roff, 0); // should have no pending
+
+							return roff.put(pendingRepo + "/" + pendingRec.id, pendingRec, {persistanceDisabled:true}).then(function(result) {
+								expect(roff.dbRepo.length(pendingRepo), "repository should not have one record").to.equal(0);
+								pendingStatusCount(roff, 0); // should have no pending
+								return dbRepoExactlyEqual(roff, pendingRepo, false).then(function(result) {
+									expect(result, "persistanceDisabled was true so should not be equal").to.be.false;
+									return roff.post(pendingRepo, pendingRec).then(function(result) { // get a post in the repo so we can test that delete doesn't remove it
+										expect(roff.dbRepo.length(pendingRepo), "repository should have one record").to.equal(1);
+										return roff.delete(pendingRepo + "/" + pendingRec.id, {persistanceDisabled:true}).then(function() { // for delete, while persistanceDisabled, should delete
+											expect(roff.dbRepo.length(pendingRepo), "repository should be empty when persistanceDisabled is true").to.equal(1); // should not delete from repo
+											pendingStatusCount(roff, 0); // should have no pending
+										});
+									});
+								});
+							});
+						});
+					});
+				});
+			});
+		});
+	});		
 
 	// dbActions Differ From RESTful Action
 
@@ -469,7 +632,10 @@ describe ("restoff", function() {
 		and clear repo should fail when force is false", function() {
 
 		var userRepo = "users200";
-		var roff = restoff({ "rootUri" : ROOT_URI }).forceOffline();
+		var roff = restoff({
+			"rootUri" : ROOT_URI,
+			forcedOffline : true
+		});
 		roff.clear(userRepo);
 		dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 
@@ -616,7 +782,7 @@ describe ("restoff", function() {
 		dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 		return roff.get(userRepo).then(function(getResults) {
 			dbRepoShouldBeEqual(roff, userRepo, getResults, 3);
-			roff.forceOffline();
+			roff.forcedOffline = true;
 			onlineStatusShouldEqual(roff, false, false, true, true);
 
 			return roff.put(userRepo+"/"+newUser.id, newUser).catch(function(error) {
@@ -738,7 +904,7 @@ describe ("restoff", function() {
 		dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 		return roff.post(userRepo, userToDelete).then(function(getResults) {
 			dbRepoShouldBeEqual(roff, userRepo, getResults, 1);
-			roff.forceOffline();
+			roff.forcedOffline = true;
 			onlineStatusShouldEqual(roff, false, false, true, true);
 			return roff.delete(userRepo + "/" + userToDelete.id).then(function(getResults) {
 				onlineStatusShouldEqual(roff, false, true, false, true);
@@ -759,7 +925,10 @@ describe ("restoff", function() {
 		};
 
 		var userRepo = "user14";
-		var roff = restoff({ "rootUri" : ROOT_URI }).forceOffline();
+		var roff = restoff({
+			"rootUri" : ROOT_URI,
+			forcedOffline: true
+		});
 		roff.clear(userRepo);
 		dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 		roff.persistanceDisabled = true;
@@ -911,7 +1080,7 @@ describe ("restoff", function() {
 		expect(roff.isStatusOnline, "isStatusOnline").to.equal(online);
 		expect(roff.isStatusOffline, "isStatusOffline").to.equal(offline);
 		expect(roff.isStatusUnknown, "isStatusUnknown").to.equal(unknown);
-		expect(roff.isForcedOffline, "isForcedOffline ").to.equal(forced);
+		expect(roff.forcedOffline, "forcedOffline ").to.equal(forced);
 	}
 
 

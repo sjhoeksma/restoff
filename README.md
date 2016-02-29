@@ -385,11 +385,11 @@ if (roff.isOnline) {
 }
 ```
 
-### isForcedOffline Property, forceOffline() and forceOnline()
+### forcedOffline Property, forceOffline() and forceOnline()
 
 You can "force" your application offline by calling ```forceOffline()``` and "force" the application online by calling ```forceOnline()```. Forcing offline overwrites ```ajax.send()``` to simply call ```onreadystatechange``` with a ```readyState``` of ```DONE```.
 
-```isOnline``` will return false when ```isForcedOffline``` is true.
+```isOnline``` will return false when ```forcedOffline``` is true.
 
 ```javascript
 var roff = restoff();

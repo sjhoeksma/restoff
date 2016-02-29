@@ -55,6 +55,8 @@
     }
   ],
   "offlineOnly": [],
+  "forcedOffline": [],
+  "persistanceDisabled": [],
   "users01": [
     {
       "id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68577",
