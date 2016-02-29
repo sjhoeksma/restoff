@@ -12,6 +12,7 @@ Rest Offline uses your existing RESTful APIs to synchronize client/server data a
 	* Json
 * Allows you to program around your RESTful API and not your backend databases
 	* Best to follow [RESTful best known practices][rest-best-practices]
+* clientOnly mode automatically provides a complete RESTful offline service on your client.
 * Next major features
 	* reconciliation of changes between client and server
 	* support non-standard get/put/post.
@@ -21,6 +22,7 @@ Rest Offline uses your existing RESTful APIs to synchronize client/server data a
 		- requires better mockable restapi backend for testing)
 	* support nested resources (example: /users/45/addresses)
 	* support non-standard restful api: ability to map a user
+
 
 # RestOff Usage
 
