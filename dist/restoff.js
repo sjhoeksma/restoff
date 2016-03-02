@@ -21,7 +21,8 @@ function restoff(config) {
 		rootUri: "",
 		clientOnly: false,
 		forcedOffline: false,
-		persistanceDisabled: false
+		persistanceDisabled: false,
+		pendingUri: "http://localhost/"
 	};
 
 	var that = Object.create(RestOff.prototype);
@@ -58,6 +59,9 @@ RestOff.prototype = Object.create(Object.prototype, {
 	clientOnly: {
 		get: function() { return this._options.clientOnly; },
 		set: function(value) { this._options.clientOnly = value; }
+	},
+	pendingUri: {
+		get: function() { return this._options.pendingUri; }
 	},
 	persistanceDisabled: {
 		get: function() { return this._options.persistanceDisabled; },
@@ -165,15 +169,25 @@ RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) 
 		primaryKeyName : this.primaryKeyName,
 		restMethod : restMethod,
 		resources : resources,
-		options : Object.assign({}, this._options, options)
+		options : Object.assign({}, this._options, options),
+		searchOptions : {}
 	};
 
 	var uriRaw = uri.replace(this.rootUri, "");
 
 	var search = uriRaw.split("?");
 	if (search.length > 1) {
-		uriRaw = search[0];
-		result.search = search[1]
+		var that = this;
+		result = search[0];
+		uriResult.search = search[1]
+		uriResult.search.split("&").forEach(function(item) {
+			var itemParts = item.split("=");
+			if (2 === itemParts.length) {
+				uriResult.searchOptions[itemParts[0]] = itemParts[1];
+			} else {
+				that._logMessage("WARNING: Invalid search query."); // TODO: Write Test for this.
+			}
+		});
 	}
 
 	var uriPrimaryKey = uriRaw.split("/"); 
@@ -234,9 +248,8 @@ RestOff.prototype.clear = function(repoName, force) {
 }
 
 RestOff.prototype.repoGet = function(uri) {
-	var query;
+	var query = uri.searchOptions;
 	if ("" !== uri.primaryKey) {
-		query = {};
 		query[uri.primaryKeyName] = uri.primaryKey;
 	}
 	return uri.options.persistanceDisabled ? [] : this.dbRepo.read(uri.repoName, query);
@@ -287,7 +300,11 @@ RestOff.prototype.repoAddResource = function(uri) {
 
 RestOff.prototype.repoDeleteResource = function(uri) {
 	if (!uri.options.persistanceDisabled) {
-    	this.dbRepo.delete(uri.repoName, uri.primaryKeyName, uri.primaryKey);
+		var searchOptions = uri.searchOptions;
+		if ("" !== uri.primaryKey) {
+			searchOptions[uri.primaryKeyName] = uri.primaryKey;
+		}
+		this.dbRepo.delete(uri.repoName, searchOptions);
 	}
 }
 

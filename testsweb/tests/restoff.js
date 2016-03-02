@@ -40,6 +40,8 @@ describe ("restoff", function() {
 		roff.forcedOffline = true;
 		expect(roff.forcedOffline, "forcedOffline").to.be.true;
 
+		expect(roff.pendingUri, "pendingUri").to.equal("http://localhost/");
+
 		var roff2 = restoff({
 			"primaryKeyName" : "id2",
 			"rootUri" : ROOT_URI,
@@ -47,7 +49,8 @@ describe ("restoff", function() {
 				"dbName" : "TestDb"
 			}),
 			"clientOnly" : true,
-			"forcedOffline" : true
+			"forcedOffline" : true,
+			"pendingUri" : "http://notlocalhost/pending/"
 		});
 		
 		expect(roff2.dbRepo.dbName, "repo.dbName").to.equal("TestDb");
@@ -55,6 +58,7 @@ describe ("restoff", function() {
 		expect(roff2.primaryKeyName, "primaryKeyName").to.equal("id2");
 		expect(roff2.clientOnly, "clientOnly").to.be.true;
 		expect(roff2.forcedOffline, "forcedOffline").to.be.true;
+		expect(roff2.pendingUri, "pendingUri").to.equal("http://notlocalhost/pending/");
 	});
 
 	function showRepoContents(roff, repoName) {
@@ -495,6 +499,69 @@ describe ("restoff", function() {
 			});
 		});
 	});		
+
+	it("18: should support a rootUri uri specific option\
+		and the rootUri should be terminated with a backslash\
+		if one was not provided in the rootUri\
+		and pending should be configurable", function() {
+		var roff = restoff({
+			"rootUri" : ROOT_URI,
+			"clientOnly" : true
+		});
+
+		var pendingRec = {
+			"id": "9783df16-0d70-4362-a1ee-3cb39818fd13",
+			"restMethod" : "PUT",
+			"uri" : "http://localhost"
+		}
+		return roff.delete(roff.pendingUri + "/9783df16-0d70-4362-a1ee-3cb39818fd13", {rootUri: "http://localhost"}).then(function(result) { // reset test
+			pendingStatusCount(roff, 0);
+			roff.rootUri = "http://localhost";
+			return roff.post("pending", pendingRec).then(function(result) {
+				expect(roff.dbRepo.read("pending"), "pending should be stored").to.be.an("array");
+			});
+		});
+	});
+
+	it("19: get should, when provided with parameters,\
+			delete everything that matches a query", function(){
+
+		// NOTE: Current test backed doesn't support stuff like users11?first_name=Fantastic.
+		//		 So, this test does it all on the client side.
+		var roff = restoff({
+			"rootUri" : "http://localhost/",
+			"clientOnly" : true
+		});
+
+		var pendingRec = {
+			"id": "9783df16-0d70-4362-a1ee-3cb39818fd13",
+			"restMethod" : "PUT",
+			"uri" : "http://localhost/pending/"
+		}
+
+		var pendingRec2 = {
+			"id": "9783df16-0d70-4362-a1ee-3cb39818fd15",
+			"restMethod" : "PUT",
+			"uri" : "http://localhost/pending/"
+		}
+
+		var pendingRec3 = {
+			"id": "9783df16-0d70-4362-a1ee-3cb39818fd14",
+			"restMethod" : "GET",
+			"uri" : "http://localhost/pending/"
+		}
+
+		return roff.post("pending3", pendingRec).then(function(result) {
+			return roff.post("pending3", pendingRec2).then(function(result2) {
+				return roff.post("pending3", pendingRec3).then(function(result3) {
+					expect(roff.dbRepo.read("pending3").length).to.equal(3);
+ 					return roff.get("pending3?restMethod=PUT").then(function(result) {
+						expect(result.length, "for pending3?restMethod=PUT only two items should have returned").to.equal(2);
+					});
+				});
+			});
+		});
+	});
 
 	// dbActions Differ From RESTful Action
 
@@ -964,6 +1031,76 @@ describe ("restoff", function() {
 				roff.persistanceDisabled = false;
 				dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 				expect(roff.pending[0], "should not be pending").to.be.undefined;
+			});
+		});
+	});
+
+	it("66: delete should, when no primary key is provided,\
+			delete everything in the repository", function(){
+
+		var roff = restoff({
+			"rootUri" : "http://localhost/",
+			"clientOnly" : true
+		});
+
+		var pendingRec = {
+			"id": "9783df16-0d70-4362-a1ee-3cb39818fd13",
+			"restMethod" : "PUT",
+			"uri" : "http://localhost/pending/"
+		}
+
+		var pendingRec2 = {
+			"id": "9783df16-0d70-4362-a1ee-3cb39818fd15",
+			"restMethod" : "PUT",
+			"uri" : "http://localhost/pending/"
+		}
+
+
+		return roff.post("pending2", pendingRec).then(function(result) {
+			return roff.post("pending2", pendingRec2).then(function(result2) {
+				expect(roff.dbRepo.read("pending2").length).to.equal(2);
+				return roff.delete("pending2").then(function(result2) {
+					expect(roff.dbRepo.read("pending2").length).to.equal(0);
+				});
+			});
+		});
+	});
+
+
+	it("67: delete should, when provided with parameters,\
+			delete everything that matches a query", function(){
+
+		var roff = restoff({
+			"rootUri" : "http://localhost/",
+			"clientOnly" : true
+		});
+
+		var pendingRec = {
+			"id": "9783df16-0d70-4362-a1ee-3cb39818fd13",
+			"restMethod" : "PUT",
+			"uri" : "http://localhost/pending/"
+		}
+
+		var pendingRec2 = {
+			"id": "9783df16-0d70-4362-a1ee-3cb39818fd15",
+			"restMethod" : "PUT",
+			"uri" : "http://localhost/pending/"
+		}
+
+		var pendingRec3 = {
+			"id": "9783df16-0d70-4362-a1ee-3cb39818fd14",
+			"restMethod" : "GET",
+			"uri" : "http://localhost/pending/"
+		}
+
+		return roff.post("pending3", pendingRec).then(function(result) {
+			return roff.post("pending3", pendingRec2).then(function(result2) {
+				return roff.post("pending3", pendingRec3).then(function(result3) {
+					expect(roff.dbRepo.read("pending3").length).to.equal(3);
+					return roff.delete("pending3?restMethod=PUT").then(function(result4) {
+						expect(roff.dbRepo.read("pending3").length).to.equal(1);
+					});
+				});
 			});
 		});
 	});
