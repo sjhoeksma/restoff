@@ -1,13 +1,14 @@
 {
   "name": "restoff",
   "namesub": "library",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "REST ",
   "main": "./dist/restoff.js",
   "scripts": {
     "test": "gulp"
   },
   "README": "Adding or removing from source requires you to restart gulp.",
+  "description" : "Rest Offline uses your existing RESTful APIs to synchronize client/server data allowing your application to run even when it goes offline.",
   "source": [
     "src/util/header.js",
     "src/restoff.js",
@@ -24,8 +25,8 @@
     "synchronization",
     "database"
   ],
-  "author": "ProductOps",
-  "license": "Copyright (C) 2016 ProductOps",
+  "author": "ProductOps <restoff@productops.com>",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/productops/restoff/issues"
   },
@@ -45,8 +46,9 @@
     "gulp-uglify": "^1.5.2",
     "gulp-util": "^3.0.7",
     "json-server": "^0.8.8",
-    "lowdb": "^0.12.4",
     "mocha": "^2.4.5"
   },
-  "dependencies": {}
+  "dependencies": {
+    "lowdb": "^0.12.5"
+  }
 }

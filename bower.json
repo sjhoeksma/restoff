@@ -1,0 +1,35 @@
+{
+  "name": "restoff",
+  "description": "Rest Offline uses existing RESTful APIs to synchronize client/server data allowing your application to run even when it goes offline.",
+  "main": "./dist/restoff.js",
+  "dependencies": {
+    "lowdb": "^0.12.5"
+  },
+  "authors": [
+    "ProductOps <restoff@productops.com>",
+    "Eric Hosick <eric.hosick@productops.com>"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "REST",
+    "offline",
+    "synchronization",
+    "database",
+    "angular"
+  ],
+  "homepage": "https://github.com/productOps/restoff",
+  "moduleType": [
+    "globals"
+  ],
+  "private": false,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests",
+    "testsweb",
+    "database",
+    "output"
+  ]
+}

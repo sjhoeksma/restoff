@@ -2,6 +2,7 @@
 
 Rest Offline uses your existing RESTful APIs to synchronize client/server data allowing your application to run even when it goes offline.
 
+* Now under MIT license
 * Database Agnostic and Schemaless
 	* Works with any database backend
 	* Works against multiple databases
@@ -14,6 +15,7 @@ Rest Offline uses your existing RESTful APIs to synchronize client/server data a
 	* Best to follow [RESTful best known practices][rest-best-practices]
 * clientOnly mode automatically provides a complete RESTful offline service on your client.
 * Next major features
+	* direct replacement into Angular http
 	* reconciliation of changes between client and server
 	* support non-standard get/put/post.
 		- Example: a request GET actually does a delete
