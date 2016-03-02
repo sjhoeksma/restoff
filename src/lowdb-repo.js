@@ -63,7 +63,7 @@ LowdbRepo.prototype.write = function(repoName, keyName, primaryKey, resource) {
 	}
 }
 
-LowdbRepo.prototype.delete = function(repoName, keyName, primaryKey) {
+LowdbRepo.prototype.delete = function(repoName, query) {
 	// console.log("DELETE " + repoName);
 	this._low(repoName).remove(query);
 }

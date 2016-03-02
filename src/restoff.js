@@ -159,7 +159,6 @@ RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) 
 		options : Object.assign({}, this._options, options),
 		searchOptions : {}
 	};
-
 	if (!uriResult.options.rootUri.endsWith("/")) {
 		uriResult.options.rootUri = uriResult.options.rootUri + "/";
 	}
@@ -193,7 +192,11 @@ RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) 
 	}
 	uriResult.repoName = result;	
 	if ("http:" === uriResult.repoName) {
-		this._logMessage("WARNING: repoName invalid. It could be you are using the wrong rootUri?");
+		// Note: We really can't figure out the rootUri from the uri provided when no rootUri was
+		//       configured. This is because the rootUri could contain anything plus resource names
+		// 	     and we don't know where the anything part stops and the resources start. So, we get
+		//       this warning.
+		this._logMessage("WARNING: repoName invalid. Started with a rootUri of '" + uriResult.options.rootUri + "'' which may be incorrect?");
 	}
 	return uriResult;
 }

@@ -61,11 +61,6 @@ describe ("restoff", function() {
 		expect(roff2.pendingUri, "pendingUri").to.equal("http://notlocalhost/pending/");
 	});
 
-	function showRepoContents(roff, repoName) {
-		console.log("CHECKING " + repoName);
-		console.log (roff.dbRepo.read(repoName));
-	}
-
 	it("04: get should, when online, get multiple resources\
 		    and store them on the client,\
 		    clear a single repository\
@@ -120,16 +115,18 @@ describe ("restoff", function() {
 	});
 
 	it("06: get should, when online, handle network errors", function() {
-		var roff = restoff();
+		var roff = restoff({
+			rootUri: "http://idontexisthopefully.com/"
+		});
 		return roff.clearAll().then(function(result) {
-			return roff.get("http://idontexisthopefully.com").then(function(result) {
+			return roff.get("http://idontexisthopefully.com/endpoint").then(function(result) {
 				expect(true, "Promise should call the catch.").to.be.false;			
 			}).catch(function(error) {
 				var errorExpected = {
 					message: "Network Error",
 					messageDetail: "",
 					status: 0,
-					uri: "http://idontexisthopefully.com"
+					uri: "http://idontexisthopefully.com/endpoint"
 				};
 				expect(error, "Error result").to.deep.equals(errorExpected);
 				onlineStatusShouldEqual(roff, false, false, true, false);
@@ -246,12 +243,11 @@ describe ("restoff", function() {
 		roff.autoQueryParamSet("access_token", "rj5aabcea2");
 		expect(roff.autoQueryParamGet("access_token"), "access_token").to.equal("rj5aabcea2");
 		roff.autoQueryParamSet("another_auto", "another_value");
-
 		var generated = roff.uriFromClient("users", "GET");
-		expect(generated, "Generated uri").to.equal(ROOT_URI + "users?access_token=rj5aabcea2&another_auto=another_value");
+		expect(generated.uriFinal, "Generated uri").to.equal(ROOT_URI + "users?access_token=rj5aabcea2&another_auto=another_value");
 
 		var generated2 = roff.uriFromClient("users?already=added");
-		expect(generated2, "Generated uri").to.equal(ROOT_URI + "users?already=added&access_token=rj5aabcea2&another_auto=another_value");
+		expect(generated2.uriFinal, "Generated uri").to.equal(ROOT_URI + "users?already=added&access_token=rj5aabcea2&another_auto=another_value");
 
 		var userRepo = "users11";
 		return roff.get(userRepo).then(function(users) {
@@ -287,6 +283,8 @@ describe ("restoff", function() {
 			"last_name": "New Name"
 		};
 
+		var usersReturned = [userReturned];
+
 		var roff = restoff({ "rootUri" : ROOT_URI });
 		var userRepo = "users11";
 
@@ -301,7 +299,7 @@ describe ("restoff", function() {
 					roff.forcedOffline = true;
 					return roff.get(userRepo + "/" + "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa").then(function (userWhileOffline) {
 						dbRepoShouldBeEqual(roff, userRepo, users, 3); // no changes to existing repository
-						expect(deepEqual(userReturned, userWhileOffline), " users returned should be the same").to.be.true;
+						expect(deepEqual(usersReturned, userWhileOffline), " users returned should be the same").to.be.true;
 					});
 				});
 			});
@@ -342,6 +340,16 @@ describe ("restoff", function() {
 			});
 		});
 	});
+
+	function showRepoContents(roff, repoName) {
+		console.log("CHECKING " + repoName);
+		console.log (roff.dbRepo.read(repoName));
+	}
+
+	function showResultContents(results) {
+		console.log(results);
+	}
+
 
 	it("15: get, when clientOnly properties are true, should persist the data locally\
 			and there should be no pending changes for update/put/delete", function() {
@@ -668,16 +676,18 @@ describe ("restoff", function() {
 	});		
 
 	it("32: post should, when online, handle network errors", function() {
-		var roff = restoff();
+		var roff = restoff({
+			rootUri: "http://idontexisthopefully.com/"
+		});
 		return roff.clearAll().then(function(result) {
-			return roff.post("http://idontexisthopefully.com", newuser01).then(function(result) {
+			return roff.post("http://idontexisthopefully.com/resource", newuser01).then(function(result) {
 				expect(true, "Promise should call the catch.").to.be.false;			
 			}).catch(function(error) {
 				var errorExpected = {
 					message: "Network Error",
 					messageDetail: "",
 					status: 0,
-					uri: "http://idontexisthopefully.com"
+					uri: "http://idontexisthopefully.com/resource"
 				};
 				expect(error, "Error result").to.deep.equals(errorExpected);
 				onlineStatusShouldEqual(roff, false, false, true, false);
@@ -793,7 +803,9 @@ describe ("restoff", function() {
 	});
 
 	it("51: put should, when online, handle network errors", function() {
-		var roff = restoff();
+		var roff = restoff({
+			rootUri: "http://idontexisthopefully.com/"
+		});
 		return roff.clearAll().then(function(result) {		
 			return roff.put("http://idontexisthopefully.com/users/aedfa7a4-d748-11e5-b5d2-0a1d41d68510", newuser01).then(function(result) {
 				expect(true, "Promise should call the catch.").to.be.false;			
@@ -964,7 +976,9 @@ describe ("restoff", function() {
 
 	it("63: delete should, when online, handle network errors", function() {
 		var userRepo = "users";
-		var roff = restoff({ "rootUri" : ROOT_URI });
+		var roff = restoff({
+			"rootUri" : "http://idontexisthopefully.com/"
+		});
 		return roff.clear(userRepo).then(function(result) {		
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 			return roff.delete("http://idontexisthopefully.com/users/001").then(function(result) {
