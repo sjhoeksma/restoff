@@ -38,7 +38,6 @@ LowdbRepo.prototype.find = function(repoName, keyName, primaryKey) {
 }
 
 LowdbRepo.prototype.read = function(repoName, query) {
-	// console.log("READING " + repoName + " query %O", query);
 	return this._low(repoName)
 		.chain()
 		.filter(query)
@@ -46,7 +45,6 @@ LowdbRepo.prototype.read = function(repoName, query) {
 }
 
 LowdbRepo.prototype.write = function(repoName, keyName, primaryKey, resource) {
-	// console.log("WRITE " + repoName);
 	// TODO: There is no consolodiation at this time
 	//       So, right now, we overwrite whatever is there without
 	//       verifying anything has changed.
@@ -64,6 +62,5 @@ LowdbRepo.prototype.write = function(repoName, keyName, primaryKey, resource) {
 }
 
 LowdbRepo.prototype.delete = function(repoName, query) {
-	// console.log("DELETE " + repoName);
 	this._low(repoName).remove(query);
 }
