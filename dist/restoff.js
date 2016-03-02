@@ -79,27 +79,41 @@ RestOff.prototype = Object.create(Object.prototype, {
 	}
 });
 
-
 RestOff.prototype._pendingWrite = function(pendingRec) {
-	this._pending.push(pendingRec);
+	var that = this;
+	var promise = new Promise(function(resolve, reject) {
+		resolve(that._pending.push(pendingRec));
+	});
+	return promise;
 } 
 
 RestOff.prototype._pendingLength = function(repoName) {
-	return this.pending.length;
+	var that = this;
+	var promise = new Promise(function(resolve, reject) {
+		resolve(that.pending.length);
+	});
+	return promise;
 }
 
 RestOff.prototype._pendingClear = function(repoName) {
-	this._pending.forEach(function (pendingItem, index, array) {
-		if (repoName === pendingItem.repoName) {
-			array.splice(index, 1);
-		}
+	var that = this;
+	return new Promise(function(resolve, reject) {
+		that._pending.forEach(function (pendingItem, index, array) {
+			if (repoName === pendingItem.repoName) {
+				array.splice(index, 1);
+			}
+		});
+		resolve();
 	});
 }
 
 RestOff.prototype._pendingClearAll = function() {
-	this._pending = [];
+	var that = this;
+	return new Promise(function(resolve, reject) {
+		that._pending = [];
+		resolve();
+	});
 }
-
 
 RestOff.prototype._requestGet = function(uri) {
 	var request = window.XMLHttpRequest ?
@@ -179,28 +193,44 @@ RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) 
 RestOff.prototype.primaryKeyFor = function(resource) {
 	var result = resource[this.primaryKeyName];
 	if (undefined === resource[this.primaryKeyName]) {
-		
 		console.log("Warning: resource %O did not have a primaryKey ", resource); // TODO: Write tests for this
 	}
 	return result;
 }
 
 RestOff.prototype.clearAll = function(force) {
-	force = undefined === force ? false : force;
-	if ((this._pendingLength() > 0) && (false === force)) {
-		throw new Error("Submit pending changes before clearing database or call clearAll(true) to force.");
-	}
-	this._dbRepo.clearAll();
-	this._pendingClearAll();
+	var that = this;
+
+	return new Promise(function(resolve, reject) {
+		force = undefined === force ? false : force;
+		return that._pendingLength().then(function(pendLength) {
+			if ((pendLength > 0) && (false === force)) {
+				reject("Submit pending changes before clearing database or call clearAll(true) to force.");
+			} else {
+				that._dbRepo.clearAll();
+				return that._pendingClearAll().then(function(result) {
+					resolve();
+				});
+			}
+		});
+	});
 }
 
 RestOff.prototype.clear = function(repoName, force) {
-	force = undefined === force ? false : force;
-	if ((this._pendingLength(repoName) > 0) && (false === force)) {
-		throw new Error("Submit pending changes before clearing database or call clear(repoName, true) to force.");
-	}
-	this._dbRepo.clear(repoName);
-	this._pendingClear(repoName);
+	var that = this;
+	return new Promise(function(resolve, reject) {
+		force = undefined === force ? false : force;
+		return that._pendingLength(repoName).then(function(pendLength) {
+			if ((pendLength > 0) && (false === force)) {
+				reject("Submit pending changes before clearing database or call clear(repoName, true) to force.");
+			} else {
+				that._dbRepo.clear(repoName);
+				return that._pendingClear(repoName).then(function(result) {
+					resolve();
+				});
+			}
+		});
+	});
 }
 
 RestOff.prototype.repoGet = function(uri) {
@@ -217,24 +247,42 @@ RestOff.prototype.repoFind = function(uri) {
 }
 
 RestOff.prototype.repoAdd = function(uri, resourceRaw) {
-	uri.resources = JSON.parse(resourceRaw); // TODO: Check for non-json result and throw error/convert/support images/etc.
-	return this.repoAddResource(uri);
+	var that = this;
+	return new Promise(function(resolve, reject) {
+		uri.resources = JSON.parse(resourceRaw); // TODO: Check for non-json result and throw error/convert/support images/etc.
+		return that.repoAddResource(uri).then(function(result) {
+			resolve(result);
+		});
+	});
+}
+
+RestOff.prototype._repoAddAll = function(uri, resourceArray) {
+	var that = this;
+	resourceArray.forEach(function(resource) {
+		var primaryKey = that.primaryKeyFor(resource);
+		that.dbRepo.write(uri.repoName, that.primaryKeyName, primaryKey, resource);
+	});
 }
 
 RestOff.prototype.repoAddResource = function(uri) {
-	var resourceArray = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // make logic easier
-	if (!uri.options.persistanceDisabled) {
-		var that = this;
-		// TODO: Check for soft deletes so we don't need to get all the records from the database
-		if (("" === uri.primaryKey) && ("GET" === uri.restMethod)) {  // Complete get, doing a merge because we don't have soft_delete
-		     this.clear(uri.repoName); // TODO: What do we do when there are pending changes
-		}
-		resourceArray.forEach(function(resource) {
-			var primaryKey = that.primaryKeyFor(resource);
-			that.dbRepo.write(uri.repoName, that.primaryKeyName, primaryKey, resource);
-		});
-	} // else don't persist
-	return uri.resources;
+	var that = this;
+	return new Promise(function(resolve, reject) {
+
+		var resourceArray = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // make logic easier
+		if (!uri.options.persistanceDisabled) {
+			// TODO: Check for soft deletes so we don't need to get all the records from the database
+			if (("" === uri.primaryKey) && ("GET" === uri.restMethod)) {  // Complete get, doing a merge because we don't have soft_delete
+			     return that.clear(uri.repoName).then(function() {  // TODO: What do we do when there are pending changes
+			     	that._repoAddAll(uri, resourceArray);
+					resolve(uri.resources);
+			     });
+			} else {
+				that._repoAddAll(uri, resourceArray);
+			}
+		} // else don't persist
+
+		resolve(uri.resources);
+	});
 }
 
 RestOff.prototype.repoDeleteResource = function(uri) {
@@ -281,18 +329,21 @@ RestOff.prototype.autoHeaderParamGet = function(name) {
 
 // TODO: Add database calling type
 RestOff.prototype.pendingAdd = function(uri) {
-	var result = {
-		"restMethod" : uri.restMethod,
-		"resources" : uri.resources,
-		"clientTime" : new Date(),
-		"uri" : uri.uriFinal,
-		"repoName" : uri.repoName
-	}
+	var that = this;
+	return new Promise(function(resolve, reject) {
+		var result = {
+			"restMethod" : uri.restMethod,
+			"resources" : uri.resources,
+			"clientTime" : new Date(),
+			"uri" : uri.uriFinal,
+			"repoName" : uri.repoName
+		}
 
-	if (!uri.options.persistanceDisabled) {
-		this._pendingWrite(result);
-	}
-	return result;
+		if (!uri.options.persistanceDisabled) {
+			that._pendingWrite(result);
+		}
+		resolve(result);
+	});
 }
 
 RestOff.prototype._requestHeaderSet = function(request) {
@@ -333,10 +384,15 @@ RestOff.prototype._dbDelete = function(uri, resolve, reject) {
 			if (uri.options.forcedOffline || clientOnly) {
 				this._isOnline = false;
 				if (!clientOnly) {
-					this.pendingAdd(uri);
+					var that = this;
+					this.pendingAdd(uri).then(function(result) {
+						that.repoDeleteResource(uri);
+						resolve();
+					});
+				} else {
+					this.repoDeleteResource(uri);
+					resolve();
 				}
-				this.repoDeleteResource(uri);
-				resolve();
 			} else {
 				this._isOnline = null;
 				reject(this.createError(uri));
@@ -352,7 +408,9 @@ RestOff.prototype._dbGet = function(uri, resolve, reject) {
 	switch (request.status) {
 		case 200:
 			this._isOnline = true;
-			resolve(this.repoAdd(uri, request.response));
+			return this.repoAdd(uri, request.response).then(function(result) {
+				resolve(result);
+			});
 		break;
 		case 0: case 404:
 			var clientOnly = uri.options.clientOnly;
@@ -369,21 +427,35 @@ RestOff.prototype._dbGet = function(uri, resolve, reject) {
 	}
 }
 
+RestOff.prototype._pendingRepoAdd = function(uri, clientOnly,resolve, reject) {
+	if (!clientOnly) {
+		var that = this;
+		return this.pendingAdd(uri).then(function(result) {
+			return that.repoAddResource(uri).then(function(result) {
+				resolve(result);
+			});
+		});
+	} else {
+		return this.repoAddResource(uri).then(function(result) {
+			resolve(result);
+		});
+	}
+}
+
 RestOff.prototype._dbPost = function(uri, resolve, reject) {
 	var request = uri.request;
 	switch (request.status) {
 		case 201:
 			this._isOnline = true;
-			resolve(this.repoAddResource(uri)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
+			return this.repoAddResource(uri).then(function(result) {  // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
+				resolve(result);
+			});
 		break;
 		case 0: case 404:
 			var clientOnly = uri.options.clientOnly;
 			if (uri.options.forcedOffline || clientOnly) {
 				this._isOnline = false;
-				if (!clientOnly) {
-					this.pendingAdd(uri);
-				}
-				resolve(this.repoAddResource(uri));
+				this._pendingRepoAdd(uri, clientOnly, resolve, reject);
 			} else {
 				this._isOnline = 0 !== request.status ? true : null;  // TODO: Write test for this line of code
 				reject(this.createError(uri));
@@ -409,10 +481,7 @@ RestOff.prototype._dbPut = function(uri, resolve, reject) {
 			if (uri.options.forcedOffline || clientOnly) { // we are offline, but resource not found so 404 it.
 				this._isOnline = false;
 				if (this.repoFind(uri)) { // offline but found resource on client so add it
-					if (!clientOnly) {
-						this.pendingAdd(uri);
-					}
-					resolve(this.repoAddResource(uri));
+					this._pendingRepoAdd(uri, clientOnly, resolve, reject);
 				} else {
 					uri.request.status = 404;
 					uri.request.statusText = "Not Found";
@@ -427,7 +496,7 @@ RestOff.prototype._dbPut = function(uri, resolve, reject) {
 
 RestOff.prototype._restCall = function(uriClient, restMethod, options, resource) {
 	var that = this;
-	var promise = new Promise(function(resolve, reject) {
+	return new Promise(function(resolve, reject) {
 		var uri = that.uriFromClient(uriClient, restMethod, resource, options);
 		var request = that._requestGet(uri);
 		var body = JSON.stringify(resource);
@@ -460,7 +529,6 @@ RestOff.prototype._restCall = function(uriClient, restMethod, options, resource)
 			request.send();
 		}
 	});
-	return promise;
 }
 
 RestOff.prototype.delete = function(uri, options) {
