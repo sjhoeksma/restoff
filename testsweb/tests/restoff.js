@@ -247,10 +247,10 @@ describe ("restoff", function() {
 		expect(roff.autoQueryParamGet("access_token"), "access_token").to.equal("rj5aabcea2");
 		roff.autoQueryParamSet("another_auto", "another_value");
 
-		var generated = roff.uriGenerate("users");
+		var generated = roff.uriFromClient("users", "GET");
 		expect(generated, "Generated uri").to.equal(ROOT_URI + "users?access_token=rj5aabcea2&another_auto=another_value");
 
-		var generated2 = roff.uriGenerate("users?already=added");
+		var generated2 = roff.uriFromClient("users?already=added");
 		expect(generated2, "Generated uri").to.equal(ROOT_URI + "users?already=added&access_token=rj5aabcea2&another_auto=another_value");
 
 		var userRepo = "users11";

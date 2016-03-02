@@ -66,6 +66,10 @@ RestOff.prototype = Object.create(Object.prototype, {
 	}
 });
 
+RestOff.prototype._logMessage = function(message) {
+	console.log(message);
+}
+
 RestOff.prototype._pendingWrite = function(pendingRec) {
 	var that = this;
 	var promise = new Promise(function(resolve, reject) {
@@ -120,10 +124,10 @@ RestOff.prototype._requestGet = function(uri) {
 	return request;
 }
 
-RestOff.prototype.uriGenerate = function(uri) {
-	var result = uri;
+RestOff.prototype._uriGenerate = function(uri) {
+	var result = uri.uri;
 	if (result.indexOf("http") === -1) { // missing domain/protocol/etc.
-		result = this.rootUri + result;
+		result = uri.options.rootUri + result;
 	}
 	var autoParams = this._autoParams;
 	var keys = Object.keys(autoParams);
@@ -144,11 +148,11 @@ RestOff.prototype.uriGenerate = function(uri) {
 	return result;
 }
 
+
 RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) {
-	var result = {
+	var uriResult = {
 		uri: uri,
 		primaryKey : "",
-		uriFinal : this.uriGenerate(uri),
 		primaryKeyName : this.primaryKeyName,
 		restMethod : restMethod,
 		resources : resources,
@@ -156,9 +160,13 @@ RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) 
 		searchOptions : {}
 	};
 
-	var uriRaw = uri.replace(this.rootUri, "");
+	if (!uriResult.options.rootUri.endsWith("/")) {
+		uriResult.options.rootUri = uriResult.options.rootUri + "/";
+	}
+	uriResult.uriFinal = this._uriGenerate(uriResult);
+	var result = uri.replace(uriResult.options.rootUri, "");
 
-	var search = uriRaw.split("?");
+	var search = result.split("?");
 	if (search.length > 1) {
 		var that = this;
 		result = search[0];
@@ -173,18 +181,21 @@ RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) 
 		});
 	}
 
-	var uriPrimaryKey = uriRaw.split("/"); 
+	var uriPrimaryKey = result.split("/"); 
 	if (uriPrimaryKey.length > 1) {
-		uriRaw = uriPrimaryKey[0];
-		result.primaryKey = uriPrimaryKey[1]; // TODO Support nested resources
+		result = uriPrimaryKey[0];
+		uriResult.primaryKey = uriPrimaryKey[1]; // TODO Support nested resources
 	}
 
 	// TODO: Check if resource PK != uri pk and warn
-	if (("" === result.primaryKey) && (undefined !== resources) && (null !== resources) && (undefined !== resources[this.primaryKeyName])) {
-		result.primaryKey = resources[this.primaryKeyName];
+	if (("" === uriResult.primaryKey) && (undefined !== resources) && (null !== resources) && (undefined !== resources[this.primaryKeyName])) {
+		uriResult.primaryKey = resources[this.primaryKeyName];
 	}
-	result.repoName = uriRaw;
-	return result;
+	uriResult.repoName = result;	
+	if ("http:" === uriResult.repoName) {
+		this._logMessage("WARNING: repoName invalid. It could be you are using the wrong rootUri?");
+	}
+	return uriResult;
 }
 
 RestOff.prototype.primaryKeyFor = function(resource) {
