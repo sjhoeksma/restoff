@@ -80,6 +80,27 @@ RestOff.prototype = Object.create(Object.prototype, {
 });
 
 
+RestOff.prototype._pendingWrite = function(pendingRec) {
+	this._pending.push(pendingRec);
+} 
+
+RestOff.prototype._pendingLength = function(repoName) {
+	return this.pending.length;
+}
+
+RestOff.prototype._pendingClear = function(repoName) {
+	this._pending.forEach(function (pendingItem, index, array) {
+		if (repoName === pendingItem.repoName) {
+			array.splice(index, 1);
+		}
+	});
+}
+
+RestOff.prototype._pendingClearAll = function() {
+	this._pending = [];
+}
+
+
 RestOff.prototype._requestGet = function(uri) {
 	var request = window.XMLHttpRequest ?
 		new XMLHttpRequest() : // Mozilla, Safari, ...
@@ -166,24 +187,20 @@ RestOff.prototype.primaryKeyFor = function(resource) {
 
 RestOff.prototype.clearAll = function(force) {
 	force = undefined === force ? false : force;
-	if ((this.pending.length > 0) && (false === force)) {
+	if ((this._pendingLength() > 0) && (false === force)) {
 		throw new Error("Submit pending changes before clearing database or call clearAll(true) to force.");
 	}
 	this._dbRepo.clearAll();
-	this._pending = [];
+	this._pendingClearAll();
 }
 
 RestOff.prototype.clear = function(repoName, force) {
 	force = undefined === force ? false : force;
-	if ((this.pending.length > 0) && (false === force)) {
+	if ((this._pendingLength(repoName) > 0) && (false === force)) {
 		throw new Error("Submit pending changes before clearing database or call clear(repoName, true) to force.");
 	}
 	this._dbRepo.clear(repoName);
-	this._pending.forEach(function (pendingItem, index, array) {
-		if (repoName === pendingItem.repoName) {
-			array.splice(index, 1);
-		}
-	});
+	this._pendingClear(repoName);
 }
 
 RestOff.prototype.repoGet = function(uri) {
@@ -273,7 +290,7 @@ RestOff.prototype.pendingAdd = function(uri) {
 	}
 
 	if (!uri.options.persistanceDisabled) {
-		this._pending.push(result);
+		this._pendingWrite(result);
 	}
 	return result;
 }
