@@ -74,7 +74,6 @@ describe ("restoff", function() {
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 			onlineStatusShouldEqual(roff, false, false, true, false);
 			return roff.get(userRepo).then(function(result) {
-				showRepoContents(roff, userRepo);
 				onlineStatusShouldEqual(roff, true, false, false, false);
 				dbRepoShouldBeEqual(roff, userRepo, result, 3);
 				return dbRepoExactlyEqual(roff, userRepo, true).then(function(result) {
