@@ -29,7 +29,6 @@ function restoff(config) {
 	that._options = Object.assign(defaultConfig, config);
 
 	that._isOnline = null;
-	// that._pending = [];
 	that._autoParams = {};
 	that._autoHeaders = {};
 
@@ -45,7 +44,6 @@ function restoff(config) {
 function RestOff() {}
 RestOff.prototype = Object.create(Object.prototype, {
 	dbRepo: { get: function() { return this._dbRepo; }},
-	// pending: { get: function() { return this._pending; }},
 	isStatusOnline: { get: function() { return this._isOnline === true; }},
 	isStatusOffline: { get: function() { return this._isOnline === false; }},
 	isStatusUnknown: { get: function() { return this._isOnline === null; }},
@@ -96,48 +94,31 @@ RestOff.prototype._pendingWrite = function(pendingRec) {
 		}).catch(function(error) {
 			reject(error);
 		}); 
-
-		// resolve(that._pending.push(pendingRec));
 	});
 } 
 
 RestOff.prototype._pendingLength = function(repoName) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
-
-		var uri = "pending";
-		if (repoName) {
-			uri += "?repoName=" + repoName;
-		}
-
+		var uri = "pending" + (repoName ? "?repoName=" + repoName : "");
 		// Eat our own dog food
 		return that.get(uri, {rootUri:that.pendingUri,clientOnly:true}).then(function(data) {
 			resolve(data.length);
 		}).catch(function(error) {
 			reject(error);
 		});
-
-		// resolve(that.pending.length);
 	});
 }
 
 RestOff.prototype._pendingClear = function(repoName) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
-
 		// Eat our own dog food.
 		return that.delete("pending?repoName=" + repoName, {rootUri:that.pendingUri, clientOnly:true}).then(function(result) {
 			resolve();
 		}).catch(function(error) {
 			reject(error);
 		});
-
-		// that._pending.forEach(function (pendingItem, index, array) {
-		// 	if (repoName === pendingItem.repoName) {
-		// 		array.splice(index, 1);
-		// 	}
-		// });
-		// resolve();
 	});
 }
 
@@ -150,9 +131,6 @@ RestOff.prototype._pendingClearAll = function() {
 		}).catch(function(error) {
 			reject(error);
 		});
-
-		// that._pending = [];
-		// resolve();
 	});
 }
 
