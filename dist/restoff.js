@@ -1,13 +1,13 @@
 // restoff.js
-// version: 0.1.1
-// author: ProductOps
-// license: Copyright (C) 2016 ProductOps
+// version: 0.1.3
+// author: ProductOps <restoff@productops.com>
+// license: MIT
 (function() {
 "use strict";
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.1.1'; // version set through gulp build
+restlib["version-library"] = '0.1.3'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -22,7 +22,8 @@ function restoff(config) {
 		clientOnly: false,
 		forcedOffline: false,
 		persistanceDisabled: false,
-		pendingUri: "http://localhost/"
+		pendingUri: "http://localhost/",
+		pendingRepoName: "pending"
 	};
 
 	var that = Object.create(RestOff.prototype);
@@ -58,6 +59,9 @@ RestOff.prototype = Object.create(Object.prototype, {
 		get: function() { return this._options.clientOnly; },
 		set: function(value) { this._options.clientOnly = value; }
 	},
+	pendingRepoName: {
+		get: function() { return this._options.pendingRepoName; }
+	},
 	pendingUri: {
 		get: function() { return this._options.pendingUri; }
 	},
@@ -89,7 +93,7 @@ RestOff.prototype._pendingWrite = function(pendingRec) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
 		// Eat our own dog food
-		return that.post(that.pendingUri + "pending", pendingRec, {rootUri:that.pendingUri,clientOnly:true}).then(function(result) {
+		return that.post(that.pendingUri + that.pendingRepoName, pendingRec, {rootUri:that.pendingUri,clientOnly:true}).then(function(result) {
 			resolve(result);
 		}).catch(function(error) {
 			reject(error);
@@ -100,7 +104,7 @@ RestOff.prototype._pendingWrite = function(pendingRec) {
 RestOff.prototype._pendingLength = function(repoName) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
-		var uri = "pending" + (repoName ? "?repoName=" + repoName : "");
+		var uri = that.pendingRepoName + (repoName ? "?repoName=" + repoName : "");
 		// Eat our own dog food
 		return that.get(uri, {rootUri:that.pendingUri,clientOnly:true}).then(function(data) {
 			resolve(data.length);
@@ -114,7 +118,7 @@ RestOff.prototype._pendingClear = function(repoName) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
 		// Eat our own dog food.
-		return that.delete("pending?repoName=" + repoName, {rootUri:that.pendingUri, clientOnly:true}).then(function(result) {
+		return that.delete(that.pendingRepoName + "?repoName=" + repoName, {rootUri:that.pendingUri, clientOnly:true}).then(function(result) {
 			resolve();
 		}).catch(function(error) {
 			reject(error);
@@ -126,7 +130,7 @@ RestOff.prototype._pendingClearAll = function() {
 	var that = this;
 	return new Promise(function(resolve, reject) {
 		// Eat our own dog food
-		return that.delete("pending", {rootUri:that.pendingUri, clientOnly:true}).then(function(result) {
+		return that.delete(that.pendingRepoName, {rootUri:that.pendingUri, clientOnly:true}).then(function(result) {
 			resolve();
 		}).catch(function(error) {
 			reject(error);
@@ -230,7 +234,7 @@ RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) 
 	return uriResult;
 }
 
-RestOff.prototype.primaryKeyFor = function(resource) {
+RestOff.prototype._primaryKeyFor = function(resource) {
 	var result = resource[this.primaryKeyName];
 	if (undefined === resource[this.primaryKeyName]) {
 		console.log("WARNING: resource %O did not have a primaryKey " + this.primaryKeyName, resource); // TODO: Write tests for this
@@ -273,7 +277,7 @@ RestOff.prototype.clear = function(repoName, force) {
 	});
 }
 
-RestOff.prototype.repoGet = function(uri) {
+RestOff.prototype._repoGet = function(uri) {
 	var query = uri.searchOptions;
 	if ("" !== uri.primaryKey) {
 		query[uri.primaryKeyName] = uri.primaryKey;
@@ -281,15 +285,15 @@ RestOff.prototype.repoGet = function(uri) {
 	return uri.options.persistanceDisabled ? [] : this.dbRepo.read(uri.repoName, query);
 }
 
-RestOff.prototype.repoFind = function(uri) {
+RestOff.prototype._repoFind = function(uri) {
 	return this._dbRepo.find(uri.repoName, uri.primaryKeyName, uri.primaryKey)	
 }
 
-RestOff.prototype.repoAdd = function(uri, resourceRaw) {
+RestOff.prototype._repoAdd = function(uri, resourceRaw) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
 		uri.resources = JSON.parse(resourceRaw); // TODO: Check for non-json result and throw error/convert/support images/etc.
-		return that.repoAddResource(uri).then(function(result) {
+		return that._repoAddResource(uri).then(function(result) {
 			resolve(result);
 		});
 	});
@@ -298,12 +302,12 @@ RestOff.prototype.repoAdd = function(uri, resourceRaw) {
 RestOff.prototype._repoAddAll = function(uri, resourceArray) {
 	var that = this;
 	resourceArray.forEach(function(resource) {
-		var primaryKey = that.primaryKeyFor(resource);
+		var primaryKey = that._primaryKeyFor(resource);
 		that.dbRepo.write(uri.repoName, that.primaryKeyName, primaryKey, resource);
 	});
 }
 
-RestOff.prototype.repoAddResource = function(uri) {
+RestOff.prototype._repoAddResource = function(uri) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
 		var resourceArray = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // make logic easier
@@ -323,7 +327,7 @@ RestOff.prototype.repoAddResource = function(uri) {
 	});
 }
 
-RestOff.prototype.repoDeleteResource = function(uri) {
+RestOff.prototype._repoDeleteResource = function(uri) {
 	if (!uri.options.persistanceDisabled) {
 		var searchOptions = uri.searchOptions;
 		if ("" !== uri.primaryKey) {
@@ -331,9 +335,10 @@ RestOff.prototype.repoDeleteResource = function(uri) {
 		}
 		this.dbRepo.delete(uri.repoName, searchOptions);
 	}
+	return (uri.primaryKey);
 }
 
-RestOff.prototype.createError = function(uri) {
+RestOff.prototype._createError = function(uri) {
 	var request = uri.request;
 	var messageDetail = request.responseText.replace(/\r?\n|\r/g, "");
 	var message = request.statusText;
@@ -370,7 +375,7 @@ RestOff.prototype.autoHeaderParamGet = function(name) {
 }
 
 // TODO: Add database calling type
-RestOff.prototype.pendingAdd = function(uri) {
+RestOff.prototype._pendingAdd = function(uri) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
 		var result = {
@@ -414,13 +419,11 @@ RestOff.prototype._dbDelete = function(uri, resolve, reject) {
 	switch (request.status) {
 		case 200: case 202: case 204: // TODO: Write test for 202 and 204
 			this._isOnline = true;
-			this.repoDeleteResource(uri);
-			resolve();
+			resolve(this._repoDeleteResource(uri));
 		break;
 		case 404:
 			this._isOnline = true;
-			this.repoDeleteResource(uri); // 404 but will remove from client anyway
-			resolve();
+			resolve(this._repoDeleteResource(uri)); // 404 but will remove from client anyway
 		break;
 		case 0:
 			var clientOnly = uri.options.clientOnly;
@@ -428,17 +431,16 @@ RestOff.prototype._dbDelete = function(uri, resolve, reject) {
 				if (!clientOnly) {
 					var that = this;
 					this._isOnline = false;
-					this.pendingAdd(uri).then(function(result) {
-						that.repoDeleteResource(uri);
+					this._pendingAdd(uri).then(function(result) {
+						that._repoDeleteResource(uri);
 						resolve();
 					});
 				} else {
-					this.repoDeleteResource(uri);
-					resolve();
+					resolve(this._repoDeleteResource(uri));
 				}
 			} else {
 				this._isOnline = null;
-				reject(this.createError(uri));
+				reject(this._createError(uri));
 			}		
 		break;
 		default:
@@ -451,7 +453,7 @@ RestOff.prototype._dbGet = function(uri, resolve, reject) {
 	switch (request.status) {
 		case 200:
 			this._isOnline = true;
-			return this.repoAdd(uri, request.response).then(function(result) {
+			return this._repoAdd(uri, request.response).then(function(result) {
 				resolve(result);
 			});
 		break;
@@ -461,10 +463,10 @@ RestOff.prototype._dbGet = function(uri, resolve, reject) {
 				if (!clientOnly) {
 					this._isOnline = false;
 				}
-				resolve(this.repoGet(uri));
+				resolve(this._repoGet(uri));
 			} else {
 				this._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
-				reject(this.createError(uri));
+				reject(this._createError(uri));
 			}
 		break;
 		default:
@@ -475,13 +477,13 @@ RestOff.prototype._dbGet = function(uri, resolve, reject) {
 RestOff.prototype._pendingRepoAdd = function(uri, clientOnly,resolve, reject) {
 	if (!clientOnly) {
 		var that = this;
-		return this.pendingAdd(uri).then(function(result) {
-			return that.repoAddResource(uri).then(function(result) {
+		return this._pendingAdd(uri).then(function(result) {
+			return that._repoAddResource(uri).then(function(result) {
 				resolve(result);
 			});
 		});
 	} else {
-		return this.repoAddResource(uri).then(function(result) {
+		return this._repoAddResource(uri).then(function(result) {
 			resolve(result);
 		});
 	}
@@ -492,7 +494,7 @@ RestOff.prototype._dbPost = function(uri, resolve, reject) {
 	switch (request.status) {
 		case 201:
 			this._isOnline = true;
-			return this.repoAddResource(uri).then(function(result) {  // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
+			return this._repoAddResource(uri).then(function(result) {  // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
 				resolve(result);
 			});
 		break;
@@ -505,7 +507,7 @@ RestOff.prototype._dbPost = function(uri, resolve, reject) {
 				this._pendingRepoAdd(uri, clientOnly, resolve, reject);
 			} else {
 				this._isOnline = 0 !== request.status ? true : null;  // TODO: Write test for this line of code
-				reject(this.createError(uri));
+				reject(this._createError(uri));
 			}
 		break;
 		default:
@@ -518,7 +520,7 @@ RestOff.prototype._dbPut = function(uri, resolve, reject) {
 	switch (request.status) {
 		case 200:
 			this._isOnline = true;
-			resolve(this.repoAddResource(uri)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
+			resolve(this._repoAddResource(uri)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
 		break;
 		default:
 			var finalStatus = request.status;
@@ -529,16 +531,16 @@ RestOff.prototype._dbPut = function(uri, resolve, reject) {
 				if (!clientOnly) { // TODO: Add test for this
 					this._isOnline = false;
 				}
-				if (this.repoFind(uri)) { // offline but found resource on client so add it
+				if (this._repoFind(uri)) { // offline but found resource on client so add it
 					this._pendingRepoAdd(uri, clientOnly, resolve, reject);
 				} else {
 					uri.request.status = 404;
 					uri.request.statusText = "Not Found";
-					reject(this.createError(uri));
+					reject(this._createError(uri));
 				}
 			} else {
 				this._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
-				reject(this.createError(uri));
+				reject(this._createError(uri));
 			}
 	}
 }

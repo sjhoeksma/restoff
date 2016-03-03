@@ -41,6 +41,8 @@ describe ("restoff", function() {
 		expect(roff.forcedOffline, "forcedOffline").to.be.true;
 
 		expect(roff.pendingUri, "pendingUri").to.equal("http://localhost/");
+		expect(roff.pendingRepoName, "pendingRepoName").to.equal("pending");
+
 
 		var roff2 = restoff({
 			"primaryKeyName" : "id2",
@@ -50,7 +52,8 @@ describe ("restoff", function() {
 			}),
 			"clientOnly" : true,
 			"forcedOffline" : true,
-			"pendingUri" : "http://notlocalhost/pending/"
+			"pendingUri" : "http://notlocalhost/pending/",
+			"pendingRepoName" : "pending2"
 		});
 		
 		expect(roff2.dbRepo.dbName, "repo.dbName").to.equal("TestDb");
@@ -59,6 +62,7 @@ describe ("restoff", function() {
 		expect(roff2.clientOnly, "clientOnly").to.be.true;
 		expect(roff2.forcedOffline, "forcedOffline").to.be.true;
 		expect(roff2.pendingUri, "pendingUri").to.equal("http://notlocalhost/pending/");
+		expect(roff2.pendingRepoName, "pendingRepoName").to.equal("pending2");
 	});
 
 	it("04: get should, when online, get multiple resources\
@@ -311,7 +315,8 @@ describe ("restoff", function() {
 
 		var roff = restoff({
 			"rootUri" : ROOT_URI,
-			"clientOnly" : true
+			"clientOnly" : true,
+			"pendingRepoName": "pending2"
 		});
 		var userRepo = "users11";
 		var pendingRepo = "clientOnly";
@@ -347,7 +352,8 @@ describe ("restoff", function() {
 			and there should be no pending changes for update/put/delete", function() {
 
 		var roff = restoff({
-			"rootUri" : ROOT_URI
+			"rootUri" : ROOT_URI,
+			"pendingRepoName": "pending2"
 		});
 		var userRepo = "users11";
 		var pendingRepo = "offlineOnly";
@@ -357,8 +363,9 @@ describe ("restoff", function() {
 			"restMethod" : "PUT",
 			"uri" : "http://www.whatever.com"
 		}
-		return roff.clearAll(true).then(function(result) {		
-			return roff.delete(pendingRepo + "/" + pendingRec.id).then(function() { // reset test for delete
+		// return roff.clearAll(true).then(function(result) {		
+			return roff.delete(pendingRepo + "/" + pendingRec.id).then(function(idDeleted) { // reset test for delete
+				expect(idDeleted, "should return id deleted").to.equal(pendingRec.id);
 				expect(roff.dbRepo.length(pendingRepo), "should have just one record").to.equal(0);
 				return roff.get(userRepo, {clientOnly:true}).then(function(result) { // useres11 is still a client
 					expect(roff.dbRepo.length(userRepo), "repository should be empty when clientOnly is true").to.equal(0); // client only
@@ -376,7 +383,8 @@ describe ("restoff", function() {
 										expect(roff.dbRepo.length(pendingRepo), "should have just one record").to.equal(1);
 										return dbRepoExactlyEqual(roff, pendingRepo, true).then(function(result) {
 											expect(result, "Initial db/repo to be equal").to.be.true;
-											return roff.delete(pendingRepo + "/" + pendingRec.id, {clientOnly:true}).then(function() { // for delete, while clientOnly, shoud not delete
+											return roff.delete(pendingRepo + "/" + pendingRec.id, {clientOnly:true}).then(function(idDeleted) { // for delete, while clientOnly, shoud not delete
+												expect(idDeleted, "should return id deleted").to.equal(pendingRec.id);
 												expect(roff.dbRepo.length(pendingRepo), "repository should be empty when clientOnly is true").to.equal(0);
 												pendingStatusCount(roff,0,"delete"); // should have no pending
 												return dbRepoExactlyEqual(roff, pendingRepo, false).then(function(result) {
@@ -393,7 +401,7 @@ describe ("restoff", function() {
 					});
 				});
 			});
-		});
+		// });
 	});
 
 	it("16: get, when forcedOffline properties are true, should persist the data locally\
@@ -972,7 +980,7 @@ describe ("restoff", function() {
 		});
 		return roff.clear(userRepo, true).then(function(result) {		
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
-			return roff.delete("http://idontexisthopefully.com/users/001").then(function(result) {
+			return roff.delete("http://idontexisthopefully.com/users/001").then(function(idDeleted) {
 				expect(true, "Promise should call the catch.", false);
 			}).catch(function(error) {
 				var errorExpected = {
@@ -1319,7 +1327,7 @@ describe ("restoff", function() {
 		}
 
 		resources.forEach(function(resource, position) {
-			var primaryKey = roff.primaryKeyFor(resource);
+			var primaryKey = roff._primaryKeyFor(resource);
 			var dbResource = roff.dbRepo.find(repoName, roff.primaryKeyName, primaryKey);
 
 			if (false === deepEqual(resource, dbResource)) {

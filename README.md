@@ -3,17 +3,17 @@
 Rest Offline uses your existing RESTful APIs to synchronize client/server data allowing your application to run even when it goes offline.
 
 * Now under MIT license
-* Database Agnostic and Schemaless
-	* Works with any database backend
-	* Works against multiple databases
-	* No need to worry about database changes
-* Still run applications when they go offline
-	* Reconcile any changes made while the application was offline (this feature is currently in development)
+* Database agnostic and schema-less
+	* Works against any database backend
+	* Supports multiple databases
+	* No need to worry about database schema changes
+* Run applications when they go offline
+	* Automatically reconciles any changes made while the application was offline (this feature is currently in development)
+	* clientOnly mode automatically provides a complete RESTful offline service on your client 
 * Supports resources in the following formats:
 	* Json
 * Allows you to program around your RESTful API and not your backend databases
 	* Best to follow [RESTful best known practices][rest-best-practices]
-* clientOnly mode automatically provides a complete RESTful offline service on your client.
 * Next major features
 	* direct replacement into Angular http
 	* reconciliation of changes between client and server
@@ -26,73 +26,46 @@ Rest Offline uses your existing RESTful APIs to synchronize client/server data a
 	* support non-standard restful api: ability to map a user
 
 
-# RestOff Usage
+## RestOff Usage
 
-Create a restoff service instance.
-
-```javascript
-var rest = restoff();
-```
-
-Re-use between calls.
-
-Getting a resource:
+Examples:
 
 ```javascript
-return rest.get("http://api.example.com/users").then(function(source) {
-	console.log(rest.repository["users"]);
-});
-```
-
-Deleting a resource:
-
-```javascript
-return rest.delete("http://api.example.com/users/301378d5").then(function(source) {
-	console.log("User deleted");
-});
-```
-
-Post a resource:
-
-```javascript
-
-var roff = restoff();
-var newUser = {
-	"id" : "ffa454",
-	"first_name": "Happy",
-	"last_name": "User"
-}
-
-return roff.post("http://test.development.com:4050/users", newUser)
-	.then(function(result){
-		// use the result here
-	});
-
-```
-
-Put a resource:
-
-```javascript
-
+// Create a restoff service instance.
 var roff = restoff({
-	"rootUri" : "http://test.development.com:4050/"
+	rootUri : "http://api.example.com/" // Required Option
 });
-var existingUser = {
+
+roff.get("users").then(function(user) {
+	console.log(rest.dbRepo.read("users")); // Access repository directly
+});
+
+roff.delete("users/301378d5").then(function(deletedUserId) {
+	console.log("User " + deletedUserId + " deleted");
+});
+
+var aUser = {
 	"id" : "ffa454",
 	"first_name": "Happy",
 	"last_name": "User"
 }
 
-return roff.put("users/ffa454", existingUser).then(function(result){
-		// use the result here
-	});
+roff.post("users", aUser).then(function(user){
+	console.log("Posted user %O.", user);
+});
+
+aUser.last_name = "put";
+
+roff.put("users/ffa454", aUser).then(function(user){
+	console.log("Put user %O.", user);
+});
 
 ```
 
-Example usage of synchronize subsets of resources based on user.
+Let's synchronize subsets of resources on the backend service using the user id:
 
 ```javascript
-var rest = restoff({
+var roff = restoff({
 	"rootUri" : "http://api.example.com/"
 });
 
@@ -103,17 +76,68 @@ function synchronize(roff, userId) {
 	...
 	roff.forcedOffline(); // Let's go offline or unplug from the internet
 
-	roff.get("users/" + userId).then(function(result) {
+	roff.get("users/" + userId).then(function(user) {
 		// Yep! We can work offline.
 	});
-
 }
-
 ```
 
-## Running Exclusively On The Client
+* WARNING when using Restoff with lowdb! Creating two instances of restoff with the same database name results in two different databases being persisted. Be sure to use the same restoff instance throughout your application.
 
-You can have your RESTful API run 100% on the client never hitting the backend server:
+## Restoff Options
+
+### rootUri [Required]
+
+```rootUri``` is appended to RESTful calls when an incomplete ```uri``` is provided. ```rootUri``` is also used, under the hood, to determine the name of the repository.
+
+Examples:
+
+```javascript
+var roff = restoff({
+	"rootUri" : "http://api.example.com/",
+});
+
+// uri becomes http://api.example.com/users
+// repository name is users
+roff.get("users").then(function(result){ 
+	// use the result here
+}
+
+// uri is http://another.example.com/users
+// repository name is users
+roff.get("http://another.example.com/users").then(function(result){
+	// use the result here
+}
+
+// uri is http://another.example.com/support/users
+// repository name is support/users
+roff.get("http://another.example.com/support/users").then(function(result){
+	// use the result here
+}
+```
+
+### persistanceDisabled [Optional]
+
+When true, storage of RESTful results on the client are disabled.
+
+* Effectivly bypass the core feature of Restoff causing it to act like a standard http library.
+* Useful for debugging.
+
+Example configuration:
+
+```
+var roff = restoff({
+	rootUri : "http://api.example.com/",
+	persistanceDisabled	: true
+});
+```
+
+### clientOnly [Optional]
+
+Creates a backend RESTful service on your client.
+
+* Allows your RESTful API to run 100% on the client.
+* Note: Buy design, the ```pending``` repository runs in ```clientOnly``` mode meaning the pending RESTful endpoint never hits the backend service.
 
 ```javascript
 var rest = restoff({
@@ -121,83 +145,53 @@ var rest = restoff({
 	"clientOnly" : true
 });
 
-return rest.put("users", { Name : "Happy User"}).then(function(result) {
+rest.put("users", { Name : "Happy User"}).then(function(result) {
 	rest.get("users").then(function(result)) {
-		// never hit backend server
+		// never hit a backend RESTful service
 	});
 });
 ```
 
+### primaryKeyName [Required: Default id]
 
-### Important Notes
+```primaryKeyName``` is the name of the primary key of the resource
 
-* WARNING! When using lowdb, creating two instances of restoff with the same database name results in two different databases being persisted. Be sure to use the same restoff instance throughout your application.
+* Restoff requires every resource to have a single primary key
+* Used by the persistence engine for post, put and delete
 
-### Functions and Properties
+### forcedOffline [Optional]
 
-* **autoHeaderParamSet(name, value)** - A header of ```name``` with ```value``` will be added to the header of every RESTful api call.
-* **autoHeaderParamGet(name)** - Returns the value of the header parameter with the provided ```name```.
-* **autoQueryParamSet(name, value)** - A parameter of ```name``` with ```value``` will be added/appended to every RESTful api call.
-* **autoQueryParamGet(name)** - Returns the value of the query parameter with the provided ```name```.
-* **clearCacheAll()** - Clears all caches. Doesn't delete data on the server.
-* **clearCacheBy(repoName)** - Clears the cache of a given repository. Doesn't delete data on the server.
-* **delete(uri)** - Deletes a resource from a remote server.
-* **forceOffline()** - Force the appliction to operate "offline".
-* **forceOnline()** - Force the application back "online".
-* **get(uri)** - Retrieves a json resource from a remote server using the local repository when offline.
-* **post(uri, resource)** - Posts a resource to a remote server and in the local repository adding the resource if it doesn't exist or overwriting the existing resource.
-* **put(uri, resource)** - Puts a known resource on a remote server and in the local repository updating the resource id provided in the uri.
-* **uriGenerate(uri)** - Returns the uri generated based on things like auto addition of query parameters, etc.
+Forces the application to run in offline mode.
 
-### restoff(config) Settings
-
-config
+* Useful to see how an application behaves when it is offline.
+	* Example: Reload all information, go offline, and see how the application behaves.
+* ```isOnline``` will return false when ```forcedOffline``` is true.
 
 ```javascript
-{
-	"rootUri" : "http://api.example.com/root/moreroot/",
+var roff = restoff({
+	"rootUri" : "http://api.example.com/"
+});
+
+synchronize(roff, "user456");
+roff.forceOffline();
+if (!roff.isOnline) {
+	console.log ("We are offline!");
 }
 ```
+NOTE: There is a slight difference between ```clientOnly``` mode and ```forcedoffline``` mode.
 
-##### rootUri Config
+* In ```forcedOffline``` mode, Restoff will store any put/post/delete actions in the ```pending``` repository.
+* In ```clientOnly``` mode, Retsoff will **not** store any put/post/delete actions in the ```pending``` repository.
 
-When making a RESTful call, rootUri will be appended to the beginning of the URI if no protocol is provided.
+### pendingUri and pendingRepoName
 
-For example:
+When offline, Restoff places any put/post/delete Restful operations in a ```pending``` repository. Restoff uses it's own persistence engine meaning it calls itself using get/post/delete.
 
-```javascript
-var roff = restoff(
-	{
-		"rootUri" : "http://api.example.com/",
-	}
-)
+Use ```pendingUri``` and ```pendingRepoName``` to configure the URI and repository name of the ```pending``` repository.
 
-return roff.get("users") // uri becomes http://api.example.com/users
-	.then(function(result){
-		// use the result here
-	}
+* Note: In ```clientOnly``` mode, no changes are recorded in the ```pending``` repository.
 
-
-return roff.get("http://another.example.com/users") // uri stays http://another.example.com/users
-	.then(function(result){
-		// use the result here
-	}
-
-```
-
-Also, restOff uses the rootUri to determine the name of a repository. Let's take ```http://api.example.com/tickets``` as an example end point. The ```rootUri```, by default, will be the protocol + host. The repository name then becomes ```tickets```.
-
-Let's say we have a ```rootUri``` of ```http://api.example.com/root/moreroot/tickets```. The repository name would then be ```root/moreroot/tickets``` which is not optimal.
-
-Let's override the rootUri:
-
-```javascript
-{
-	"rootUri" : "http://api.example.com/root/moreroot",
-}
-```
-
-This will lead to our desired repository name of ```tickets```.
+## Restoff Methods
 
 ### autoQueryParamSet(name, value)
 
@@ -206,8 +200,15 @@ A parameter of ```name``` with ```value``` will be added/appended to every RESTf
 Example usage:
 
 ```javascript
-var roff = restoff()
-	.autoQueryParamSet("access_token", "rj5aabcea");
+var roff = restoff({
+	rootUri : "http://api.example.com/"
+});
+roff.autoQueryParamSet("access_token", "rj5aabcea");
+
+// uri becomes http://api.example.com/users?access_token=rj5aabcea
+roff.get("users").then(function(user)) {
+	...
+}
 ```
 
 ### autoQueryParamGet(name)
@@ -217,11 +218,14 @@ Returns the value of the query parameter with the provided ```name```.
 Example usage:
 
 ```javascript
-var roff = restoff()
-	.autoQueryParamSet("access_token", "rj5aabcea");
-var paramVAlue = roff.autoQueryParamGet("access_token");
-
+var roff = restoff({
+	rootUri : "http://api.example.com/"
+});
+roff.autoQueryParamSet("access_token", "rj5aabcea");
+var paramValue = roff.autoQueryParamGet("access_token");
 ```
+
+TODO: Add autoQueryParameters as an option.
 
 ### autoHeaderParamSet(name, value)
 
@@ -230,8 +234,10 @@ A header of ```name``` with ```value``` will be added to the header of every RES
 Example usage:
 
 ```javascript
-var roff = restoff()
-	.autoHeaderParamSet("access_token", "rj5aabcea");
+var roff = restoff({
+	rootUri : "http://api.example.com/"
+});
+roff.autoHeaderParamSet("access_token", "rj5aabcea");
 ```
 
 ### autoHeaderParamGet(name)
@@ -241,35 +247,55 @@ Returns the value of the header parameter with the provided ```name```.
 Example usage:
 
 ```javascript
-var roff = restoff()
-	.autoHeaderParamSet("access_token", "rj5aabcea");
-var paramVAlue = roff.autoHeaderParamGet("access_token");
-
+var roff = restoff({
+	rootUri : "http://api.example.com/"
+});
+roff.autoHeaderParamSet("access_token", "rj5aabcea");
+var headerValue = roff.autoHeaderParamGet("access_token");
 ```
 
-### clearCacheBy(repoName)
+TODO: Add autoHeaderParams as an option.
 
-Clears the cache of the given repository name if the repository exists. Does not a repository named ```repoName``` to the repository if it doesn't exist.
+### clear(repoName, [forced])
 
-* TODO: Unless there are pending changes.
-	* Add a force parameter to ignore changes?
+Clears the cache of the given repository name if the repository exists.
 
-### clearCacheAll()
+* Does not clear the repository if there are pending changes.
+	* Optional parameter ```forced``` - Pass a value of ```true``` to force clearing a repository even if it has pending changes.
+* Does not create a repository named ```repoName``` to the repository if it doesn't exist.
+
+Example:
+
+```javascript
+var roff = restoff({
+	rootUri : "http://api.example.com/"
+});
+roff.clear("users", true).then(function() {
+	console.log("User repository, even if it had pending, was cleared ")
+});
+```
+
+### clearAll([forced])
 
 Clears the cache of all repositories.
 
-* TODO: Unless there are pending changes.
-	* Add a force parameter to ignore changes?
+* Does not clear any repositories if even one of them have pending changes.
+	* Optional parameter ```forced``` - Pass a value of ```true``` to force clearing all repositories even if there are any pending changes.
 
-Example usage:
+Example:
 
 ```javascript
-var roff = restoff();
-// .. do some things
-roff.clearCacheAll(); // All cached data is gone
+var roff = restoff({
+	rootUri : "http://api.example.com/"
+});
+roff.clear(true).then(function() {
+	console.log("User repository, even if it had pending, was cleared ")
+});
 ```
 
-### delete(uri)
+
+
+### delete(uri, [options])
 
 ```delete(uri)``` deletes a resource from a remote server and in the local repository.
 
@@ -289,7 +315,7 @@ return roff.delete("http://test.development.com:4050/users/553fdf")
 });
 ```
 
-### get(uri)
+### get(uri, [options])
 
 ```get(uri)``` retrieves a json resource from a remote server using the local repository when offline.
 
@@ -304,7 +330,7 @@ return roff.get("http://test.development.com:4050/testsweb/testdata/users")
 
 ```
 
-### post(uri, resource)
+### post(uri, resource, [options])
 
 ```post(uri)``` posts a resource to a remote server and in the local repository adding the resource if it doesn't exist or overwriting the existing resource
 
@@ -329,7 +355,7 @@ return roff.post("http://test.development.com:4050/users", newUser)
 
 ```
 
-### put(uri, resource)
+### put(uri, resource, [options])
 
 ```put(uri, resource)``` puts a known resource on a remote server and in the local repository updating the resource id provided in the uri.
 
@@ -349,11 +375,9 @@ return roff.post("users/ffa454", existingUser)
 .then(function(result){
 	// use the result here
 });
-
 ```
 
-
-### uriGenerate(uri)
+### uriFromClient(uri)
 
 restOff may add additional query parameters when restOff.get(uri) is called. Use this method to see the final uri sent to the backend server.
 
@@ -361,22 +385,20 @@ Example usage:
 
 ```javascript
 var roff = restoff().autoQueryParamSet("access_token", "rj5aabcea");
-var actualUri = roff.uriGenerate("http://test.development.com:4050/emailaddresses");
+var actualUri = roff.uriFromClient("http://test.development.com:4050/emailaddresses");
 expect(actualUri)).to.equal("http://test.development.com:4050/emailaddresses?access_token=rj5aabcea");
-
 ```
 
-### isOnline Property
+### isStatusOnline, isStatusOffline and isStatusUnknown Properties
 
-Determined by the **last** RESTful call.
+Set by the **last** RESTful call.
 
-When true, your application is online. When false, the application is offline. When null, the state is unknown (we haven't yet checked to see if we are online).
+* ```isStatusOnline``` - Client is currently online.
+* ```isStatusOffline``` - Client is currently offline.
+* ```isStatusUnknown``` - No call has been made to the server so we don't know the status yet or a call was made and we are unable to determine the status.
 
-Instead of checking for ```true```, ```false``` and ```null``` please use:
-
-* ```restoff.ONLINE_UNKNOWN``` - Resolves to ```null```. State is unknown.
-* ```restoff.ONLINE``` - Resolves to ```true```. State is online.
-* ```restoff.ONLINE_NOT``` - Resolves to ```false```. State is offline.
+* Note: Calls made with ```clientOffline``` set to ```true``` do not affect the above status. 
+* Note: Setting ```forcedOffline``` to true affects the above status.
 
 Example usage:
 
@@ -387,30 +409,17 @@ if (roff.isOnline) {
 }
 ```
 
-### forcedOffline Property, forceOffline() and forceOnline()
-
-You can "force" your application offline by calling ```forceOffline()``` and "force" the application online by calling ```forceOnline()```. Forcing offline overwrites ```ajax.send()``` to simply call ```onreadystatechange``` with a ```readyState``` of ```DONE```.
-
-```isOnline``` will return false when ```forcedOffline``` is true.
-
-```javascript
-var roff = restoff();
-roff.forceOffline();
-if (!roff.isOnline) {
-	console.log ("We are offline!");
-}
-```
-
-This can be very useful if your customer wants to see how their application behaves when it is offline. For example, a customer could force a reload of all information. Then forceOffline() and see if they have the information they need before going to a location that has no internet access or cellphone access.
-
-
-## FAQ
+# FAQ
 
 * What is the difference between ```offlineOnly``` and ```forcedOffline```?
 	- ```forcedOffline``` will line up any pending changes that are then synchronized when the client comes back online.
 	- ```offlineOnly``` does not log any "pending changes" because the repository will never be synchronzied with a backend service.
 
-# Setup
+# Developoment Setup
+
+Want to help out? Here is what you need to do to get started.
+
+// TODO: Finish this part of documentation
 
 ## Using In Your Projects
 
@@ -418,9 +427,8 @@ Change directory to your node project.
 
     $ npm install --save restoff
 
-## Development
 
-### Setup
+## Setup
 
 ```
 $ npm install
@@ -478,6 +486,24 @@ Add to your /etc/hosts file:
 ```
 127.0.0.1 test.development.com
 ```
+
+
+
+### Functions and Properties
+
+* **autoHeaderParamSet(name, value)** - A header of ```name``` with ```value``` will be added to the header of every RESTful api call.
+* **autoHeaderParamGet(name)** - Returns the value of the header parameter with the provided ```name```.
+* **autoQueryParamSet(name, value)** - A parameter of ```name``` with ```value``` will be added/appended to every RESTful api call.
+* **autoQueryParamGet(name)** - Returns the value of the query parameter with the provided ```name```.
+* **clearCacheAll()** - Clears all caches. Doesn't delete data on the server.
+* **clearCacheBy(repoName)** - Clears the cache of a given repository. Doesn't delete data on the server.
+* **delete(uri)** - Deletes a resource from a remote server.
+* **forceOffline()** - Force the appliction to operate "offline".
+* **forceOnline()** - Force the application back "online".
+* **get(uri)** - Retrieves a json resource from a remote server using the local repository when offline.
+* **post(uri, resource)** - Posts a resource to a remote server and in the local repository adding the resource if it doesn't exist or overwriting the existing resource.
+* **put(uri, resource)** - Puts a known resource on a remote server and in the local repository updating the resource id provided in the uri.
+* **uriGenerate(uri)** - Returns the uri generated based on things like auto addition of query parameters, etc.
 
 ## TODOs
 
