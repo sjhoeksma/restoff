@@ -1,7 +1,18 @@
 function lowdbRepo(config) {
 	var that = Object.create(LowdbRepo.prototype);
-	that._dbName = (undefined !== config) ? config.dbName ? config.dbName : "restoff" : "restoff";
-	that._low = low(that._dbName, { storage: low.localStorage }); // local storage	
+	that._dbName = (undefined !== config) ? config.dbName ? config.dbName : "restoff.json" : "restoff.json";
+
+	var low = root && root.low ? root.low : undefined;
+
+	if (typeof module !== 'undefined' && module.exports) {
+		low = require('lowdb');
+		var storage = require('lowdb/file-sync');
+		that._low = low(that._dbName, { storage: storage }); // file storage
+	} else {
+		// TODO: Provide an error message if script tag is incorect
+		that._low = low(that._dbName, { storage: low.localStorage }); // local storage	
+	}
+
 	return that;
 }
 

@@ -43,7 +43,6 @@ describe ("restoff", function() {
 		expect(roff.pendingUri, "pendingUri").to.equal("http://localhost/");
 		expect(roff.pendingRepoName, "pendingRepoName").to.equal("pending");
 
-
 		var roff2 = restoff({
 			"primaryKeyName" : "id2",
 			"rootUri" : ROOT_URI,

@@ -16,7 +16,7 @@ describe ("lowdbRepo", function() {
 
 	it("02: should handle config settings correctly", function() {
 		var repo = lowdbRepo();
-		expect(repo.dbName, "dbName").to.equal("restoff");
+		expect(repo.dbName, "dbName").to.equal("restoff.json");
 		repo.dbName = "new.json";
 		expect(repo.dbName, "dbName").to.equal("new.json");
 

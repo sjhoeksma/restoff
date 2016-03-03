@@ -234,7 +234,7 @@ RestOff.prototype.clearAll = function(force) {
 			if ((pendLength > 0) && (false === force)) {
 				reject("Submit pending changes before clearing database or call clearAll(true) to force.");
 			} else {
-				that._dbRepo.clearAll();
+				that.dbRepo.clearAll();
 				return that._pendingClearAll().then(function(result) {
 					resolve();
 				});
@@ -251,7 +251,7 @@ RestOff.prototype.clear = function(repoName, force) {
 			if ((pendLength > 0) && (false === force)) {
 				reject("Submit pending changes before clearing database or call clear(repoName, true) to force.");
 			} else {
-				that._dbRepo.clear(repoName);
+				that.dbRepo.clear(repoName);
 				return that._pendingClear(repoName).then(function(result) {
 					resolve();
 				});
@@ -269,7 +269,7 @@ RestOff.prototype._repoGet = function(uri) {
 }
 
 RestOff.prototype._repoFind = function(uri) {
-	return this._dbRepo.find(uri.repoName, uri.primaryKeyName, uri.primaryKey)	
+	return this.dbRepo.find(uri.repoName, uri.primaryKeyName, uri.primaryKey)	
 }
 
 RestOff.prototype._repoAdd = function(uri, resourceRaw) {
