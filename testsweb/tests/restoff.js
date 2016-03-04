@@ -9,19 +9,19 @@ describe ("restoff", function() {
 	}
 
 	it("01: should not wipeout Object prototype and be a restoff", function() {
-		var roff = restoff();
-		expect(restoff, "restoff").to.be.an("function");
+		var roff = restlib.restoff();
+		expect(restlib.restoff, "restoff").to.be.an("function");
 		expect(roff, "restoff").to.be.an("object");
 	});
 
 	it("02: should start out as being unknown\
 		    for online/offline status", function() {
-		var roff = restoff();
+		var roff = restlib.restoff();
 		onlineStatusShouldEqual(roff, false, false, true, false);
 	});
 
 	it("03: should handle config settings correctly", function() {
-		var roff = restoff();
+		var roff = restlib.restoff();
 		expect(roff.dbRepo, "dbRepo").to.be.an("object");
 
 		expect(roff.rootUri, "rootUri").to.equal("");
@@ -43,10 +43,10 @@ describe ("restoff", function() {
 		expect(roff.pendingUri, "pendingUri").to.equal("http://localhost/");
 		expect(roff.pendingRepoName, "pendingRepoName").to.equal("pending");
 
-		var roff2 = restoff({
+		var roff2 = restlib.restoff({
 			"primaryKeyName" : "id2",
 			"rootUri" : ROOT_URI,
-			"dbRepo" : lowdbRepo({
+			"dbRepo" : restlib.lowdbRepo({
 				"dbName" : "TestDb"
 			}),
 			"clientOnly" : true,
@@ -71,7 +71,7 @@ describe ("restoff", function() {
 		    have correct online statuses\
 		    and still be available when offline", function() {
 		var userRepo = "users11";
-		var roff = restoff({ "rootUri" : ROOT_URI });
+		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 		return roff.clear(userRepo, true).then(function(result) {
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 			onlineStatusShouldEqual(roff, false, false, true, false);
@@ -97,7 +97,7 @@ describe ("restoff", function() {
 		    should use full uri if passed", function() {
 		var userRepo = "users12";
 		var userRepo2 = "users11";
-		var roff = restoff({ "rootUri" : ROOT_URI });
+		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 		return roff.clearAll(true).then(function(result) {
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 			return roff.get(ROOT_URI + userRepo).then(function(result) {
@@ -118,7 +118,7 @@ describe ("restoff", function() {
 	});
 
 	it("06: get should, when online, handle network errors", function() {
-		var roff = restoff({
+		var roff = restlib.restoff({
 			rootUri: "http://idontexisthopefully.com/"
 		});
 		return roff.clearAll(true).then(function(result) {
@@ -141,7 +141,7 @@ describe ("restoff", function() {
 		    and when offline create a repository", function() {
 		var userRepo = "users100";
 
-		var roff = restoff({
+		var roff = restlib.restoff({
 			"rootUri" : ROOT_URI
 		});
 		return roff.clearAll(true).then(function(result) {
@@ -169,7 +169,7 @@ describe ("restoff", function() {
 			persisted on a get. When offline, nothing should\
 			be retrieved.", function() {
 		// TODO: Add Post, Delete, Put
-		var roffParam = restoff();
+		var roffParam = restlib.restoff();
 
 		expect(roffParam.persistanceDisabled, "persistanceDisabled").to.equal(false);
 		expect(roffParam.dbRepo, "dbRepo").to.be.an("object");
@@ -179,14 +179,14 @@ describe ("restoff", function() {
 		roffParam.persistanceDisabled = false;
 		expect(roffParam.dbRepo, "dbRepo").to.be.an("object");
 
-		var roffParam2 = restoff({
+		var roffParam2 = restlib.restoff({
 			"persistanceDisabled" : true
 		});
 		
 		expect(roffParam2.persistanceDisabled, "persistanceDisabled").to.equal(true);
 
 		var userRepo = "users11";
-		var roff = restoff({
+		var roff = restlib.restoff({
 			"rootUri" : ROOT_URI,
 			"persistanceDisabled" : false // to run clear and read db results
 		});
@@ -209,7 +209,7 @@ describe ("restoff", function() {
 	it("09: should support a non-standard RESTful api,\
 			non-standard primaryKeyName,\
 			and a single non-array resource: not [{ object }] but {object } ", function() {
-		var roff = restoff({
+		var roff = restlib.restoff({
 			"rootUri" : "http://test.development.com:4050/testsweb/testdata/",
 			"primaryKeyName" : "guid"
 		});
@@ -219,7 +219,7 @@ describe ("restoff", function() {
 	});	
 
 	it("10: should support more than one repository", function() {
-		var roff = restoff({ "rootUri" : ROOT_URI });
+		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 		var userRepo = "users11";
 		var addressRepo = "addresses01";
 
@@ -236,7 +236,7 @@ describe ("restoff", function() {
 		and it can support multiple auto parameters\
 		and it will append if there are already parameters in the uri passed\
 		and it will remove any uri parameters when figuring out a repo name", function() {
-		var roff = restoff({
+		var roff = restlib.restoff({
 			"rootUri" : ROOT_URI
 		}).autoQueryParamSet("access_token", "rj5aabcea");
 
@@ -259,7 +259,7 @@ describe ("restoff", function() {
 	});
 
 	it("12: should support adding headers automatically", function() {
-		var roff = restoff({
+		var roff = restlib.restoff({
 			"rootUri" : ROOT_URI
 		}).autoHeaderParamSet("access_token", "rj5aabcea");
 
@@ -288,7 +288,7 @@ describe ("restoff", function() {
 
 		var usersReturned = [userReturned];
 
-		var roff = restoff({ "rootUri" : ROOT_URI });
+		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 		var userRepo = "users11";
 
 		return roff.clearAll(true).then(function(result) {
@@ -312,7 +312,7 @@ describe ("restoff", function() {
 	it("14: get, when clientOnly is true, should persist the data locally\
 			and there should be no pending changes for update/put/delete", function() {
 
-		var roff = restoff({
+		var roff = restlib.restoff({
 			"rootUri" : ROOT_URI,
 			"clientOnly" : true,
 			"pendingRepoName": "pending2"
@@ -350,7 +350,7 @@ describe ("restoff", function() {
 	it("15: get, when clientOnly properties are true, should persist the data locally\
 			and there should be no pending changes for update/put/delete", function() {
 
-		var roff = restoff({
+		var roff = restlib.restoff({
 			"rootUri" : ROOT_URI,
 			"pendingRepoName": "pending2"
 		});
@@ -406,7 +406,7 @@ describe ("restoff", function() {
 	it("16: get, when forcedOffline properties are true, should persist the data locally\
 			and there SHOULD BE pending changes for update/put/delete", function() {
 
-		var roff = restoff({
+		var roff = restlib.restoff({
 			"rootUri" : ROOT_URI
 		});
 		var userRepo = "users11";
@@ -460,7 +460,7 @@ describe ("restoff", function() {
 			and there SHOULD BE no pending changes for update/put/delete.\
 			persistanceDisabled is ignored for get", function() {
 
-		var roff = restoff({
+		var roff = restlib.restoff({
 			"rootUri" : ROOT_URI
 		});
 		var userRepo = "users11";
@@ -511,7 +511,7 @@ describe ("restoff", function() {
 		and the rootUri should be terminated with a backslash\
 		if one was not provided in the rootUri\
 		and pending should be configurable", function() {
-		var roff = restoff({
+		var roff = restlib.restoff({
 			"rootUri" : ROOT_URI,
 			"clientOnly" : true
 		});
@@ -535,7 +535,7 @@ describe ("restoff", function() {
 
 		// NOTE: Current test backed doesn't support stuff like users11?first_name=Fantastic.
 		//		 So, this test does it all on the client side.
-		var roff = restoff({
+		var roff = restlib.restoff({
 			"rootUri" : "http://localhost/",
 			"clientOnly" : true
 		});
@@ -609,8 +609,8 @@ describe ("restoff", function() {
 	it("30: post should, with a blank repo and when online,\
 		    post a new resource to server and local repository", function() {
 		var userRepo = "users02";
-		var roff = restoff({ "rootUri" : ROOT_URI });
-		var dbSource = restoff({ "rootUri" : ROOT_URI });
+		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
+		var dbSource = restlib.restoff({ "rootUri" : ROOT_URI });
 
 		return roff.clear(userRepo, true).then(function(result) {		
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
@@ -644,7 +644,7 @@ describe ("restoff", function() {
 		var editedUsers = [];
 		editedUsers["4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa"] = editedUser;
 
-		var roff = restoff({ "rootUri" : ROOT_URI });
+		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 		return roff.clear(userRepo, true).then(function(result) {
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 			
@@ -674,7 +674,7 @@ describe ("restoff", function() {
 	});		
 
 	it("32: post should, when online, handle network errors", function() {
-		var roff = restoff({
+		var roff = restlib.restoff({
 			rootUri: "http://idontexisthopefully.com/"
 		});
 		return roff.clearAll(true).then(function(result) {
@@ -696,7 +696,7 @@ describe ("restoff", function() {
 	it("33: post should, when online, handle 404s\
 		and NOT persist the resource in the database", function() {
 		var userRepo = "users44";
-		var roff = restoff({ "rootUri" : ROOT_URI });
+		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 		return roff.clearAll(true).then(function(result) {		
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 
@@ -723,7 +723,7 @@ describe ("restoff", function() {
 		and clear repo should fail when force is false", function() {
 
 		var userRepo = "users200";
-		var roff = restoff({
+		var roff = restlib.restoff({
 			"rootUri" : ROOT_URI,
 			forcedOffline : true
 		});
@@ -780,7 +780,7 @@ describe ("restoff", function() {
 		expectedUsers["aedfa7a4-d748-11e5-b5d2-0a1d41d68510"] = expectedUser;
 
 		var userRepo = "users11";
-		var roff = restoff({ "rootUri" : ROOT_URI });
+		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 		return roff.clear(userRepo, true).then(function(result) {		
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 
@@ -801,7 +801,7 @@ describe ("restoff", function() {
 	});
 
 	it("51: put should, when online, handle network errors", function() {
-		var roff = restoff({
+		var roff = restlib.restoff({
 			rootUri: "http://idontexisthopefully.com/"
 		});
 		return roff.clearAll(true).then(function(result) {		
@@ -824,7 +824,7 @@ describe ("restoff", function() {
 	it("52: put should, when online and with a blank repo,\
 		    put an existing resource on the server and local repository", function() {
 		var userRepo = "users07";
-		var roff = restoff({ "rootUri" : ROOT_URI });
+		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 		return roff.clear(userRepo, true).then(function(result) {		
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 
@@ -881,7 +881,7 @@ describe ("restoff", function() {
 		};
 
 		var userRepo = "users08";
-		var roff = restoff({ "rootUri" : ROOT_URI });
+		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 		return roff.clear(userRepo, true).then(function(result) {		
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 			return roff.get(userRepo).then(function(getResults) {
@@ -916,7 +916,7 @@ describe ("restoff", function() {
 			Should also ignore when persistanceDisabled is true", function() {
 		var userRepo = "users44";
 
-		var roff = restoff({ "rootUri" : ROOT_URI });
+		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 		return roff.clear(userRepo, true).then(function(result) {		
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 
@@ -948,7 +948,7 @@ describe ("restoff", function() {
 		usersToDelete["aedfa7a4-d748-11e5-b5d2-0a1d41d68522"] = userToDelete;
 
 		var userRepo = "users06";
-		var roff = restoff({ "rootUri" : ROOT_URI });
+		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 		return roff.clear(userRepo, true).then(function(result) {		
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 
@@ -974,7 +974,7 @@ describe ("restoff", function() {
 
 	it("63: delete should, when online, handle network errors", function() {
 		var userRepo = "users";
-		var roff = restoff({
+		var roff = restlib.restoff({
 			"rootUri" : "http://idontexisthopefully.com/"
 		});
 		return roff.clear(userRepo, true).then(function(result) {		
@@ -1005,7 +1005,7 @@ describe ("restoff", function() {
 		};
 
 		var userRepo = "users14";
-		var roff = restoff({ "rootUri" : ROOT_URI });
+		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 			return roff.clear(userRepo, true).then(function(result) {
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 			return roff.post(userRepo, userToDelete).then(function(getResults) {
@@ -1032,7 +1032,7 @@ describe ("restoff", function() {
 		};
 
 		var userRepo = "user14";
-		var roff = restoff({
+		var roff = restlib.restoff({
 			"rootUri" : ROOT_URI,
 			forcedOffline: true
 		});
@@ -1051,7 +1051,7 @@ describe ("restoff", function() {
 	it("66: delete should, when no primary key is provided,\
 			delete everything in the repository", function(){
 
-		var roff = restoff({
+		var roff = restlib.restoff({
 			"rootUri" : "http://localhost/",
 			"clientOnly" : true
 		});
@@ -1083,7 +1083,7 @@ describe ("restoff", function() {
 	it("67: delete should, when provided with parameters,\
 			delete everything that matches a query", function(){
 
-		var roff = restoff({
+		var roff = restlib.restoff({
 			"rootUri" : "http://localhost/",
 			"clientOnly" : true
 		});
@@ -1167,7 +1167,7 @@ describe ("restoff", function() {
 
 
 		var userRepo = "users15";
-		var roff = restoff({ "rootUri" : ROOT_URI });
+		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 		return roff.clear(userRepo, true).then(function(result) {		
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 			return roff.post(userRepo, user01).then(function(result) {
@@ -1215,7 +1215,7 @@ describe ("restoff", function() {
 	// // Actual offline test: Comment out this code and make sure your internet
 	// // connection is turned off
 	// it("99: should work offline when it is 'really' offline", function() {
-	// 	var roff = restoff();
+	// 	var roff = restlib.restoff();
 
 	// 	return roff.get("http://jsonplaceholder.typicode.com/posts").then(function(result){
 	// 		expect(true, "Promise should call the catch.", false);			
@@ -1292,7 +1292,7 @@ describe ("restoff", function() {
 		var promise = new Promise(function(resolve, reject) {		
 			// Verify client persisted database for repository is exactly equal
 			// to the table/data in the servers database
-			var roffDisabled = restoff({
+			var roffDisabled = restlib.restoff({
 				"rootUri" : ROOT_URI,			
 				"persistanceDisabled" : true // Don't store the results anywhere
 			});
