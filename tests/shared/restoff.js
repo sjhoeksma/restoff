@@ -78,8 +78,7 @@ describe("restoffService", function() {
 						expect(users, "result should equal users").to.deep.equals(result);
 						return roffs.find("users").then(function(result) {
 							expect([user, user2, user3], "result should equal users").to.deep.equals(result);
-							return roffs.delete("users", "8af8f277-77c9-4c6d-8819-9f97a3545598").then(function(deletedId) {
-								expect(deletedId, "correct deleted id").to.equal("8af8f277-77c9-4c6d-8819-9f97a3545598");
+							return roffs.delete("users", {id:"8af8f277-77c9-4c6d-8819-9f97a3545598"}).then(function() {
 								return roffs.find("users").then(function(result) {
 									expect([user, user2], "result should have one less user").to.deep.equals(result);
 									return roffs.clear("users").then(function() {
@@ -135,7 +134,7 @@ describe("restoffService", function() {
 				return roffs.write("addresses", address).then(function(result) {
 					return roffs.write("users", users).then(function(result) {
 						return roffs.find("users").then(function(result) {
-							return roffs.delete("users", "8af8f277-77c9-4c6d-8819-9f97a3545598").then(function(deletedId) {
+							return roffs.delete("users", {id2:"8af8f277-77c9-4c6d-8819-9f97a3545598"}).then(function(deletedId) {
 								return roffs.find("users").then(function(result) {
 									return roffs.clear("users").then(function() {
 										return roffs.find("users").then(function(result) {
@@ -169,7 +168,7 @@ describe("restoffService", function() {
 				return roffs.write("addresses", addressUpdated, {primaryKeyName:"guid"}).then(function(result) {
 					return roffs.find("addresses").then(function(result) {
 						expect([addressUpdated], "result should equal address").to.deep.equals(result);
-						return roffs.delete("addresses", "8af8f277-77c9-4c6d-8819-9f97a3545522", {primaryKeyName:"guid"}).then(function(deletedId) {
+						return roffs.delete("addresses", {guid:"8af8f277-77c9-4c6d-8819-9f97a3545522"}).then(function(deletedId) {
 							return roffs.find("addresses", {primaryKeyName:"guid"}).then(function(result) {
 								expect(result, "addresses should be empty").to.deep.equals([]);
 							});
@@ -246,7 +245,7 @@ describe("restoffService", function() {
 				return roffs.write("addresses", addressUpdated).then(function(result) {
 					return roffs.find("addresses").then(function(result) {
 						expect([addressUpdated], "result should equal address").to.deep.equals(result);
-						return roffs.delete("addresses", "8af8f277-77c9-4c6d-8819-9f97a3545522").then(function(deletedId) {
+						return roffs.delete("addresses", {guid:"8af8f277-77c9-4c6d-8819-9f97a3545522"}).then(function(deletedId) {
 							return roffs.find("addresses").then(function(result) {
 								expect(result, "addresses should be empty").to.deep.equals([]);
 							});
@@ -287,7 +286,7 @@ describe("restoffService", function() {
 			return roffs.write("users", users).then(function(result) {
 				return roffs.find("users", {sex:"Female"}).then(function(result) {
 					expect([user03], "should find correct records").to.deep.equals(result);
-					return roffs.deleteQuery("users", {sex:"Male"}).then(function() {
+					return roffs.delete("users", {sex:"Male"}).then(function() {
 						return roffs.find("users").then(function(result) {
 							expect([user03], "should find correct records").to.deep.equals(result);
 						});

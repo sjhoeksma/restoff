@@ -85,18 +85,7 @@ RestOffService.prototype.clear = function(repoName) {
 	});
 }
 
-RestOffService.prototype.delete = function(repoName, primaryKey, options) {
-	var that = this;
-	return new Promise(function(resolve, reject) {
-		var pkName = that._pkNameGet(repoName, options);
-		var query = {};
-		query[pkName] = primaryKey;
-		that.dbRepo.delete(repoName, query);
-		resolve(primaryKey);
-	});
-}
-
-RestOffService.prototype.deleteQuery = function(repoName, query) {
+RestOffService.prototype.delete = function(repoName, query) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
 		resolve(that.dbRepo.delete(repoName, query));

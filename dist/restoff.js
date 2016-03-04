@@ -103,18 +103,7 @@ RestOffService.prototype.clear = function(repoName) {
 	});
 }
 
-RestOffService.prototype.delete = function(repoName, primaryKey, options) {
-	var that = this;
-	return new Promise(function(resolve, reject) {
-		var pkName = that._pkNameGet(repoName, options);
-		var query = {};
-		query[pkName] = primaryKey;
-		that.dbRepo.delete(repoName, query);
-		resolve(primaryKey);
-	});
-}
-
-RestOffService.prototype.deleteQuery = function(repoName, query) {
+RestOffService.prototype.delete = function(repoName, query) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
 		resolve(that.dbRepo.delete(repoName, query));
@@ -146,21 +135,14 @@ function restoff(config) {
 	that._isOnline = null;
 	that._autoParams = {};
 	that._autoHeaders = {};
-
-	if (that._options.persistanceDisabled) {
-		that._dbRepo = null;
-	} else {
-		that._dbRepo = (undefined !== config) ? config.dbRepo ? config.dbRepo : lowdbRepo() : lowdbRepo();
-		// that._dbRepo = (undefined !== config) ? config.dbRepo ? config.dbRepo : restoffService() : restoffService();
-
-	}
+	that._dbService = restoffService(that._options);
 
 	return that;
 }
 
 function RestOff() {}
 RestOff.prototype = Object.create(Object.prototype, {
-	dbRepo: { get: function() { return this._dbRepo; }},
+	dbService: { get: function() { return this._dbService; }},
 	isStatusOnline: { get: function() { return this._isOnline === true; }},
 	isStatusOffline: { get: function() { return this._isOnline === false; }},
 	isStatusUnknown: { get: function() { return this._isOnline === null; }},
@@ -185,13 +167,11 @@ RestOff.prototype = Object.create(Object.prototype, {
 		get: function() { return this._options.persistanceDisabled; },
 		set: function(value) {
 			this._options.persistanceDisabled = value;
-			this._dbRepo = value ? null : lowdbRepo();
-			// this._dbRepo = value ? null : restoffService();
 		}
 	},
 	primaryKeyName: {
-		get: function() { return this._options.primaryKeyName; },
-		set: function(value) { this._options.primaryKeyName = value; }
+		get: function() { return this.dbService.primaryKeyName; },
+		set: function(value) { this.dbService.primaryKeyName = value; }
 	},
 	rootUri: {
 		get: function() { return this._options.rootUri; },
@@ -206,18 +186,6 @@ RestOff.prototype._logMessage = function(message) {
 	console.log(message);
 }
 
-RestOff.prototype._pendingWrite = function(pendingRec) {
-	var that = this;
-	return new Promise(function(resolve, reject) {
-		// Eat our own dog food
-		return that.post(that.pendingUri + that.pendingRepoName, pendingRec, {rootUri:that.pendingUri,clientOnly:true}).then(function(result) {
-			resolve(result);
-		}).catch(function(error) {
-			reject(error);
-		}); 
-	});
-} 
-
 RestOff.prototype._pendingLength = function(repoName) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
@@ -225,30 +193,6 @@ RestOff.prototype._pendingLength = function(repoName) {
 		// Eat our own dog food
 		return that.get(uri, {rootUri:that.pendingUri,clientOnly:true}).then(function(data) {
 			resolve(data.length);
-		}).catch(function(error) {
-			reject(error);
-		});
-	});
-}
-
-RestOff.prototype._pendingClear = function(repoName) {
-	var that = this;
-	return new Promise(function(resolve, reject) {
-		// Eat our own dog food.
-		return that.delete(that.pendingRepoName + "?repoName=" + repoName, {rootUri:that.pendingUri, clientOnly:true}).then(function(result) {
-			resolve();
-		}).catch(function(error) {
-			reject(error);
-		});
-	});
-}
-
-RestOff.prototype._pendingClearAll = function() {
-	var that = this;
-	return new Promise(function(resolve, reject) {
-		// Eat our own dog food
-		return that.delete(that.pendingRepoName, {rootUri:that.pendingUri, clientOnly:true}).then(function(result) {
-			resolve();
 		}).catch(function(error) {
 			reject(error);
 		});
@@ -351,14 +295,6 @@ RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) 
 	return uriResult;
 }
 
-RestOff.prototype._primaryKeyFor = function(resource) {
-	var result = resource[this.primaryKeyName];
-	if (undefined === resource[this.primaryKeyName]) {
-		console.log("WARNING: resource %O did not have a primaryKey " + this.primaryKeyName, resource); // TODO: Write tests for this
-	}
-	return result;
-}
-
 RestOff.prototype.clearAll = function(force) {
 	var that = this;
 
@@ -368,12 +304,13 @@ RestOff.prototype.clearAll = function(force) {
 			if ((pendLength > 0) && (false === force)) {
 				reject("Submit pending changes before clearing database or call clearAll(true) to force.");
 			} else {
-				that.dbRepo.clearAll();
-				// return that.dbRepo.clearAll().then(function(result) {
-					return that._pendingClearAll().then(function(result) {
+				return that.dbService.clearAll().then(function() {
+					return that.delete(that.pendingRepoName, {rootUri:that.pendingUri, clientOnly:true}).then(function(result) {
 						resolve();
+					}).catch(function(error) {
+						reject(error);
 					});
-				// });
+				});
 			}
 		});
 	});
@@ -387,32 +324,42 @@ RestOff.prototype.clear = function(repoName, force) {
 			if ((pendLength > 0) && (false === force)) {
 				reject("Submit pending changes before clearing database or call clear(repoName, true) to force.");
 			} else {
-				that.dbRepo.clear(repoName);
-				// return that.dbRepo.clear(repoName).then(function(result) {
-					return that._pendingClear(repoName).then(function(result) {
+				return that.dbService.clear(repoName).then(function(result) {
+					return that.delete(that.pendingRepoName + "?repoName=" + repoName, {rootUri:that.pendingUri, clientOnly:true}).then(function(result) {
 						resolve();
+					}).catch(function(error) {
+						reject(error);
 					});
-				// });
+				});
 			}
 		});
 	});
 }
 
-RestOff.prototype._repoGet = function(uri) {
+RestOff.prototype._repoGet = function(uri, resolve, reject) {
 	var query = uri.searchOptions;
 	if ("" !== uri.primaryKey) {
 		query[uri.primaryKeyName] = uri.primaryKey;
 	}
-	return uri.options.persistanceDisabled ? [] : this.dbRepo.read(uri.repoName, query);
+
+	if (uri.options.persistanceDisabled) {
+		resolve([]);
+	} else {
+		return this.dbService.find(uri.repoName, query).then(function(result) {
+			resolve(result);
+		});
+	}
+
 }
 
 RestOff.prototype._repoFind = function(uri) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
-		resolve(that.dbRepo.find(uri.repoName, uri.primaryKeyName, uri.primaryKey));
-		// return that.dbRepo.find(uri.repoName, uri.primaryKeyName, uri.primaryKey).then(function(result) {
-		// 	resolve(result);
-		// });
+		var query = {};
+		query[uri.keyName] = uri.primaryKey;
+		return that.dbService.find(uri.repoName, query).then(function(result) {
+			resolve(result);
+		});
 	});
 }
 
@@ -426,18 +373,6 @@ RestOff.prototype._repoAdd = function(uri, resourceRaw) {
 	});
 }
 
-// TODO: Remove all of this function and call write directly
-RestOff.prototype._repoAddAll = function(uri, resourceArray) {
-	var that = this;
-	return new Promise(function(resolve, reject) {
-		resourceArray.forEach(function(resource) {
-			var primaryKey = that._primaryKeyFor(resource);
-			that.dbRepo.write(uri.repoName, that.primaryKeyName, primaryKey, resource);
-		});
-		resolve(resourceArray);
-	});
-}
-
 RestOff.prototype._repoAddResource = function(uri) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
@@ -445,31 +380,32 @@ RestOff.prototype._repoAddResource = function(uri) {
 		if (!uri.options.persistanceDisabled) {
 			// TODO: Check for soft deletes so we don't need to get all the records from the database
 			if (("" === uri.primaryKey) && ("GET" === uri.restMethod)) {  // Complete get, doing a merge because we don't have soft_delete
-			     return that.clear(uri.repoName).then(function() {  // TODO: What do we do when there are pending changes
-			     	return that._repoAddAll(uri, resourceArray).then(function() {
-			     		resolve(uri.resources);
-			     	});
-					
-			     });
-			} else {
-				return that._repoAddAll(uri, resourceArray).then(function() {
-					resolve(uri.resources);
+				return that.clear(uri.repoName).then(function() {  // TODO: What do we do when there are pending changes
+					return that.dbService.write(uri.repoName, resourceArray).then(function(result){
+						resolve(uri.resources);
+					})
 				});
+			} else {
+				return that.dbService.write(uri.repoName, resourceArray).then(function(result){
+					resolve(uri.resources);
+				})
 			}
 		} // else don't persist
 		resolve(uri.resources);	
 	});
 }
 
-RestOff.prototype._repoDeleteResource = function(uri) {
+RestOff.prototype._repoDeleteResource = function(uri, resolve) {
 	if (!uri.options.persistanceDisabled) {
 		var searchOptions = uri.searchOptions;
 		if ("" !== uri.primaryKey) {
 			searchOptions[uri.primaryKeyName] = uri.primaryKey;
 		}
-		this.dbRepo.delete(uri.repoName, searchOptions);
+		return this.dbService.delete(uri.repoName, searchOptions).then(function(result) {
+			resolve(uri.primaryKey);
+		});
 	}
-	return (uri.primaryKey);
+	resolve(uri.primaryKey);
 }
 
 RestOff.prototype._createError = function(uri) {
@@ -521,9 +457,15 @@ RestOff.prototype._pendingAdd = function(uri) {
 		}
 
 		if (!uri.options.persistanceDisabled) {
-			that._pendingWrite(result);
+			// Eat our own dog food
+			return that.post(that.pendingUri + that.pendingRepoName, result, {rootUri:that.pendingUri,clientOnly:true}).then(function(result) {
+				resolve(result);
+			}).catch(function(error) {
+				reject(error);
+			}); 
+		} else {
+			resolve(result);
 		}
-		resolve(result);
 	});
 }
 
@@ -552,11 +494,11 @@ RestOff.prototype._dbDelete = function(uri, resolve, reject) {
 	switch (request.status) {
 		case 200: case 202: case 204: // TODO: Write test for 202 and 204
 			this._isOnline = true;
-			resolve(this._repoDeleteResource(uri));
+			this._repoDeleteResource(uri, resolve);
 		break;
 		case 404:
 			this._isOnline = true;
-			resolve(this._repoDeleteResource(uri)); // 404 but will remove from client anyway
+			this._repoDeleteResource(uri, resolve); // 404 but will remove from client anyway
 		break;
 		case 0:
 			var clientOnly = uri.options.clientOnly;
@@ -565,11 +507,10 @@ RestOff.prototype._dbDelete = function(uri, resolve, reject) {
 					var that = this;
 					this._isOnline = false;
 					this._pendingAdd(uri).then(function(result) {
-						that._repoDeleteResource(uri);
-						resolve();
+						that._repoDeleteResource(uri, resolve);
 					});
 				} else {
-					resolve(this._repoDeleteResource(uri));
+					this._repoDeleteResource(uri, resolve);
 				}
 			} else {
 				this._isOnline = null;
@@ -596,7 +537,7 @@ RestOff.prototype._dbGet = function(uri, resolve, reject) {
 				if (!clientOnly) {
 					this._isOnline = false;
 				}
-				resolve(this._repoGet(uri));
+				this._repoGet(uri, resolve, reject);
 			} else {
 				this._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
 				reject(this._createError(uri));
