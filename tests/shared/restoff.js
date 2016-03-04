@@ -76,17 +76,17 @@ describe("restoffService", function() {
 					expect([address], "result should equal address").to.deep.equals(result);
 					return roffs.add("users", users).then(function(result) {
 						expect(users, "result should equal users").to.deep.equals(result);
-						return roffs.get("users").then(function(result) {
+						return roffs.find("users").then(function(result) {
 							expect([user, user2, user3], "result should equal users").to.deep.equals(result);
 							return roffs.delete("users", "8af8f277-77c9-4c6d-8819-9f97a3545598").then(function(deletedId) {
 								expect(deletedId, "correct deleted id").to.equal("8af8f277-77c9-4c6d-8819-9f97a3545598");
-								return roffs.get("users").then(function(result) {
+								return roffs.find("users").then(function(result) {
 									expect([user, user2], "result should have one less user").to.deep.equals(result);
 									return roffs.clear("users").then(function() {
-										return roffs.get("users").then(function(result) {
+										return roffs.find("users").then(function(result) {
 											expect([], "result should have one less user").to.deep.equals(result); // nothing left in users
 											return roffs.clearAll().then(function() {
-												return roffs.get("addresses").then(function(result) {
+												return roffs.find("addresses").then(function(result) {
 													expect([], "result should have no addresses").to.deep.equals(result); // nothing left
 												});
 											});
@@ -134,11 +134,11 @@ describe("restoffService", function() {
 			return roffs.add("users", user).then(function(result) {
 				return roffs.add("addresses", address).then(function(result) {
 					return roffs.add("users", users).then(function(result) {
-						return roffs.get("users").then(function(result) {
+						return roffs.find("users").then(function(result) {
 							return roffs.delete("users", "8af8f277-77c9-4c6d-8819-9f97a3545598").then(function(deletedId) {
-								return roffs.get("users").then(function(result) {
+								return roffs.find("users").then(function(result) {
 									return roffs.clear("users").then(function() {
-										return roffs.get("users").then(function(result) {
+										return roffs.find("users").then(function(result) {
 											return roffs.clearAll().then(function() {
 											});
 										});
@@ -167,10 +167,10 @@ describe("restoffService", function() {
 		return roffs.clearAll().then(function() {
 			return roffs.add("addresses", address, {primaryKeyName:"guid"}).then(function(result) {
 				return roffs.add("addresses", addressUpdated, {primaryKeyName:"guid"}).then(function(result) {
-					return roffs.get("addresses", {primaryKeyName:"guid"}).then(function(result) {
+					return roffs.find("addresses").then(function(result) {
 						expect([addressUpdated], "result should equal address").to.deep.equals(result);
 						return roffs.delete("addresses", "8af8f277-77c9-4c6d-8819-9f97a3545522", {primaryKeyName:"guid"}).then(function(deletedId) {
-							return roffs.get("addresses", {primaryKeyName:"guid"}).then(function(result) {
+							return roffs.find("addresses", {primaryKeyName:"guid"}).then(function(result) {
 								expect(result, "addresses should be empty").to.deep.equals([]);
 							});
 						});
@@ -244,14 +244,11 @@ describe("restoffService", function() {
 		return roffs.clearAll().then(function() {
 			return roffs.add("addresses", address).then(function(result) {
 				return roffs.add("addresses", addressUpdated).then(function(result) {
-					return roffs.get("addresses").then(function(result) {
+					return roffs.find("addresses").then(function(result) {
 						expect([addressUpdated], "result should equal address").to.deep.equals(result);
 						return roffs.delete("addresses", "8af8f277-77c9-4c6d-8819-9f97a3545522").then(function(deletedId) {
-							return roffs.get("addresses").then(function(result) {
+							return roffs.find("addresses").then(function(result) {
 								expect(result, "addresses should be empty").to.deep.equals([]);
-								return roffs.get("addresses", {primaryKeyName:"bad"}).catch(function(result) { // call specific overrides repo level
-									expect(error, "correct error expected").to.deep.equals("Primary key 'bad' required for resource or the resource has an invalid primary key.");
-								});
 							});
 						});
 					});
@@ -259,4 +256,45 @@ describe("restoffService", function() {
 			});
 		});
 	});
+
+	it("10: should find items in the repository.", function() {
+		var roffs = restlib.restoffService();
+
+		var user01 = {
+			id: "99fcc513-be45-48cd-99cf-c48320775bc2",
+			first_name: "Happy",
+			last_name: "First",
+			sex: "Male"
+		};
+
+		var user02 = {
+			id: "99fcc513-be45-48cd-99cf-c48320775bc3",
+			first_name: "Happy",
+			last_name: "Second",
+			sex: "Male"
+		};
+
+		var user03 = {
+			id: "99fcc513-be45-48cd-99cf-c48320775bc4",
+			first_name: "Happy",
+			last_name: "Third",
+			sex: "Female"
+		};
+
+		var users = [user01, user02, user03]
+
+		return roffs.clearAll().then(function() {
+			return roffs.add("users", users).then(function(result) {
+				return roffs.find("users", {sex:"Female"}).then(function(result) {
+					expect([user03], "should find correct records").to.deep.equals(result);
+					return roffs.deleteQuery("users", {sex:"Male"}).then(function() {
+						return roffs.find("users").then(function(result) {
+							expect([user03], "should find correct records").to.deep.equals(result);
+						});
+					});
+				});
+			});
+		});
+	});
+
 });
