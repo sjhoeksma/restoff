@@ -19,21 +19,26 @@ if (typeof module !== 'undefined' && module.exports) {
 function restoffService(config) {
 	var defaultConfig = {
 		primaryKeyName: "id",
+		dbName: "restoff.json",
 		repoOptions: []
 	};
 	var that = Object.create(RestOffService.prototype);
 	that._options = Object.assign(defaultConfig, config);
-	that._dbRepo = (undefined !== config) ? config.dbRepo ? config.dbRepo : lowdbRepo() : lowdbRepo();
+	that._dbRepo = lowdbRepo(that._options);
 	return that;
 }
 
 function RestOffService() {}
 RestOffService.prototype = Object.create(Object.prototype, {
+	dbName: {
+		get: function() { return this.options.dbName; },
+		set: function(value) { this.options.dbName = value; }
+	},
 	dbRepo: { get: function() { return this._dbRepo; }},
 	options: { get: function() { return this._options; }},
 	primaryKeyName: {
-		get: function() { return this._options.primaryKeyName; },
-		set: function(value) { this._options.primaryKeyName = value; }
+		get: function() { return this.options.primaryKeyName; },
+		set: function(value) { this.options.primaryKeyName = value; }
 	}
 });
 
@@ -120,7 +125,6 @@ RestOffService.prototype.find = function(repoName, query) {
 restlib.restoffService = restoffService;
 function restoff(config) {
 	var defaultConfig = {
-		primaryKeyName: "id",
 		rootUri: "",
 		clientOnly: false,
 		forcedOffline: false,
@@ -135,7 +139,7 @@ function restoff(config) {
 	that._isOnline = null;
 	that._autoParams = {};
 	that._autoHeaders = {};
-	that._dbService = restoffService(that._options);
+	that._dbService = restoffService(that._options.dbService);
 
 	return that;
 }
@@ -165,9 +169,7 @@ RestOff.prototype = Object.create(Object.prototype, {
 	},
 	persistanceDisabled: {
 		get: function() { return this._options.persistanceDisabled; },
-		set: function(value) {
-			this._options.persistanceDisabled = value;
-		}
+		set: function(value) { this._options.persistanceDisabled = value; }
 	},
 	primaryKeyName: {
 		get: function() { return this.dbService.primaryKeyName; },
@@ -677,18 +679,25 @@ RestOff.prototype.put = function(uri, resource, options) {
 
 restlib.restoff = restoff; 
 function lowdbRepo(config) {
+	var defaultConfig = {
+		dbName: "restoff.json"
+	};
+
 	var that = Object.create(LowdbRepo.prototype);
-	that._dbName = (undefined !== config) ? config.dbName ? config.dbName : "restoff.json" : "restoff.json";
+	that._options = Object.assign(defaultConfig, config);
 
 	var low = root && root.low ? root.low : undefined;
 
 	if (typeof module !== 'undefined' && module.exports) {
 		low = require('lowdb');
 		var storage = require('lowdb/file-sync');
-		that._low = low(that._dbName, { storage: storage }); // file storage
+		that._low = low(that.dbName, { storage: storage }); // file storage
 	} else {
-		// TODO: Provide an error message if script tag is incorect
-		that._low = low(that._dbName, { storage: low.localStorage }); // local storage	
+		if (typeof low !== 'undefined') {
+			that._low = low(that.dbName, { storage: low.localStorage }); // local storage
+		} else {
+			throw new Error ("LowDb library required. Please see README.md on how to get this library.");
+		}
 	}
 
 	return that;
@@ -697,11 +706,11 @@ function lowdbRepo(config) {
 function LowdbRepo() {}
 LowdbRepo.prototype = Object.create(Object.prototype, {
 	dbName: {
-		get: function() { return this._dbName; },
-		set: function(value) { this._dbName = value; }
+		get: function() { return this.options.dbName; },
+		set: function(value) { this.options.dbName = value; }
 	},
 	dbEngine: { get: function() { return this._low; }},
-	deleteSomeTime: { get: function() { return this._isOnline === true; }}
+	options: { get: function() { return this._options; }}
 });
 
 restlib.lowdbRepo = lowdbRepo;

@@ -1,13 +1,5 @@
 describe ("lowdbRepo", function() {
 
-	var ROOT_URI = "http://test.development.com:3000/";
-
-	function testLog(text) {
-		if (false) {
-			console.log(text);
-		}
-	}
-
 	it("01: should not wipeout Object prototype and be a restoff", function() {
 		var repo = restlib.lowdbRepo();
 		expect(restlib.lowdbRepo, "restoff").to.be.an("function");
@@ -21,7 +13,7 @@ describe ("lowdbRepo", function() {
 		expect(repo.dbName, "dbName").to.equal("new.json");
 
 		var repo2 = restlib.lowdbRepo({
-			"dbName" : "lowdb",
+			"dbName" : "lowdb"
 		});
 		expect(repo2.dbName, "dbName").to.equal("lowdb");
 	});
@@ -29,6 +21,13 @@ describe ("lowdbRepo", function() {
 	it("03: should have a database engine", function() {
 		var repo = restlib.lowdbRepo();
 		expect(repo.dbEngine, "dbEngine").to.be.an("function");
-	});	
+	});
+
+	it("04: should throw an error when lowdb is not incluced", function() {
+		var temp = low;
+		low = undefined;
+		expect(function() { var repo = restlib.lowdbRepo(); }).to.throw("LowDb library required. Please see README.md on how to get this library.");
+		low = temp;
+	});
 
 });

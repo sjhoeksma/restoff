@@ -1,21 +1,26 @@
 function restoffService(config) {
 	var defaultConfig = {
 		primaryKeyName: "id",
+		dbName: "restoff.json",
 		repoOptions: []
 	};
 	var that = Object.create(RestOffService.prototype);
 	that._options = Object.assign(defaultConfig, config);
-	that._dbRepo = (undefined !== config) ? config.dbRepo ? config.dbRepo : lowdbRepo() : lowdbRepo();
+	that._dbRepo = lowdbRepo(that._options);
 	return that;
 }
 
 function RestOffService() {}
 RestOffService.prototype = Object.create(Object.prototype, {
+	dbName: {
+		get: function() { return this.options.dbName; },
+		set: function(value) { this.options.dbName = value; }
+	},
 	dbRepo: { get: function() { return this._dbRepo; }},
 	options: { get: function() { return this._options; }},
 	primaryKeyName: {
-		get: function() { return this._options.primaryKeyName; },
-		set: function(value) { this._options.primaryKeyName = value; }
+		get: function() { return this.options.primaryKeyName; },
+		set: function(value) { this.options.primaryKeyName = value; }
 	}
 });
 

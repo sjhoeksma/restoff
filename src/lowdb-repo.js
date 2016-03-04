@@ -1,16 +1,23 @@
 function lowdbRepo(config) {
+	var defaultConfig = {
+		dbName: "restoff.json"
+	};
+
 	var that = Object.create(LowdbRepo.prototype);
-	that._dbName = (undefined !== config) ? config.dbName ? config.dbName : "restoff.json" : "restoff.json";
+	that._options = Object.assign(defaultConfig, config);
 
 	var low = root && root.low ? root.low : undefined;
 
 	if (typeof module !== 'undefined' && module.exports) {
 		low = require('lowdb');
 		var storage = require('lowdb/file-sync');
-		that._low = low(that._dbName, { storage: storage }); // file storage
+		that._low = low(that.dbName, { storage: storage }); // file storage
 	} else {
-		// TODO: Provide an error message if script tag is incorect
-		that._low = low(that._dbName, { storage: low.localStorage }); // local storage	
+		if (typeof low !== 'undefined') {
+			that._low = low(that.dbName, { storage: low.localStorage }); // local storage
+		} else {
+			throw new Error ("LowDb library required. Please see README.md on how to get this library.");
+		}
 	}
 
 	return that;
@@ -19,11 +26,11 @@ function lowdbRepo(config) {
 function LowdbRepo() {}
 LowdbRepo.prototype = Object.create(Object.prototype, {
 	dbName: {
-		get: function() { return this._dbName; },
-		set: function(value) { this._dbName = value; }
+		get: function() { return this.options.dbName; },
+		set: function(value) { this.options.dbName = value; }
 	},
 	dbEngine: { get: function() { return this._low; }},
-	deleteSomeTime: { get: function() { return this._isOnline === true; }}
+	options: { get: function() { return this._options; }}
 });
 
 restlib.lowdbRepo = lowdbRepo;

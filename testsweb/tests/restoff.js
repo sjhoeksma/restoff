@@ -44,18 +44,18 @@ describe ("restoff", function() {
 		expect(roff.pendingRepoName, "pendingRepoName").to.equal("pending");
 
 		var roff2 = restlib.restoff({
-			"primaryKeyName" : "id2",
-			"rootUri" : ROOT_URI,
-			// "dbService" : restlib.lowdbRepo({
-			// 	"dbName" : "TestDb"
-			// }),
-			"clientOnly" : true,
-			"forcedOffline" : true,
-			"pendingUri" : "http://notlocalhost/pending/",
-			"pendingRepoName" : "pending2"
+			rootUri : ROOT_URI,
+			dbService : {
+				primaryKeyName : "id2",
+				dbName : "TestDb"
+			},
+			clientOnly : true,
+			forcedOffline : true,
+			pendingUri : "http://notlocalhost/pending/",
+			pendingRepoName : "pending2"
 		});
 
-		// expect(roff2.dbService.dbName, "repo.dbName").to.equal("TestDb");
+		expect(roff2.dbService.dbName, "dbService.dbName").to.equal("TestDb");
 		expect(roff2.rootUri, "rootUri").to.equal(ROOT_URI);
 		expect(roff2.primaryKeyName, "primaryKeyName").to.equal("id2");
 		expect(roff2.clientOnly, "clientOnly").to.be.true;
@@ -210,8 +210,10 @@ describe ("restoff", function() {
 			non-standard primaryKeyName,\
 			and a single non-array resource: not [{ object }] but {object } ", function() {
 		var roff = restlib.restoff({
-			"rootUri" : "http://test.development.com:4050/testsweb/testdata/",
-			"primaryKeyName" : "guid"
+			rootUri: "http://test.development.com:4050/testsweb/testdata/",
+			dbService: {
+				primaryKeyName: "guid"
+			}
 		});
 		return roff.get("http://test.development.com:4050/testsweb/testdata/addresses").then(function(addresses) {
 			dbRepoShouldBeEqual(roff, "addresses", addresses, 1);

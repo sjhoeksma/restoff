@@ -30,12 +30,17 @@ describe("restoffService", function() {
 		roffs.primaryKeyName = "id2";
 		expect(roffs.primaryKeyName, "primaryKeyName").to.equal("id2");
 
+		expect(roffs.dbName, "dbName").to.equal("restoff.json");
+		roffs.dbName = "dbfilenew.json";
+		expect(roffs.dbName, "dbName").to.equal("dbfilenew.json");
+
 		var roffs2 = restlib.restoffService({
-			primaryKeyName: "id3"
+			primaryKeyName: "id3",
+			dbName: "newOne"
 		});
 
 		expect(roffs2.primaryKeyName, "primaryKeyName").to.equal("id3");
-
+		expect(roffs2.dbName, "dbName").to.equal("newOne");
 	});
 
 	it("05: clear all resources to prepare tests\

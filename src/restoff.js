@@ -1,6 +1,5 @@
 function restoff(config) {
 	var defaultConfig = {
-		primaryKeyName: "id",
 		rootUri: "",
 		clientOnly: false,
 		forcedOffline: false,
@@ -15,7 +14,7 @@ function restoff(config) {
 	that._isOnline = null;
 	that._autoParams = {};
 	that._autoHeaders = {};
-	that._dbService = restoffService(that._options);
+	that._dbService = restoffService(that._options.dbService);
 
 	return that;
 }
@@ -45,9 +44,7 @@ RestOff.prototype = Object.create(Object.prototype, {
 	},
 	persistanceDisabled: {
 		get: function() { return this._options.persistanceDisabled; },
-		set: function(value) {
-			this._options.persistanceDisabled = value;
-		}
+		set: function(value) { this._options.persistanceDisabled = value; }
 	},
 	primaryKeyName: {
 		get: function() { return this.dbService.primaryKeyName; },
