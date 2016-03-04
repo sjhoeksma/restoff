@@ -38,7 +38,7 @@ describe("restoffService", function() {
 
 	});
 
-	it("05: delete all resources to prepare tests\
+	it("05: clear all resources to prepare tests\
 			then post resources to different repositories\
 		    then get one of those resource\
 		    then delete one of those resources\
@@ -69,8 +69,7 @@ describe("restoffService", function() {
 			id : "8af8f277-77c9-4c6d-8819-9f97a3545522"
 		}
 
-		return roffs.delete().then(function(deletedId) {
-			expect(deletedId, "no id because everything deleted").to.be.undefined;
+		return roffs.clearAll().then(function() {
 			return roffs.add("users", user).then(function(result) {
 				expect([user], "result should equal user").to.deep.equals(result);
 				return roffs.add("addresses", address).then(function(result) {
@@ -83,11 +82,10 @@ describe("restoffService", function() {
 								expect(deletedId, "correct deleted id").to.equal("8af8f277-77c9-4c6d-8819-9f97a3545598");
 								return roffs.get("users").then(function(result) {
 									expect([user, user2], "result should have one less user").to.deep.equals(result);
-									return roffs.delete("users").then(function(deletedId) {
-										expect(deletedId, "no id because everything in 'users' was deleted").to.be.undefined;
+									return roffs.clear("users").then(function() {
 										return roffs.get("users").then(function(result) {
 											expect([], "result should have one less user").to.deep.equals(result); // nothing left in users
-											return roffs.delete().then(function(deletedId) {
+											return roffs.clearAll().then(function() {
 												return roffs.get("addresses").then(function(result) {
 													expect([], "result should have no addresses").to.deep.equals(result); // nothing left
 												});
@@ -132,16 +130,16 @@ describe("restoffService", function() {
 			id2 : "8af8f277-77c9-4c6d-8819-9f97a3545522"
 		}
 
-		return roffs.delete().then(function(deletedId) {
+		return roffs.clearAll().then(function() {
 			return roffs.add("users", user).then(function(result) {
 				return roffs.add("addresses", address).then(function(result) {
 					return roffs.add("users", users).then(function(result) {
 						return roffs.get("users").then(function(result) {
 							return roffs.delete("users", "8af8f277-77c9-4c6d-8819-9f97a3545598").then(function(deletedId) {
 								return roffs.get("users").then(function(result) {
-									return roffs.delete("users").then(function(deletedId) {
+									return roffs.clear("users").then(function() {
 										return roffs.get("users").then(function(result) {
-											return roffs.delete().then(function(deletedId) {
+											return roffs.clearAll().then(function() {
 											});
 										});
 									});
@@ -166,7 +164,7 @@ describe("restoffService", function() {
 			line : "114 Happy Drive2"
 		}
 
-		return roffs.delete().then(function(deletedId) {
+		return roffs.clearAll().then(function() {
 			return roffs.add("addresses", address, {primaryKeyName:"guid"}).then(function(result) {
 				return roffs.add("addresses", addressUpdated, {primaryKeyName:"guid"}).then(function(result) {
 					return roffs.get("addresses", {primaryKeyName:"guid"}).then(function(result) {
@@ -243,7 +241,7 @@ describe("restoffService", function() {
 			line : "114 Happy Drive2"
 		}
 
-		return roffs.delete().then(function(deletedId) {
+		return roffs.clearAll().then(function() {
 			return roffs.add("addresses", address).then(function(result) {
 				return roffs.add("addresses", addressUpdated).then(function(result) {
 					return roffs.get("addresses").then(function(result) {

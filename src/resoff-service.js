@@ -71,20 +71,28 @@ RestOffService.prototype.add = function(repoName, resources, options) {
 	});
 }
 
+RestOffService.prototype.clearAll = function() {
+	var that = this;
+	return new Promise(function(resolve, reject) {
+		resolve(that.dbRepo.clearAll());
+	});
+}
+
+RestOffService.prototype.clear = function(repoName) {
+	var that = this;
+	return new Promise(function(resolve, reject) {
+		resolve(that.dbRepo.clear(repoName));
+	});
+}
+
 RestOffService.prototype.delete = function(repoName, primaryKey, options) { // repoName
 	var that = this;
 	return new Promise(function(resolve, reject) {
 		var pkName = that._pkNameGet(repoName, options);
-		if (undefined === repoName) { // delete whole database
-			resolve(that.dbRepo.clearAll());
-		} else if (undefined === primaryKey) { // delete repository
-			resolve(that.dbRepo.clear(repoName));
-		} else { // delete specific resource
-			var query = {};
-			query[pkName] = primaryKey;
-			that.dbRepo.delete(repoName, query);
-			resolve(primaryKey);
-		}
+		var query = {};
+		query[pkName] = primaryKey;
+		that.dbRepo.delete(repoName, query);
+		resolve(primaryKey);
 	});
 }
 
