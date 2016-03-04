@@ -16,7 +16,8 @@ Rest Offline uses your existing RESTful APIs to synchronize client/server data a
 	* Best to follow [RESTful best known practices][rest-best-practices]
 * Next major features
 	* direct replacement into Angular http
-	* reconciliation of changes between client and server
+	* Restoff will reconcile changes between client and server.
+		* Uses Brent reconciliation: if there is a difference add the resource and let the user figure out which one to delete.
 	* support non-standard get/put/post.
 		- Example: a request GET actually does a delete
 	* major cleanup of documentation
@@ -24,7 +25,6 @@ Rest Offline uses your existing RESTful APIs to synchronize client/server data a
 		- requires better mockable restapi backend for testing)
 	* support nested resources (example: /users/45/addresses)
 	* support non-standard restful api: ability to map a user
-
 
 ## RestOff Usage
 
