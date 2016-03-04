@@ -52,7 +52,7 @@ RestOffService.prototype.repoOptionsSet = function(options) {
 	return this;
 }
 
-RestOffService.prototype.add = function(repoName, resources, options) {
+RestOffService.prototype.write = function(repoName, resources, options) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
 		var pkName = that._pkNameGet(repoName, options);

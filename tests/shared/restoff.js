@@ -18,7 +18,7 @@ describe("restoffService", function() {
 		var roffs = restlib.restoffService({
 			primaryKeyName: "id3"
 		});
-		return roffs.add("users", {name:"User"}).catch(function(error) {
+		return roffs.write("users", {name:"User"}).catch(function(error) {
 			expect(error, "correct error expected").to.deep.equals("Primary key 'id3' required for resource or the resource has an invalid primary key.");
 		});
 
@@ -70,11 +70,11 @@ describe("restoffService", function() {
 		}
 
 		return roffs.clearAll().then(function() {
-			return roffs.add("users", user).then(function(result) {
+			return roffs.write("users", user).then(function(result) {
 				expect([user], "result should equal user").to.deep.equals(result);
-				return roffs.add("addresses", address).then(function(result) {
+				return roffs.write("addresses", address).then(function(result) {
 					expect([address], "result should equal address").to.deep.equals(result);
-					return roffs.add("users", users).then(function(result) {
+					return roffs.write("users", users).then(function(result) {
 						expect(users, "result should equal users").to.deep.equals(result);
 						return roffs.find("users").then(function(result) {
 							expect([user, user2, user3], "result should equal users").to.deep.equals(result);
@@ -131,9 +131,9 @@ describe("restoffService", function() {
 		}
 
 		return roffs.clearAll().then(function() {
-			return roffs.add("users", user).then(function(result) {
-				return roffs.add("addresses", address).then(function(result) {
-					return roffs.add("users", users).then(function(result) {
+			return roffs.write("users", user).then(function(result) {
+				return roffs.write("addresses", address).then(function(result) {
+					return roffs.write("users", users).then(function(result) {
 						return roffs.find("users").then(function(result) {
 							return roffs.delete("users", "8af8f277-77c9-4c6d-8819-9f97a3545598").then(function(deletedId) {
 								return roffs.find("users").then(function(result) {
@@ -165,8 +165,8 @@ describe("restoffService", function() {
 		}
 
 		return roffs.clearAll().then(function() {
-			return roffs.add("addresses", address, {primaryKeyName:"guid"}).then(function(result) {
-				return roffs.add("addresses", addressUpdated, {primaryKeyName:"guid"}).then(function(result) {
+			return roffs.write("addresses", address, {primaryKeyName:"guid"}).then(function(result) {
+				return roffs.write("addresses", addressUpdated, {primaryKeyName:"guid"}).then(function(result) {
 					return roffs.find("addresses").then(function(result) {
 						expect([addressUpdated], "result should equal address").to.deep.equals(result);
 						return roffs.delete("addresses", "8af8f277-77c9-4c6d-8819-9f97a3545522", {primaryKeyName:"guid"}).then(function(deletedId) {
@@ -187,7 +187,7 @@ describe("restoffService", function() {
 			line : "114 Happy Drive"
 		};
 
-		return roffs.add("addresses", address, {primaryKeyName: "nope"}).catch(function(error) {
+		return roffs.write("addresses", address, {primaryKeyName: "nope"}).catch(function(error) {
 			expect(error, "correct error expected").to.deep.equals("Primary key 'nope' required for resource or the resource has an invalid primary key.");
 		});
 	});
@@ -242,8 +242,8 @@ describe("restoffService", function() {
 		}
 
 		return roffs.clearAll().then(function() {
-			return roffs.add("addresses", address).then(function(result) {
-				return roffs.add("addresses", addressUpdated).then(function(result) {
+			return roffs.write("addresses", address).then(function(result) {
+				return roffs.write("addresses", addressUpdated).then(function(result) {
 					return roffs.find("addresses").then(function(result) {
 						expect([addressUpdated], "result should equal address").to.deep.equals(result);
 						return roffs.delete("addresses", "8af8f277-77c9-4c6d-8819-9f97a3545522").then(function(deletedId) {
@@ -284,7 +284,7 @@ describe("restoffService", function() {
 		var users = [user01, user02, user03]
 
 		return roffs.clearAll().then(function() {
-			return roffs.add("users", users).then(function(result) {
+			return roffs.write("users", users).then(function(result) {
 				return roffs.find("users", {sex:"Female"}).then(function(result) {
 					expect([user03], "should find correct records").to.deep.equals(result);
 					return roffs.deleteQuery("users", {sex:"Male"}).then(function() {

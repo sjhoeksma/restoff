@@ -20,6 +20,8 @@ function restoff(config) {
 		that._dbRepo = null;
 	} else {
 		that._dbRepo = (undefined !== config) ? config.dbRepo ? config.dbRepo : lowdbRepo() : lowdbRepo();
+		// that._dbRepo = (undefined !== config) ? config.dbRepo ? config.dbRepo : restoffService() : restoffService();
+
 	}
 
 	return that;
@@ -53,6 +55,7 @@ RestOff.prototype = Object.create(Object.prototype, {
 		set: function(value) {
 			this._options.persistanceDisabled = value;
 			this._dbRepo = value ? null : lowdbRepo();
+			// this._dbRepo = value ? null : restoffService();
 		}
 	},
 	primaryKeyName: {
@@ -235,9 +238,11 @@ RestOff.prototype.clearAll = function(force) {
 				reject("Submit pending changes before clearing database or call clearAll(true) to force.");
 			} else {
 				that.dbRepo.clearAll();
-				return that._pendingClearAll().then(function(result) {
-					resolve();
-				});
+				// return that.dbRepo.clearAll().then(function(result) {
+					return that._pendingClearAll().then(function(result) {
+						resolve();
+					});
+				// });
 			}
 		});
 	});
@@ -252,9 +257,11 @@ RestOff.prototype.clear = function(repoName, force) {
 				reject("Submit pending changes before clearing database or call clear(repoName, true) to force.");
 			} else {
 				that.dbRepo.clear(repoName);
-				return that._pendingClear(repoName).then(function(result) {
-					resolve();
-				});
+				// return that.dbRepo.clear(repoName).then(function(result) {
+					return that._pendingClear(repoName).then(function(result) {
+						resolve();
+					});
+				// });
 			}
 		});
 	});
@@ -269,7 +276,13 @@ RestOff.prototype._repoGet = function(uri) {
 }
 
 RestOff.prototype._repoFind = function(uri) {
-	return this.dbRepo.find(uri.repoName, uri.primaryKeyName, uri.primaryKey)	
+	var that = this;
+	return new Promise(function(resolve, reject) {
+		resolve(that.dbRepo.find(uri.repoName, uri.primaryKeyName, uri.primaryKey));
+		// return that.dbRepo.find(uri.repoName, uri.primaryKeyName, uri.primaryKey).then(function(result) {
+		// 	resolve(result);
+		// });
+	});
 }
 
 RestOff.prototype._repoAdd = function(uri, resourceRaw) {
@@ -282,11 +295,15 @@ RestOff.prototype._repoAdd = function(uri, resourceRaw) {
 	});
 }
 
+// TODO: Remove all of this function and call write directly
 RestOff.prototype._repoAddAll = function(uri, resourceArray) {
 	var that = this;
-	resourceArray.forEach(function(resource) {
-		var primaryKey = that._primaryKeyFor(resource);
-		that.dbRepo.write(uri.repoName, that.primaryKeyName, primaryKey, resource);
+	return new Promise(function(resolve, reject) {
+		resourceArray.forEach(function(resource) {
+			var primaryKey = that._primaryKeyFor(resource);
+			that.dbRepo.write(uri.repoName, that.primaryKeyName, primaryKey, resource);
+		});
+		resolve(resourceArray);
 	});
 }
 
@@ -298,15 +315,18 @@ RestOff.prototype._repoAddResource = function(uri) {
 			// TODO: Check for soft deletes so we don't need to get all the records from the database
 			if (("" === uri.primaryKey) && ("GET" === uri.restMethod)) {  // Complete get, doing a merge because we don't have soft_delete
 			     return that.clear(uri.repoName).then(function() {  // TODO: What do we do when there are pending changes
-			     	that._repoAddAll(uri, resourceArray);
-					resolve(uri.resources);
+			     	return that._repoAddAll(uri, resourceArray).then(function() {
+			     		resolve(uri.resources);
+			     	});
+					
 			     });
 			} else {
-				that._repoAddAll(uri, resourceArray);
+				return that._repoAddAll(uri, resourceArray).then(function() {
+					resolve(uri.resources);
+				});
 			}
 		} // else don't persist
-
-		resolve(uri.resources);
+		resolve(uri.resources);	
 	});
 }
 
@@ -337,7 +357,6 @@ RestOff.prototype._createError = function(uri) {
 		"uri": uri.uriFinal
 	};
 }
-
 
 RestOff.prototype.autoQueryParamSet = function(name, value) {
 	this._autoParams[name] = value;
@@ -514,13 +533,16 @@ RestOff.prototype._dbPut = function(uri, resolve, reject) {
 				if (!clientOnly) { // TODO: Add test for this
 					this._isOnline = false;
 				}
-				if (this._repoFind(uri)) { // offline but found resource on client so add it
-					this._pendingRepoAdd(uri, clientOnly, resolve, reject);
-				} else {
-					uri.request.status = 404;
-					uri.request.statusText = "Not Found";
-					reject(this._createError(uri));
-				}
+				var that = this;
+				return this._repoFind(uri).then(function(found) {
+					if (found) { // offline but found resource on client so add it
+						return that._pendingRepoAdd(uri, clientOnly, resolve, reject);
+					} else {
+						uri.request.status = 404;
+						uri.request.statusText = "Not Found";
+						reject(that._createError(uri));
+					}
+				});
 			} else {
 				this._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
 				reject(this._createError(uri));
