@@ -1126,9 +1126,8 @@ describe ("restoff", function() {
 	// C   Delete          -  1 DONE Delete Local        | 2 Delete Remote        | 3 Nothing to do
 	// D     Update           1 Updated ? Do What?       |   2 Updated ? Do What?
 
-	it("70 A1, B1, C1: should reconcile when server has an\
-	 			       put/insert/post/delete and client doesn't,\
-	 			       server by overwriting value on client", function() {
+	it("70 A1, B1, C1: should reconcile when server has put/insert/post/delete\
+					    changes and client has no changes.", function() {
 
 		var user01 = {
 			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
@@ -1210,6 +1209,57 @@ describe ("restoff", function() {
 			});
 		});
 	});
+
+
+	it("72 A2, B2, C2: should reconcile when client has put/insert/post/delete\
+					    changes and server has no changes.", function() {
+
+		var emailA = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
+			"first_name": "Happy3",
+			"last_name": "User3"
+		};
+
+		var emailB = {
+			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
+			"first_name": "Existing",
+			"last_name": "New Name"
+		};
+
+		var emailC = {
+			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
+			"first_name": "Existing",
+			"last_name": "Posted"
+		};
+	
+		var emailD = {
+			"id": "9783df16-0d70-4364-a1ee-3cb39818fd13",
+			"first_name": "Joyous",
+			"last_name": "WillDelete"
+		};
+
+		var emailRepo = "emailAddresses01";
+
+		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
+
+		Q.fcall(roff.clear(emailRepo, true))
+		.then(roff.post(emailRepo, emailA))
+		.then(roff.post(emailRepo, emailB))
+		.then(roff.post(emailRepo, emailC))
+		.then(roff.post(emailRepo, emailD));
+
+		// return roff.clear(emailAddressesRepo, true).then(function(result) {
+		// 	return roff.put(emailAddressesRepo, emailAddressA).then(function(result))
+
+		// });
+
+
+
+
+
+	});
+
+
 
 
 	// // Actual offline test: Comment out this code and make sure your internet
