@@ -188,6 +188,11 @@ RestOff.prototype._logMessage = function(message) {
 	console.log(message);
 }
 
+RestOff.prototype._pendingRecords = function(repoName) {
+	var pendingUri = this.pendingRepoName + (repoName ? "?repoName=" + repoName : "");
+	return this.get(pendingUri, {rootUri:this.pendingUri,clientOnly:true});
+}
+
 RestOff.prototype._pendingLength = function(repoName) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
@@ -297,6 +302,11 @@ RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) 
 	return uriResult;
 }
 
+
+RestOff.prototype._pendingDelete = function(itemId) {
+	return this.delete(this.pendingRepoName+"/"+itemId, {rootUri:this.pendingUri, clientOnly:true});
+}
+
 RestOff.prototype.clearAll = function(force) {
 	var that = this;
 
@@ -375,17 +385,75 @@ RestOff.prototype._repoAdd = function(uri, resourceRaw) {
 	});
 }
 
+RestOff.prototype._findBy = function(resources, id) {
+	return resources.filter(function(item) {
+		return item["id"] === id;
+	})[0];
+}
+
+
+RestOff.prototype._forEachPending = function(pending, resourceArray) {
+	var that = this;
+	return pending.map(function(pendingRec) {
+		return new Promise(function(resolve, reject) {
+			// TODO: need to support the options by adding the options to the pendingRec + ADD tests for this case
+			return that._restCall(pendingRec.uri, pendingRec.restMethod, undefined, pendingRec.resources).then(function(result) {
+				return that._pendingDelete(pendingRec.id).then(function(result) {
+					resolve(pendingRec);
+				}); // TODO: REALLY NEED TO DO THE CATCH HERE. NOT DELETE FROM THE DATABASE AND DEAL WITH THE ERROR AND WARN
+			});
+		});
+	});
+}
+
 RestOff.prototype._repoAddResource = function(uri) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
 		var resourceArray = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // make logic easier
 		if (!uri.options.persistanceDisabled) {
+
 			// TODO: Check for soft deletes so we don't need to get all the records from the database
 			if (("" === uri.primaryKey) && ("GET" === uri.restMethod)) {  // Complete get, doing a merge because we don't have soft_delete
-				return that.clear(uri.repoName).then(function() {  // TODO: What do we do when there are pending changes
-					return that.dbService.write(uri.repoName, resourceArray).then(function(result){
-						resolve(uri.resources);
-					})
+				return that._pendingRecords(uri.repoName).then(function(pending) {
+					var actions = that._forEachPending(pending, resourceArray);
+					return Promise.all(actions).then(function(results) {
+						// NOTE: Could mess up any expected sort order.
+						// Start with Resources from URI (resourceArray): Will be all records for this query
+						// Logic is for no soft delets or last_updated field (will always clear and add new result)
+						// From resourceArray for records that don't match we need to:
+						//    keep the record in resourceArray
+						// From resourceArray for records that match we need to:
+						//    PUT? Replace the existing resourceArray value with the one we put
+						//    POST? add to resourceArray
+						//    DELETE? remove from resourceArray
+						var resourcesToAdd = [];
+						for (var i = 0; i < resourceArray.length; i++) {
+							var primaryKey = resourceArray[i][that.primaryKeyName];
+							var found = false;
+							for (var j = 0; j < results.length; j++) {
+								if (primaryKey === results[j].primaryKey) {
+									found = true;
+									if ("PUT" === results[j].restMethod) {
+										resourcesToAdd.push(results[j].resources);
+									}
+									break;
+								}
+							}
+							if (!found) {
+								resourcesToAdd.push(resourceArray[i]);
+							}
+						}
+						for (var k = 0; k < results.length; k++ ) {
+							if ("POST" === results[k].restMethod) {
+								resourcesToAdd.push(results[k].resources);
+							}
+						}
+						return that.clear(uri.repoName).then(function() {
+							return that.dbService.write(uri.repoName, resourcesToAdd).then(function(result){
+								resolve(resourcesToAdd);
+							});
+						});
+					});
 				});
 			} else {
 				return that.dbService.write(uri.repoName, resourceArray).then(function(result){
@@ -445,17 +513,29 @@ RestOff.prototype.autoHeaderParamGet = function(name) {
 	return this._autoHeaders[name];
 }
 
+// TODO: Maybe use a library. See http://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript
+RestOff.prototype._guid = function() {
+  function s4() {
+    return Math.floor((1 + Math.random()) * 0x10000)
+      .toString(16)
+      .substring(1);
+  }
+  return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+    s4() + '-' + s4() + s4() + s4();
+}
+
 // TODO: Add database calling type
 RestOff.prototype._pendingAdd = function(uri) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
 		var result = {
-			"id" : new Date(), // TODO: Add a guid generator
+			"id" : that._guid(),
 			"restMethod" : uri.restMethod,
 			"resources" : uri.resources,
 			"clientTime" : new Date(),
 			"uri" : uri.uriFinal,
-			"repoName" : uri.repoName
+			"repoName" : uri.repoName,
+			"primaryKey" : uri.primaryKey
 		}
 
 		if (!uri.options.persistanceDisabled) {

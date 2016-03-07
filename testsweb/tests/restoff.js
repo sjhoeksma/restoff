@@ -1120,11 +1120,11 @@ describe ("restoff", function() {
 
 	// Reconciliation
 
-	// Action              -  Server Only                | Client Only            | Both
-	// A   Post Insert     -  1 DONE Get and Overwrite   | 2 Write to Server      | 3 Same primary key!!!
-	// B   Post/Put Update -  1 DONE Get and Overwrite   | 2 Write to Server      | 3 Reconciliation
-	// C   Delete          -  1 DONE Delete Local        | 2 Delete Remote        | 3 Nothing to do
-	// D     Update           1 Updated ? Do What?       |   2 Updated ? Do What?
+	// Action              -  Server Only                | Client Only                 | Both
+	// A   Post Insert     -  1 DONE Get and Overwrite   | 2 DONE Write to Server      | 3 Same primary key!!!
+	// B   Post/Put Update -  1 DONE Get and Overwrite   | 2 DONE Write to Server      | 3 Reconciliation
+	// C   Delete          -  1 DONE Delete Local        | 2 DONE Delete Remote        | 3 Nothing to do
+	// D     Other was Updated  1 Updated ? Do What?     |   2 Updated ? Do What?
 
 	it("70 A1, B1, C1: should reconcile when server has put/insert/post/delete\
 					    changes and client has no changes.", function() {
@@ -1211,56 +1211,75 @@ describe ("restoff", function() {
 	});
 
 
-	it("72 A2, B2, C2: should reconcile when client has put/insert/post/delete\
+	it("71 A2, B2, C2: should reconcile when client has put/insert/post/delete\
 					    changes and server has no changes.", function() {
 
 		var emailA = {
 			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
 			"first_name": "Happy3",
-			"last_name": "User3"
+			"last_name": "Leave Alone"
 		};
 
 		var emailB = {
 			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
 			"first_name": "Existing",
-			"last_name": "New Name"
+			"last_name": "Put New Value"
+		};
+
+		var emailBPut = {
+			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
+			"first_name": "Existing",
+			"last_name": "Putted the New Value"
 		};
 
 		var emailC = {
-			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
+			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f813",
 			"first_name": "Existing",
-			"last_name": "Posted"
+			"last_name": "Will Delete This One"
 		};
 	
 		var emailD = {
-			"id": "9783df16-0d70-4364-a1ee-3cb39818fd13",
+			"id": "9783df16-0d70-4364-a1ee-3cb39818fd14",
 			"first_name": "Joyous",
-			"last_name": "WillDelete"
+			"last_name": "Post This One"
 		};
 
 		var emailRepo = "emailAddresses01";
 
 		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 
-		Q.fcall(roff.clear(emailRepo, true))
-		.then(roff.post(emailRepo, emailA))
-		.then(roff.post(emailRepo, emailB))
-		.then(roff.post(emailRepo, emailC))
-		.then(roff.post(emailRepo, emailD));
 
-		// return roff.clear(emailAddressesRepo, true).then(function(result) {
-		// 	return roff.put(emailAddressesRepo, emailAddressA).then(function(result))
+		return Promise.all([
+			roff.clear(emailRepo, true),
+			roff.post(emailRepo, emailA),
+			roff.post(emailRepo, emailB),
+			roff.post(emailRepo, emailC),
+			roff.delete(emailRepo + "/" + emailD.id),
+		]).then(function(results) {
+			return roff.get(emailRepo).then(function(results) {
+				expect([emailA, emailB, emailC], "initial setup should be correct").to.deep.equals(results)
+				roff.forcedOffline = true;
+				Promise.all([
+					roff.put(emailRepo+"/"+emailBPut.id, emailBPut),
+					roff.delete(emailRepo+"/"+emailC.id),
+					roff.post(emailRepo, emailD),
+				]).then(function(results) {
+					var pendingUri = "pending?repoName=" + emailRepo;			
+					return pendingResourcesGet(roff, emailRepo).then(function(pending) {
+						expect(pending.length, "Should have 3 pending").to.equal(3);
+						roff.forcedOffline = false;
+						return roff.get(emailRepo).then(function(updatedResults) {
+							return pendingResourcesGet(roff, emailRepo).then(function(pending) {
+								expect(pending.length, "Should have nothing pending").to.equal(0);
+								expect([emailA, emailBPut, emailD], "Client should sync up when placed online again and resource is accessed").to.deep.equals(updatedResults)
+							});
+						});
+					});
+				});
+			});
 
-		// });
-
-
-
-
-
+		});
 	});
-
-
-
 
 	// // Actual offline test: Comment out this code and make sure your internet
 	// // connection is turned off
@@ -1293,6 +1312,11 @@ describe ("restoff", function() {
 
 	// Test Helpers
 
+	function pendingResourcesGet(roff, repoName) {
+		var pendingUri = "pending?repoName=" + repoName;			
+		return roff.get(pendingUri, {rootUri:"http://localhost/",clientOnly:true});
+	}
+
 	function pendingStatusCorrect(roff, resource, callAction, statusPosition, finalUri, repoName) {
 		// README!: Only one status of each kind can be pending during a test
 		var pendings = roff.dbService.dbRepo.read("pending");
@@ -1310,6 +1334,7 @@ describe ("restoff", function() {
 		expect(status.uri, "status uri").to.equal(finalUri)
 		expect(status.repoName, "status repoName").to.equal(repoName)
 	}
+
 
 	function pendingStatusCount(roff, count, action) {
 		var pendings = roff.dbService.dbRepo.read("pending");
