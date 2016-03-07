@@ -1248,7 +1248,6 @@ describe ("restoff", function() {
 
 		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 
-
 		return Promise.all([
 			roff.clear(emailRepo, true),
 			roff.post(emailRepo, emailA),

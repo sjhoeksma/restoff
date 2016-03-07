@@ -9,15 +9,16 @@ Rest Offline uses your existing RESTful APIs to synchronize client/server data a
 	* No need to worry about database schema changes
 * Run applications when they go offline
 	* Automatically reconciles any changes made while the application was offline (this feature is currently in development)
-	* clientOnly mode automatically provides a complete RESTful offline service on your client 
+	* in ```clientOnly``` mode, Restoff automatically provides a complete RESTful offline service on your client 
 * Supports resources in the following formats:
 	* Json
 * Allows you to program around your RESTful API and not your backend databases
 	* Best to follow [RESTful best known practices][rest-best-practices]
 * Next major features
-	* direct replacement into Angular http
 	* Restoff will reconcile changes between client and server.
+		* Currently reconciles resources that were edited either on the server or the client. A resource edited by both (conflicting) is in progresss.
 		* Uses Brent reconciliation: if there is a difference add the resource and let the user figure out which one to delete.
+	* direct replacement into Angular http
 	* support non-standard get/put/post.
 		- Example: a request GET actually does a delete
 	* major cleanup of documentation
@@ -486,24 +487,6 @@ Add to your /etc/hosts file:
 ```
 127.0.0.1 test.development.com
 ```
-
-
-
-### Functions and Properties
-
-* **autoHeaderParamSet(name, value)** - A header of ```name``` with ```value``` will be added to the header of every RESTful api call.
-* **autoHeaderParamGet(name)** - Returns the value of the header parameter with the provided ```name```.
-* **autoQueryParamSet(name, value)** - A parameter of ```name``` with ```value``` will be added/appended to every RESTful api call.
-* **autoQueryParamGet(name)** - Returns the value of the query parameter with the provided ```name```.
-* **clearCacheAll()** - Clears all caches. Doesn't delete data on the server.
-* **clearCacheBy(repoName)** - Clears the cache of a given repository. Doesn't delete data on the server.
-* **delete(uri)** - Deletes a resource from a remote server.
-* **forceOffline()** - Force the appliction to operate "offline".
-* **forceOnline()** - Force the application back "online".
-* **get(uri)** - Retrieves a json resource from a remote server using the local repository when offline.
-* **post(uri, resource)** - Posts a resource to a remote server and in the local repository adding the resource if it doesn't exist or overwriting the existing resource.
-* **put(uri, resource)** - Puts a known resource on a remote server and in the local repository updating the resource id provided in the uri.
-* **uriGenerate(uri)** - Returns the uri generated based on things like auto addition of query parameters, etc.
 
 ## TODOs
 
