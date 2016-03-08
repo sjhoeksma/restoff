@@ -1258,25 +1258,28 @@ describe ("restoff", function() {
 			return roff.get(emailRepo).then(function(results) {
 				expect([emailA, emailB, emailC], "initial setup should be correct").to.deep.equals(results)
 				roff.forcedOffline = true;
-				Promise.all([
+				return Promise.all([
 					roff.put(emailRepo+"/"+emailBPut.id, emailBPut),
 					roff.delete(emailRepo+"/"+emailC.id),
 					roff.post(emailRepo, emailD),
 				]).then(function(results) {
 					var pendingUri = "pending?repoName=" + emailRepo;			
 					return pendingResourcesGet(roff, emailRepo).then(function(pending) {
-						expect(pending.length, "Should have 3 pending").to.equal(3);
-						roff.forcedOffline = false;
 						return roff.get(emailRepo).then(function(updatedResults) {
-							return pendingResourcesGet(roff, emailRepo).then(function(pending) {
-								expect(pending.length, "Should have nothing pending").to.equal(0);
-								expect([emailA, emailBPut, emailD], "Client should sync up when placed online again and resource is accessed").to.deep.equals(updatedResults)
-								return Promise.all([
-									roff.delete(emailRepo+"/"+emailA.id),
-									roff.delete(emailRepo+"/"+emailB.id),
-									roff.delete(emailRepo+"/"+emailC.id),
-									roff.delete(emailRepo+"/"+emailD.id)   // clean up
-								]);
+							expect(pending.length, "Should have 3 pending").to.equal(3);
+							expect([emailA, emailBPut, emailD], "Client should sync up when placed online again and resource is accessed").to.deep.equals(updatedResults)
+							roff.forcedOffline = false;
+							return roff.get(emailRepo).then(function(updatedResults) {
+								return pendingResourcesGet(roff, emailRepo).then(function(pending) {
+									expect(pending.length, "Should have nothing pending").to.equal(0);
+									expect([emailA, emailBPut, emailD], "Client should sync up when placed online again and resource is accessed").to.deep.equals(updatedResults)
+									return Promise.all([
+										roff.delete(emailRepo+"/"+emailA.id),
+										roff.delete(emailRepo+"/"+emailB.id),
+										roff.delete(emailRepo+"/"+emailC.id),
+										roff.delete(emailRepo+"/"+emailD.id)   // clean up
+									]);
+								});
 							});
 						});
 					});
