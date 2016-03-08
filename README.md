@@ -26,6 +26,9 @@ Rest Offline uses your existing RESTful APIs to synchronize client/server data a
 		- requires better mockable restapi backend for testing)
 	* support nested resources (example: /users/45/addresses)
 	* support non-standard restful api: ability to map a user
+* Expectations:
+	* Every resource must have one unique key field.
+		* Unique key field should be a UUID.
 
 ## RestOff Usage
 
@@ -84,6 +87,22 @@ function synchronize(roff, userId) {
 ```
 
 * WARNING when using Restoff with lowdb! Creating two instances of restoff with the same database name results in two different databases being persisted. Be sure to use the same restoff instance throughout your application.
+
+
+## Resoff Reconciliation in Detail
+
+| Row  | Action             | 1) Server Only Change            | 2) Client Only Change            | 3) Changes in Both               |
+| ---- | ------------------ | ---------------------------------| ---------------------------------| ---------------------------------|
+| A    | Insert (Post)      | Get and Overwrite on Client      | Post and Overwrite on Server     | Same Primary Key                 |
+| B    | Update (Post/Put)  | Get and Overwrite on Client      | Post and Overwrite on Server     | Reconcile Changes                |
+| C    | Delete             | Delete from Client               | Delete on Server                 | Nothing to Do: Both deleted      |
+| D    | Delete with Update |                                  |                                  | Still delete OR Keep updated?    |
+
+* A1, A2, B1, B2, C1, C2, C3: No potential merge conflicts
+* A3: This is the case where the same primary key was generated on each client. In this case we will simply view it as a reconciliation of changes because:
+	* You should be using UUIDs for keys and the chance of collisions is very low. If you are using incrementing IDs, then you will need a way to assure that the IDs being generated are unique.
+* D3: The client/server deleted a record that was updated on the server/client. In this case, we honor the delete.
+* B3: Reconciliation. Using Brent reconciliation, we add a new record.
 
 ## Restoff Options
 

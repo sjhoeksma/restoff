@@ -57,23 +57,7 @@
   "offlineOnly": [],
   "forcedOffline": [],
   "persistanceDisabled": [],
-  "emailAddresses01": [
-    {
-      "id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
-      "first_name": "Happy3",
-      "last_name": "Leave Alone"
-    },
-    {
-      "id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
-      "first_name": "Existing",
-      "last_name": "Putted the New Value"
-    },
-    {
-      "id": "9783df16-0d70-4364-a1ee-3cb39818fd14",
-      "first_name": "Joyous",
-      "last_name": "Post This One"
-    }
-  ],
+  "emailAddresses01": [],
   "users01": [
     {
       "id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68577",
@@ -81,7 +65,25 @@
       "last_name": "User2"
     }
   ],
-  "emailAddresses02": [],
+  "emailAddresses02": [
+    {
+      "id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68516",
+      "first_name": "Happy3",
+      "last_name": "Leave Alone"
+    },
+    {
+      "id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
+      "first_name": "Update On Server",
+      "last_name": "Delete On Client",
+      "changed_value": "Now X2"
+    },
+    {
+      "id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
+      "first_name": "Update One Client",
+      "last_name": "Delete On Server",
+      "changed_value": "Now A2"
+    }
+  ],
   "addresses01": [
     {
       "id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68579",

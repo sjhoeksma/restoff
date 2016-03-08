@@ -1120,11 +1120,11 @@ describe ("restoff", function() {
 
 	// Reconciliation
 
-	// Action              -  Server Only                | Client Only                 | Both
-	// A   Post Insert     -  1 DONE Get and Overwrite   | 2 DONE Write to Server      | 3 Same primary key!!!
-	// B   Post/Put Update -  1 DONE Get and Overwrite   | 2 DONE Write to Server      | 3 Reconciliation
-	// C   Delete          -  1 DONE Delete Local        | 2 DONE Delete Remote        | 3 Nothing to do
-	// D     Other was Updated  1 Updated ? Do What?     |   2 Updated ? Do What?
+	// Action              -  Server Only Change          | Client Only Change          | Change in Both
+	// A   Post Insert     -  1 Get and Overwrite    DONE | 2 Write to Server      DONE | 3 Same primary key!!!
+	// B   Post/Put Update -  1 Get and Overwrite    DONE | 2 Write to Server      DONE | 3 Reconciliation
+	// C   Delete          -  1 Delete Local         DONE | 2 Delete Remote        DONE | 3 Nothing to do
+	// D     Other was Updated  1 Updated ? Do What?      |   2 Updated ? Do What?
 
 	it("70 A1, B1, C1: should reconcile when server has put/insert/post/delete\
 					    changes and client has no changes.", function() {
@@ -1271,6 +1271,12 @@ describe ("restoff", function() {
 							return pendingResourcesGet(roff, emailRepo).then(function(pending) {
 								expect(pending.length, "Should have nothing pending").to.equal(0);
 								expect([emailA, emailBPut, emailD], "Client should sync up when placed online again and resource is accessed").to.deep.equals(updatedResults)
+								return Promise.all([
+									roff.delete(emailRepo+"/"+emailA.id),
+									roff.delete(emailRepo+"/"+emailB.id),
+									roff.delete(emailRepo+"/"+emailC.id),
+									roff.delete(emailRepo+"/"+emailD.id)   // clean up
+								]);
 							});
 						});
 					});
@@ -1279,6 +1285,83 @@ describe ("restoff", function() {
 
 		});
 	});
+
+	it("72 D1, D2: should reconcile when client updated a server deleted record\
+				   and reconcile when server updated a client deleted record", function() {
+
+		var emailA = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
+			"first_name": "Update One Client",
+			"last_name": "Delete On Server",
+			"changed_value": "Was A"
+		};
+
+		var emailAUpdated = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
+			"first_name": "Update One Client",
+			"last_name": "Delete On Server",
+			"changed_value": "Now A2"
+		};
+
+		var emailB = {
+			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
+			"first_name": "Update On Server",
+			"last_name": "Delete On Client",
+			"changed_value": "Was X"
+		};
+
+		var emailBUpdated = {
+			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
+			"first_name": "Update On Server",
+			"last_name": "Delete On Client",
+			"changed_value": "Now X2"
+		};
+
+		var emailC = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68516",
+			"first_name": "Happy3",
+			"last_name": "Leave Alone"
+		};
+
+
+		var emailRepo = "emailAddresses02";
+
+		var roff = restlib.restoff({ "rootUri" : ROOT_URI }); // changes on this client
+		var roff2 = restlib.restoff({ "rootUri" : ROOT_URI }); // Changes from "another" client
+
+		return Promise.all([
+			roff.clear(emailRepo, true),
+			roff.post(emailRepo, emailA),
+			roff.post(emailRepo, emailB),
+			roff.post(emailRepo, emailC)
+		]).then(function(results) {
+			return roff.get(emailRepo).then(function(results) {
+				expect(deepEqualOrderUnimportant([emailB, emailA, emailC], results, "id"), "initial setup should be correct").to.be.true;
+				roff.forcedOffline = true;
+				return Promise.all([
+					roff2.delete(emailRepo+"/"+emailA.id), // "Other client" delete on server
+					roff2.post(emailRepo, emailBUpdated),  // "Other client" update on server
+					roff.delete(emailRepo+"/"+emailB.id),  // delete on client
+					roff.post(emailRepo, emailAUpdated)    // updated on client
+				]).then(function() {
+					return Promise.all([
+						roff2.get(emailRepo),
+						roff.get(emailRepo)
+					]).then(function(results) {
+						var serverChanges = results[0];
+						var clientChanges = results[1];
+						expect(deepEqualOrderUnimportant([emailBUpdated, emailC], serverChanges, "id"), "server changes should be correct").to.be.true;
+						expect(deepEqualOrderUnimportant([emailAUpdated, emailC], clientChanges, "id"), "client changes should be correct").to.be.true;
+
+						roff.forcedOffline = false;
+						return roff.get(emailRepo).then(function(results) {
+							expect([emailC], "should only have the one unchanged record as the other two are deleted").to.deep.equals(results);
+						});
+					});
+				});
+			});
+		});
+	});	
 
 	// // Actual offline test: Comment out this code and make sure your internet
 	// // connection is turned off
@@ -1412,6 +1495,32 @@ describe ("restoff", function() {
 			}
 		});
 		return result;
+	}
+
+	function deepEqualOrderUnimportant(left,right, primaryKeyName) {
+		left = left instanceof Array ? left : [left]; // easier to code
+		right = right instanceof Array ? right : [right];
+
+		if (left.length != right.length) {
+			return false;
+		}
+
+		for (var x = 0; x < left.length; x++) {
+			var leftItem = left[x];
+			var leftPrimayKey = leftItem[primaryKeyName];
+			var hadEqualRecord = false;
+			for (var y = 0; y < right.length; y++) {
+				var rightItem = right[y];
+				var rightPrimaryKey = rightItem[primaryKeyName];
+				if (leftPrimayKey === rightPrimaryKey) {
+					hadEqualRecord = deepEqual(leftItem, rightItem);
+				}
+			}
+			if (!hadEqualRecord) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	function deepEqual(x, y) {

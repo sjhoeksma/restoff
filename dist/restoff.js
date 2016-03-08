@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.1.3
+// version: 0.1.4
 // author: ProductOps <restoff@productops.com>
 // license: MIT
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.1.3'; // version set through gulp build
+restlib["version-library"] = '0.1.4'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -348,19 +348,23 @@ RestOff.prototype.clear = function(repoName, force) {
 	});
 }
 
-RestOff.prototype._repoGet = function(uri, resolve, reject) {
-	var query = uri.searchOptions;
-	if ("" !== uri.primaryKey) {
-		query[uri.primaryKeyName] = uri.primaryKey;
-	}
+RestOff.prototype._repoGet = function(uri) {
+	var that = this;
+	return new Promise(function(resolve, reject) {
+		var query = uri.searchOptions;
+		if ("" !== uri.primaryKey) {
+			query[uri.primaryKeyName] = uri.primaryKey;
+		}
 
-	if (uri.options.persistanceDisabled) {
-		resolve([]);
-	} else {
-		return this.dbService.find(uri.repoName, query).then(function(result) {
-			resolve(result);
-		});
-	}
+		if (uri.options.persistanceDisabled) {
+			resolve([]);
+		} else {
+			return that.dbService.find(uri.repoName, query).then(function(result) {
+				resolve(result);
+			});
+		}
+	});
+
 
 }
 
@@ -392,70 +396,134 @@ RestOff.prototype._findBy = function(resources, id) {
 }
 
 
-RestOff.prototype._forEachPending = function(pending, resourceArray) {
+RestOff.prototype._forEachPending = function(pending, resourceArray, deletedOnServer) {
 	var that = this;
 	return pending.map(function(pendingRec) {
 		return new Promise(function(resolve, reject) {
 			// TODO: need to support the options by adding the options to the pendingRec + ADD tests for this case
-			return that._restCall(pendingRec.uri, pendingRec.restMethod, undefined, pendingRec.resources).then(function(result) {
+			// only do call if not already deleted on the server
+			var found = false;
+			for(var i = 0; i < deletedOnServer.length; i++ ) {
+				var deletedPrimaryKey = deletedOnServer[i][that.primaryKeyName];
+				if (deletedPrimaryKey === pendingRec.primaryKey) {
+					found = true;
+				}
+			}
+			if (!found) {
+				return that._restCall(pendingRec.uri, pendingRec.restMethod, undefined, pendingRec.resources).then(function(result) {
+					return that._pendingDelete(pendingRec.id).then(function(result) {
+						resolve(pendingRec);
+					}); // TODO: REALLY NEED TO DO THE CATCH HERE. NOT DELETE FROM THE DATABASE AND DEAL WITH THE ERROR AND WARN
+				});
+			} else {
 				return that._pendingDelete(pendingRec.id).then(function(result) {
 					resolve(pendingRec);
 				}); // TODO: REALLY NEED TO DO THE CATCH HERE. NOT DELETE FROM THE DATABASE AND DEAL WITH THE ERROR AND WARN
-			});
+			}
 		});
 	});
+}
+
+RestOff.prototype._repoFindDeleted = function(serverResources, repositoryResources, deletedOnServer) {
+	// TODO: Also implement this for soft delete so we don't have to loop through the entire repository
+	var deletedOnServer = []; // take all repoResources and find all serverResources: anything left is "deleted" O(n x m/2)
+	for (var i = 0; i < serverResources.length; i++) {
+		var serverPrimaryKey = serverResources[i][this.primaryKeyName];
+		var found = false;
+		for (var j = 0; j < repositoryResources.length; j++) {
+			var repoPrimaryKey = repositoryResources[j][this.primaryKeyName];
+			if (repoPrimaryKey === serverPrimaryKey) {
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			deletedOnServer.push(serverResources[i]);
+		}		
+	}
+	return deletedOnServer;
 }
 
 RestOff.prototype._repoAddResource = function(uri) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
-		var resourceArray = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // make logic easier
 		if (!uri.options.persistanceDisabled) {
-
 			// TODO: Check for soft deletes so we don't need to get all the records from the database
 			if (("" === uri.primaryKey) && ("GET" === uri.restMethod)) {  // Complete get, doing a merge because we don't have soft_delete
-				return that._pendingRecords(uri.repoName).then(function(pending) {
-					var actions = that._forEachPending(pending, resourceArray);
-					return Promise.all(actions).then(function(results) {
-						// NOTE: Could mess up any expected sort order.
-						// Start with Resources from URI (resourceArray): Will be all records for this query
-						// Logic is for no soft delets or last_updated field (will always clear and add new result)
-						// From resourceArray for records that don't match we need to:
-						//    keep the record in resourceArray
-						// From resourceArray for records that match we need to:
-						//    PUT? Replace the existing resourceArray value with the one we put
-						//    POST? add to resourceArray
-						//    DELETE? remove from resourceArray
-						var resourcesToAdd = [];
-						for (var i = 0; i < resourceArray.length; i++) {
-							var primaryKey = resourceArray[i][that.primaryKeyName];
-							var found = false;
-							for (var j = 0; j < results.length; j++) {
-								if (primaryKey === results[j].primaryKey) {
-									found = true;
-									if ("PUT" === results[j].restMethod) {
-										resourcesToAdd.push(results[j].resources);
+				var serverResources = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // make logic easier
+				return that._repoGet(uri).then(function(repoResources) {
+					var deletedOnServer = that._repoFindDeleted(serverResources, repoResources); // all records deleted on server but still in the repo
+					return that._pendingRecords(uri.repoName).then(function(pending) {
+						var actions = that._forEachPending(pending, serverResources, deletedOnServer);
+						return Promise.all(actions).then(function(pendingItems) {
+							// NOTE: Will alter the order of the records returned. So, if a sort
+							// order was applied it will pobably not be valid after the merge.
+
+							// Start with Resources from URI (serverResources): Will be all records for this query
+							// Logic is for no soft delets or last_updated field (will always clear and add new result)
+							// From serverResources for records that don't match we need to:
+							//    keep the record in serverResources
+							// From serverResources for records that match we need to:
+							//    PUT? Replace the existing serverResources value with the one we put
+							//    POST? add to serverResources
+							//    DELETE? remove from serverResources
+							var resourcesToAdd = [];
+							for (var i = 0; i < serverResources.length; i++) {
+								var primaryKey = serverResources[i][that.primaryKeyName];
+								var found = false;
+								for (var j = 0; j < pendingItems.length; j++) {
+									if (primaryKey === pendingItems[j].primaryKey) {
+										found = true;
+										if ("PUT" === pendingItems[j].restMethod) {
+											if (deletedOnServer.length > 0) {
+												console.log("PUT adding %O.", pendingItems[j].resources);
+											}
+
+											resourcesToAdd.push(pendingItems[j].resources); // push the updated resource from pending changes
+										}
+										break;
 									}
-									break;
+								}
+								if (!found) { // 
+									resourcesToAdd.push(serverResources[i]); // no changes, just push the resource from the server
 								}
 							}
-							if (!found) {
-								resourcesToAdd.push(resourceArray[i]);
+							for (var k = 0; k < pendingItems.length; k++ ) {
+								if ("POST" === pendingItems[k].restMethod) {
+									var deletedFound = false;
+									for (var b = 0; b < deletedOnServer.length; b++) {
+										var deletedPrimaryKey = deletedOnServer[b][that.primaryKeyName];
+										if (deletedPrimaryKey === pendingItems[k].primaryKey) {
+											deletedFound = true;
+											break;
+										}
+									}
+									if (!deletedFound) {
+										if (deletedOnServer.length > 0) {
+											console.log(pendingItems[k].primaryKey);
+											console.log(deletedOnServer);
+											console.log("POST adding %O.", pendingItems[k].resources);
+										}
+										resourcesToAdd.push(pendingItems[k].resources); // add in any posted resources from pending BUT only if not deleted on server
+									}
+								}
 							}
-						}
-						for (var k = 0; k < results.length; k++ ) {
-							if ("POST" === results[k].restMethod) {
-								resourcesToAdd.push(results[k].resources);
+							if (deletedOnServer.length > 0) {
+								console.log("Adding resources %O", resourcesToAdd);
 							}
-						}
-						return that.clear(uri.repoName).then(function() {
-							return that.dbService.write(uri.repoName, resourcesToAdd).then(function(result){
-								resolve(resourcesToAdd);
+
+							return that.clear(uri.repoName).then(function() {
+								return that.dbService.write(uri.repoName, resourcesToAdd).then(function(result){
+									resolve(resourcesToAdd);
+								});
 							});
 						});
 					});
 				});
+
 			} else {
+				var resourceArray = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // make logic easier
+
 				return that.dbService.write(uri.repoName, resourceArray).then(function(result){
 					resolve(uri.resources);
 				})
@@ -604,30 +672,36 @@ RestOff.prototype._dbDelete = function(uri, resolve, reject) {
 	}
 }
 
-RestOff.prototype._dbGet = function(uri, resolve, reject) {
-	var request = uri.request;
-	switch (request.status) {
-		case 200:
-			this._isOnline = true;
-			return this._repoAdd(uri, request.response).then(function(result) {
-				resolve(result);
-			});
-		break;
-		case 0: case 404:
-			var clientOnly = uri.options.clientOnly;
-			if (uri.options.forcedOffline || clientOnly) {
-				if (!clientOnly) {
-					this._isOnline = false;
+RestOff.prototype._dbGet = function(uri) {
+	var that = this;
+	return new Promise(function(resolve, reject) {
+		var request = uri.request;
+		switch (request.status) {
+			case 200:
+				that._isOnline = true;
+				return that._repoAdd(uri, request.response).then(function(result) {
+					resolve(result);
+				});
+			break;
+			case 0: case 404:
+				var clientOnly = uri.options.clientOnly;
+				if (uri.options.forcedOffline || clientOnly) {
+					if (!clientOnly) {
+						that._isOnline = false;
+					}
+					return that._repoGet(uri).then(function(result) {
+						resolve(result);
+					});
+				} else {
+					that._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
+					reject(that._createError(uri));
 				}
-				this._repoGet(uri, resolve, reject);
-			} else {
-				this._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
-				reject(this._createError(uri));
-			}
-		break;
-		default:
-			console.log ("WARNING: Unsupported HTTP response.");
-	}
+			break;
+			default:
+				console.log ("WARNING: Unsupported HTTP response.");
+				reject();
+		}
+	});
 }
 
 RestOff.prototype._pendingRepoAdd = function(uri, clientOnly,resolve, reject) {
@@ -717,7 +791,11 @@ RestOff.prototype._restCall = function(uriClient, restMethod, options, resource)
 				that._uriAddRequest(uri, request);
 				switch(uri.restMethod) {
 					case "GET":
-						that._dbGet(uri, resolve, reject);
+						return that._dbGet(uri).then(function(result) {
+							resolve(result);
+						}).catch(function(error) {
+							reject(error);
+						});
 					break;
 					case "POST":
 						that._dbPost(uri, resolve, reject);
