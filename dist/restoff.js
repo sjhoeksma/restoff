@@ -396,52 +396,89 @@ RestOff.prototype._findBy = function(resources, id) {
 }
 
 
-RestOff.prototype._forEachPending = function(pending, resourceArray, deletedOnServer) {
+RestOff.prototype._forEachPending = function(uri, pending, deletedOnServerHash) {
 	var that = this;
 	return pending.map(function(pendingRec) {
 		return new Promise(function(resolve, reject) {
-			// TODO: need to support the options by adding the options to the pendingRec + ADD tests for this case
-			// only do call if not already deleted on the server
-			var found = false;
-			for(var i = 0; i < deletedOnServer.length; i++ ) {
-				var deletedPrimaryKey = deletedOnServer[i][that.primaryKeyName];
-				if (deletedPrimaryKey === pendingRec.primaryKey) {
-					found = true;
-				}
-			}
-			if (!found) {
+			var primaryKey = pendingRec.primaryKey;
+			if (deletedOnServerHash[primaryKey]) { // found means deleted on server so we don't update on the server
+				return that._pendingDelete(pendingRec.id).then(function(result) {
+					var searchOptions = {};
+					searchOptions[uri.primaryKeyName] = primaryKey;
+					return that.dbService.delete(uri.repoName, searchOptions).then(function(result) { // remove the record from the repo because it was deleted on the server
+						resolve(undefined); // return undefined because we don't wan't to process it
+					});
+				}).catch(function(error) {
+					console.log ("WARNING! 003 Error %O occured.", error);
+					reject(error);
+				});
+			} else { // we do the udpate
+				// TODO: need to support the options, parameter 3 below, by adding the options to the pendingRec + ADD tests for this case.
 				return that._restCall(pendingRec.uri, pendingRec.restMethod, undefined, pendingRec.resources).then(function(result) {
 					return that._pendingDelete(pendingRec.id).then(function(result) {
-						resolve(pendingRec);
-					}); // TODO: REALLY NEED TO DO THE CATCH HERE. NOT DELETE FROM THE DATABASE AND DEAL WITH THE ERROR AND WARN
+						resolve(pendingRec); // return this because we want to process it.
+					}).catch(function(error) {
+						console.log ("WARNING! 002 Error %O occured.", error);
+						reject(error);
+					});
+				}).catch(function(error) {
+					console.log ("WARNING! 001 Error %O occured.", error);
+					reject(error);
 				});
-			} else {
-				return that._pendingDelete(pendingRec.id).then(function(result) {
-					resolve(pendingRec);
-				}); // TODO: REALLY NEED TO DO THE CATCH HERE. NOT DELETE FROM THE DATABASE AND DEAL WITH THE ERROR AND WARN
 			}
 		});
 	});
 }
 
-RestOff.prototype._repoFindDeleted = function(serverResources, repositoryResources, deletedOnServer) {
-	// TODO: Also implement this for soft delete so we don't have to loop through the entire repository
-	var deletedOnServer = []; // take all repoResources and find all serverResources: anything left is "deleted" O(n x m/2)
-	for (var i = 0; i < serverResources.length; i++) {
-		var serverPrimaryKey = serverResources[i][this.primaryKeyName];
-		var found = false;
-		for (var j = 0; j < repositoryResources.length; j++) {
-			var repoPrimaryKey = repositoryResources[j][this.primaryKeyName];
-			if (repoPrimaryKey === serverPrimaryKey) {
-				found = true;
-				break;
+RestOff.prototype._deepEquals = function(x, y) {
+	if ((typeof x == "object" && x != null) && (typeof y == "object" && y != null)) {
+		if (Object.keys(x).length != Object.keys(y).length) {
+			return false;
+		}
+
+		for (var prop in x) {
+			if (y.hasOwnProperty(prop)) {  
+				if (! this._deepEquals(x[prop], y[prop])) {
+					return false;
+				}
+			}
+			else {
+				return false;
 			}
 		}
-		if (!found) {
-			deletedOnServer.push(serverResources[i]);
-		}		
+	return true;
+	} else if (x !== y) {
+		return false;
+	} else {
+		return true;
 	}
-	return deletedOnServer;
+}
+
+RestOff.prototype._repoFindDeleted = function(serverResources, repoHash) {
+	// TODO: Also implement this for soft delete so we don't have to loop through the entire repository
+
+	// should add aedfa7a4-d748-11e5-b5d2-0a1d41d68511
+	var deletedOnServerHash = {}; // take all repoResources and find all serverResources: anything left is "deleted" O(n x m/2)
+	var that = this;
+	serverResources.forEach(function(resource) {
+		var serverPrimaryKey = resource[that.primaryKeyName];
+		if (undefined === repoHash[serverPrimaryKey]) {
+			deletedOnServerHash[serverPrimaryKey] = resource;
+		}
+	});
+	return deletedOnServerHash;
+}
+
+RestOff.prototype._hashify = function(primaryKeyName, resources) {
+	var repositoryHash = {};
+	var that = this;
+	resources.forEach(function(resource) {
+		if (undefined !== resource) {
+			var repositoryPrimaryKey = resource[primaryKeyName];
+			repositoryHash[repositoryPrimaryKey] = resource;
+		}
+	});
+	return repositoryHash;
 }
 
 RestOff.prototype._repoAddResource = function(uri) {
@@ -451,79 +488,70 @@ RestOff.prototype._repoAddResource = function(uri) {
 			// TODO: Check for soft deletes so we don't need to get all the records from the database
 			if (("" === uri.primaryKey) && ("GET" === uri.restMethod)) {  // Complete get, doing a merge because we don't have soft_delete
 				var serverResources = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // make logic easier
-				return that._repoGet(uri).then(function(repoResources) {
-					var deletedOnServer = that._repoFindDeleted(serverResources, repoResources); // all records deleted on server but still in the repo
-					return that._pendingRecords(uri.repoName).then(function(pending) {
-						var actions = that._forEachPending(pending, serverResources, deletedOnServer);
-						return Promise.all(actions).then(function(pendingItems) {
-							// NOTE: Will alter the order of the records returned. So, if a sort
-							// order was applied it will pobably not be valid after the merge.
+				return that._pendingRecords(uri.repoName).then(function(pending) {
+					if (pending.length > 0 ) { // we got reconciliation work to do!!!
+						return that._repoGet(uri).then(function(repoResources) {
+							var serverHash = that._hashify(that.primaryKeyName, serverResources);
+							var repoHash = that._hashify(that.primaryKeyName, repoResources);
+							var deletedOnServerHash = that._repoFindDeleted(repoResources, serverHash); // all records deleted on server but still in the repo
+							var actions = that._forEachPending(uri, pending, deletedOnServerHash);
+							return Promise.all(actions).then(function(pendingItems) {
+								var pendingItemsHash = that._hashify("primaryKey", pendingItems);
+								// NOTE: Will alter the order of the records returned. So, if a sort
+								// order was applied it will pobably not be valid after the merge.
+								// Also, a lot of this logic is to try and lower the number of promises
+								// Start with Resources from URI (serverResources): Will be all records for this query
+								// Logic is for no soft delets or last_updated field (will always clear and add new result)
 
-							// Start with Resources from URI (serverResources): Will be all records for this query
-							// Logic is for no soft delets or last_updated field (will always clear and add new result)
-							// From serverResources for records that don't match we need to:
-							//    keep the record in serverResources
-							// From serverResources for records that match we need to:
-							//    PUT? Replace the existing serverResources value with the one we put
-							//    POST? add to serverResources
-							//    DELETE? remove from serverResources
-							var resourcesToAdd = [];
-							for (var i = 0; i < serverResources.length; i++) {
-								var primaryKey = serverResources[i][that.primaryKeyName];
-								var found = false;
-								for (var j = 0; j < pendingItems.length; j++) {
-									if (primaryKey === pendingItems[j].primaryKey) {
-										found = true;
-										if ("PUT" === pendingItems[j].restMethod) {
-											if (deletedOnServer.length > 0) {
-												console.log("PUT adding %O.", pendingItems[j].resources);
+								// During the for each pending _forEachPending, we remove from the
+								// repo any deleted items on the server side.
+								// So, we only have to worry about items changed or added on the server side.
+								var newUpdatedResources = [];
+								serverResources.forEach(function(resource) {
+									var resourcePrimaryKey = resource[that.primaryKeyName];
+									if (repoHash[resourcePrimaryKey]) { // exists in repo. Let's figure out
+										if (!that._deepEquals(resource, repoHash[resourcePrimaryKey])) {
+											// console.log("Collisson: Need to rectify2");
+											// console.log("Server resource %O", resource);
+											// console.log("Client resource %O", repoHash[resourcePrimaryKey]);
+											// console.log("Edited resource %O", .resources);
+											if (pendingItemsHash[resourcePrimaryKey]) {
+												console.log("Change done on the client.");
+											} else {
+												convert.log("Change done on the server.");
 											}
-
-											resourcesToAdd.push(pendingItems[j].resources); // push the updated resource from pending changes
-										}
-										break;
-									}
-								}
-								if (!found) { // 
-									resourcesToAdd.push(serverResources[i]); // no changes, just push the resource from the server
-								}
-							}
-							for (var k = 0; k < pendingItems.length; k++ ) {
-								if ("POST" === pendingItems[k].restMethod) {
-									var deletedFound = false;
-									for (var b = 0; b < deletedOnServer.length; b++) {
-										var deletedPrimaryKey = deletedOnServer[b][that.primaryKeyName];
-										if (deletedPrimaryKey === pendingItems[k].primaryKey) {
-											deletedFound = true;
-											break;
+										} // else equal DO NOTHING
+									} else { // Added on server, so maybe add it here.
+										if (pendingItemsHash[resourcePrimaryKey]) {
+											if ("DELETE" === pendingItemsHash[resourcePrimaryKey].restMethod) {
+												// TODO: LOG that edit was lost
+											} else {
+												console.log("Collisson: Need to rectify");
+											}
+										} else {
+											console.log("Added on server only so just push it");
+											newUpdatedResources.push(resource); // TODO: Add Test for pushing a new one while pending
 										}
 									}
-									if (!deletedFound) {
-										if (deletedOnServer.length > 0) {
-											console.log(pendingItems[k].primaryKey);
-											console.log(deletedOnServer);
-											console.log("POST adding %O.", pendingItems[k].resources);
-										}
-										resourcesToAdd.push(pendingItems[k].resources); // add in any posted resources from pending BUT only if not deleted on server
-									}
-								}
-							}
-							if (deletedOnServer.length > 0) {
-								console.log("Adding resources %O", resourcesToAdd);
-							}
-
-							return that.clear(uri.repoName).then(function() {
-								return that.dbService.write(uri.repoName, resourcesToAdd).then(function(result){
-									resolve(resourcesToAdd);
 								});
+								return that.dbService.write(uri.repoName, newUpdatedResources).then(function(result){
+									return that._repoGet(uri).then(function(repoResources) {
+										resolve(repoResources);
+									});
+								});
+
 							});
 						});
-					});
+					} else {
+						return that.clear(uri.repoName).then(function() {
+							return that.dbService.write(uri.repoName, serverResources).then(function(result){
+								resolve(serverResources);
+							});
+						});
+					}
 				});
-
 			} else {
 				var resourceArray = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // make logic easier
-
 				return that.dbService.write(uri.repoName, resourceArray).then(function(result){
 					resolve(uri.resources);
 				})
