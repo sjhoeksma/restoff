@@ -1359,6 +1359,7 @@ describe ("restoff", function() {
 						roff.forcedOffline = false;
 						return roff.get(emailRepo).then(function(results) {
 							expect([emailC], "should only have the one unchanged record as the other two are deleted").to.deep.equals(results);
+							return roff.delete(emailRepo+"/"+emailC.id);
 						});
 					});
 				});

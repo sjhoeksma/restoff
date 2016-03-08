@@ -479,11 +479,11 @@ RestOff.prototype._applyAndClearPending = function(pendingAction, resolve, rejec
 // true      true     false       No changes on client. Possible changes on server.               | Add to postUpdated
 // true      false    true        Deleted on Client                                  | Complete delete on server. Clear out pending.
 // true      false    false       Post/Put on server                                 | Add to postUpdated
-// false     true     true        Post/Put on client                                 | Clear out pending. Complete post/put on client
+// false     true     true        Post/Put on client                                 | Clear out pending. Complete post/put on client. Could have been deleted from server???
 // false     true     false       Delete on server                                   | Remove from repoClient directly
 // false     false    true        Added then Deleted on Client                       | Don't complete delete on server. Clear out pending.
 // false     false    false       NOT POSSIBLE (Nothing Posted/Put/Deleted/Added)    | Do Nothing
-RestOff.prototype._forEachHashEntry = function(joinedHash, serverResources, repoResources, pendingHash, newUpdatedResources) {
+RestOff.prototype._forEachHashEntry = function(repoName, joinedHash, serverResources, repoResources, pendingHash, newUpdatedResources) {
 	var that = this;
 
 	return Object.keys(joinedHash).map(function(primaryKey) {
@@ -495,7 +495,8 @@ RestOff.prototype._forEachHashEntry = function(joinedHash, serverResources, repo
 			var inRepo = (undefined !== repoResource);
 			var inPending = (undefined !== pendingHash[primaryKey]);
 
-			// console.log("Server %O Repo %O Original %O Pending %O", serverResource, repoResource, pendingOriginal, pendingAction);
+			// console.log(primaryKey + " Server %O Repo %O Pending %O", onServer, inRepo, inPending);
+			// console.log("Server %O Repo %O Pending %O", serverResource, repoResource, pendingAction);
 
 			if (onServer) {
 				if (inRepo) {
@@ -520,8 +521,22 @@ RestOff.prototype._forEachHashEntry = function(joinedHash, serverResources, repo
 			} else {
 				if (inRepo) {
 					if (inPending) {  // False, True, True  : Post/Put on client                                 | Clear out pending. Complete post/put on client
-						return that._applyAndClearPending(pendingAction, resolve, reject);
+						if (undefined === pendingAction.original) { // not on server no origional, so must have been created on client.
+							return that._applyAndClearPending(pendingAction, resolve, reject);
+						} else { // not on server, but had an original so must have been on server at one time. So, a delete.
+							var searchOptions = {}
+							searchOptions[that.primaryKeyName] = primaryKey;
+							return that.dbService.delete(repoName, searchOptions).then(function(result) {
+								return that._pendingDelete(pendingAction.id).then(function(result) {
+									resolve(undefined); // return this because we want to process it.
+								}).catch(function(error) {
+									console.log ("WARNING! 002 Error %O occured.", error);
+									reject(error);
+								});
+							});
+						}
 					} else {          // False, True, False : Delete on server                                   | Remove from repoClient directly
+						// NOT POSSIBLE?
 						console.log(primaryKey + " TODO: 06 Add test");
 					}
 				} else {
@@ -554,7 +569,7 @@ RestOff.prototype._repoAddResource = function(uri) {
 							var joinedHash = that._joinedHash(that.primaryKeyName, serverResources, repoResources);
 							var pendingHash = that._hashify("primaryKey", pending);
 
-							var actions = that._forEachHashEntry(joinedHash, serverResources, repoResources, pendingHash, newUpdatedResources);
+							var actions = that._forEachHashEntry(uri.repoName, joinedHash, serverResources, repoResources, pendingHash, newUpdatedResources);
 							return Promise.all(actions).then(function(finalActions) {
 								return that.dbService.write(uri.repoName, newUpdatedResources).then(function(result){
 									return that._repoGet(uri).then(function(repoResources) {
