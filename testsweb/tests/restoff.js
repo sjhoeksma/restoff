@@ -1158,10 +1158,10 @@ describe ("restoff", function() {
 	// Reconciliation
 
 	// Action              -  Server Only Change          | Client Only Change          | Change in Both
-	// A   Post Insert     -  1 Get and Overwrite    DONE | 2 Write to Server      DONE | 3 Same primary key!!!
-	// B   Post/Put Update -  1 Get and Overwrite    DONE | 2 Write to Server      DONE | 3 Reconciliation
-	// C   Delete          -  1 Delete Local         DONE | 2 Delete Remote        DONE | 3 Nothing to do
-	// D     Other was Updated  1 Updated ? Do What?      |   2 Updated ? Do What?
+	// A   Post Insert     -  1 Get and Overwrite    DONE | 2 Write to Server      DONE | 3 Same primary key!!! Treat like reconciliation
+	// B   Post/Put Update -  1 Get and Overwrite    DONE | 2 Write to Server      DONE | 3 Reconciliation 
+	// C   Delete          -  1 Delete Local         DONE | 2 Delete Remote        DONE | 3 Nothing to do  DONE
+	// D     Other was Updated  1 Updated ? Do What? DONE |   2 Updated ? Do What? DONE 
 
 	it("70 A1, B1, C1: should reconcile when server has put/insert/post/delete\
 					    changes and client has no changes.", function() {
@@ -1403,6 +1403,14 @@ describe ("restoff", function() {
 			});
 		});
 	});	
+
+	it("73 A3, B3, C3: should reconcile when client and server have both updated the same data\
+					   by adding another record.", function() {
+
+
+	});
+
+
 
 	// // Actual offline test: Comment out this code and make sure your internet
 	// // connection is turned off
