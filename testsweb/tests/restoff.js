@@ -1613,6 +1613,91 @@ describe ("restoff", function() {
 	});
 
 
+	it("74: should handle merging a delete on the sever.", function() {
+
+		var emailA = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68300",
+			"first_name": "No Changes emailA",
+			"last_name": "Leave Alone"
+		};
+
+		var emailB = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68301",
+			"first_name": "No Changes emailA",
+			"last_name": "Post In A"
+		}
+
+		var repoName = "users21";
+
+
+		var roff = restlib.restoff({
+			"rootUri" : ROOT_URI,
+			dbService : {
+				dbName : "restoff.json"
+			},
+			onBrentReconcile: function(pendingRec) {
+				pendingRecFromReconcile = pendingRec;
+			}
+		}); // changes on this client
+		var roff2 = restlib.restoff({
+			"rootUri" : ROOT_URI,
+			dbService : {
+				dbName : "restoff2.json"
+			}
+		}); // Changes from "another" client
+
+
+		return Promise.all([ // clean and load the database for test
+			roff.clear(repoName, true),
+			roff2.clear(repoName, true),
+			roff.delete(repoName+"/"+emailB.id),
+			roff.post(repoName, emailA)
+		]).then(function(result) {
+			return Promise.all([
+				roff.clear(repoName, true),
+				roff2.clear(repoName, true),
+				roff.get(repoName),
+				roff2.get(repoName)
+			]).then(function(results) { // verify everything is ready to go
+				var roffData = results[2];
+				var roff2Data = results[3];
+				expect(deepEqualOrderUnimportant([emailA], roffData, "id"), "initial setup should be correct").to.be.true;
+				expect(deepEqualOrderUnimportant([emailA], roff2Data, "id"), "initial setup should be correct").to.be.true;
+				roff.forcedOffline = true;
+				roff2.forcedOffline = true;
+				return roff2.delete(repoName+"/"+emailA.id).then(function() {
+					return Promise.all([
+						roff.get(repoName),
+						roff2.get(repoName)
+					]).then(function(results) { // verify everything updated correctly while offline
+						var roffData = results[0];
+						var roff2Data = results[1];
+						expect([], "should be empty").to.deep.equals(roff2Data);
+						expect(deepEqualOrderUnimportant([emailA], roffData, "id"), "initial setup should be correct").to.be.true;
+						roff2.forcedOffline = false;
+						return roff2.get(repoName).then(function(result) {
+							expect([], "should be empty").to.deep.equals(result);
+							return dbRepoExactlyEqual(roff2, repoName, true).then(function(result) {
+								expect(result, "db repo2 the same").to.be.true;
+								return roff.post(repoName, emailB).then(function(result) { // get something pending so we get merging going on
+									expect(emailB, "should be equal").to.deep.equals(result);
+									roff.forcedOffline = false;
+									return roff.get(repoName).then(function(result) {
+										expect([emailB], "should be empty").to.deep.equals(result);
+										return dbRepoExactlyEqual(roff, repoName, true).then(function(result) {
+											expect(result, "db repo2 the same").to.be.true;
+											return roff.delete(repoName+"/"+emailB.id);
+										});
+									});
+								});
+							});
+						});
+					});
+				});
+			});
+		});
+	});
+
 	// // Actual offline test: Comment out this code and make sure your internet
 	// // connection is turned off
 	// it("99: should work offline when it is 'really' offline", function() {

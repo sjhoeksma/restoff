@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.1.5
+// version: 0.1.6
 // author: ProductOps <restoff@productops.com>
 // license: MIT
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.1.5'; // version set through gulp build
+restlib["version-library"] = '0.1.6'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -562,7 +562,7 @@ RestOff.prototype._forEachHashEntry = function(repoName, joinedHash, serverResou
 							searchOptions[that.primaryKeyName] = primaryKey;
 							return that.dbService.delete(repoName, searchOptions).then(function(result) {
 								return that._pendingDelete(pendingAction.id).then(function(result) {
-									resolve(undefined); // return this because we want to process it.
+									resolve();
 								}).catch(function(error) {
 									console.log ("WARNING! 002 Error %O occured.", error);
 									reject(error);
@@ -570,8 +570,11 @@ RestOff.prototype._forEachHashEntry = function(repoName, joinedHash, serverResou
 							});
 						}
 					} else {          // False, True, False : Delete on server                                   | Remove from repoClient directly
-						// NOT POSSIBLE? Not on server, In Repo but not Pending...
-						console.log(primaryKey + " False, True, false: 07 Requires implementation. Please contact developer for use case.");
+						var searchOptions = {}
+						searchOptions[that.primaryKeyName] = primaryKey;
+						return that.dbService.delete(repoName, searchOptions).then(function(result) {
+							resolve();
+						});
 					}
 				} else {
 					if (inPending) {  // False, False, True : Added then Deleted on Client                       | Don't complete delete on server. Clear out pending.
