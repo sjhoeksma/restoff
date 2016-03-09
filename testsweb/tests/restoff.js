@@ -1118,6 +1118,43 @@ describe ("restoff", function() {
 		});
 	});
 
+	it("68: get should, when there are a lot of items to get\
+			and pending is there, be fastish.", function() {
+
+		var roff = restlib.restoff({
+			rootUri : ROOT_URI
+		});
+
+		var userToPost = {
+			"id": "aedfa5a4-d748-11e5-b5d2-0a1d41d68522",
+			"first_name": "Go",
+			"last_name": "Away"
+		};
+
+
+		var userRepo = "users16";
+		return roff.clear(userRepo, true).then(function(result) {
+			return roff.get(userRepo).then(function(result) {
+				roff.forcedOffline = true;
+				return roff.post(userRepo, userToPost).then(function(result) {
+					return roff.get(userRepo).then(function(result) {
+						expect(result.length, "a lot of records").to.equal(301);
+						roff.forcedOffline = false;
+						return roff.get(userRepo).then(function(result) {
+							return roff.delete(userRepo+"/"+userToPost.id);
+						});
+
+					});
+				});
+			});
+		});
+
+
+	});
+
+	// TODO: Allow for configuring primaryKeyName at the options level.
+
+
 	// Reconciliation
 
 	// Action              -  Server Only Change          | Client Only Change          | Change in Both
