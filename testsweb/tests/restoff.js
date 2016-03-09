@@ -1163,7 +1163,7 @@ describe ("restoff", function() {
 	// C   Delete          -  1 Delete Local         DONE | 2 Delete Remote        DONE | 3 Nothing to do  DONE
 	// D     Other was Updated  1 Updated ? Do What? DONE |   2 Updated ? Do What? DONE 
 
-	it("70 A1, B1, C1: should reconcile when server has put/insert/post/delete\
+	it("70: A1, B1, C1: should reconcile when server has put/insert/post/delete\
 					    changes and client has no changes.", function() {
 
 		var user01 = {
@@ -1248,7 +1248,7 @@ describe ("restoff", function() {
 	});
 
 
-	it("71 A2, B2, C2: should reconcile when client has put/insert/post/delete\
+	it("71: A2, B2, C2: should reconcile when client has put/insert/post/delete\
 					    changes and server has no changes.", function() {
 
 		var emailA = {
@@ -1326,7 +1326,7 @@ describe ("restoff", function() {
 		});
 	});
 
-	it("72 D1, D2: should reconcile when client updated a server deleted record\
+	it("72: D1, D2: should reconcile when client updated a server deleted record\
 				   and reconcile when server updated a client deleted record", function() {
 
 		var emailA = {
@@ -1404,7 +1404,7 @@ describe ("restoff", function() {
 		});
 	});	
 
-	it("73 A3, B3, C3: should reconcile when client and server have both updated the same data\
+	it("73: A3, B3, C3: should reconcile when client and server have both updated the same data\
 					   by adding another record.", function() {
 
 
