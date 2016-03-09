@@ -489,17 +489,29 @@ $ gulp webserver
 
 ## Publish and Push New Version
 
-Verifty package.json version is newer than one in npm (visit https://www.npmjs.com/package/restoff)
+First time?
 
 ```
 $ npm adduser           # Need to do one time
-$ npm publish ./ 
-$ git tag -v 
-
-// NOW Increment the version for the next push.
-
 ```
 
+
+1) Verifty package.json version is newer than one in npm (visit https://www.npmjs.com/package/restoff)
+
+2) Verify no pending changes
+```
+$ git status
+```
+
+3)
+
+```
+$ npm publish ./ 
+$ git tag -a 0.1.4 -m "v0.1.4"  // 0.1.4 is an example
+$ git push origin --tags
+```
+
+4) Increment version in package.json and update check-build test. Re-run tests.
 
 ## Development Setup
 
