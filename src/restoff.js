@@ -10,7 +10,7 @@ function restoff(config) {
 
 	var that = Object.create(RestOff.prototype);
 	that._options = Object.assign(defaultConfig, config);
-
+	that._options.generateId = (config && config.generateId) ? config.generateId : that._guidGenerate;
 	that._isOnline = null;
 	that._autoParams = {};
 	that._autoHeaders = {};
@@ -330,19 +330,20 @@ RestOff.prototype._joinedHash = function(primaryKeyName, serverResources, client
 	return hash;
 }
 
-
-RestOff.prototype._applyAndClearPending = function(pendingAction, resolve, reject) {
+RestOff.prototype._applyAndClearPending = function(pendingAction) {
 	var that = this;
-	return that._restCall(pendingAction.uri, pendingAction.restMethod, undefined, pendingAction.resources).then(function(result) {
-		return that._pendingDelete(pendingAction.id).then(function(result) {
-			resolve(undefined); // return this because we want to process it.
+	return new Promise(function(resolve, reject) {	
+		return that._restCall(pendingAction.uri, pendingAction.restMethod, undefined, pendingAction.resources).then(function(result) {
+			return that._pendingDelete(pendingAction.id).then(function(result) {
+				resolve(undefined); // return this because we want to process it.
+			}).catch(function(error) {
+				console.log ("WARNING! 002 Error %O occured.", error);
+				reject(error);
+			});
 		}).catch(function(error) {
-			console.log ("WARNING! 002 Error %O occured.", error);
+			console.log ("WARNING! 001 Error %O occured.", error);
 			reject(error);
 		});
-	}).catch(function(error) {
-		console.log ("WARNING! 001 Error %O occured.", error);
-		reject(error);
 	});
 }
 
@@ -378,26 +379,59 @@ RestOff.prototype._forEachHashEntry = function(repoName, joinedHash, serverResou
 					if (inPending) {  // True, True, True   : Client changes. Possible changes on server too. PUT/POST Only   | Reconcile. Clear out pending.
 						var pendingOriginal = pendingAction ? pendingAction.original : undefined;
 						var serverSideEdit = !that._deepEquals(serverResource, pendingOriginal);
-						if (serverSideEdit) { // edited on server and client
-							console.log(primaryKey + " TODO: 10 Add test");
+						if (serverSideEdit) { // edited on server and client: BRENT reconciliation
+							// First: Let's fix the original record
+							var newId = that.options.generateId();
+							pendingAction.primaryKeyOriginal = pendingAction.primaryKey;
+							pendingAction.primaryKey = newId;
+							pendingAction.resources[that.primaryKeyName] = newId;
+							if ("PUT" === pendingAction.restMethod) { // will need to convert a PUT to a POST but can keep the existing post the same
+								pendingAction.restMethod = "POST";
+								pendingAction.uri = pendingAction.uri.replace(pendingAction.primaryKeyOriginal, "");
+							}
+
+							// Second: Let's apply the new change on the server
+							return that._applyAndClearPending(pendingAction, resolve, reject).then(function() {
+								
+								// Thrid: We will need to add this "new record" to the existing repository
+								newUpdatedResources.push(pendingAction.resources);
+								// Fourth: but we keep the original record in the repo becuase it will be overwritten by the resolve
+								newUpdatedResources.push(serverResource);
+
+								// Finally: Notify someone that Brent Reconciliation just happened
+								if (that.options.onBrentReconcile) {
+									that.options.onBrentReconcile(pendingAction);
+								}
+
+								resolve();
+							});
+
+							// 
 						} else { // edited on client and already in repo so no need to add to newUpdatedResources. Clean out Pending.
-							return that._applyAndClearPending(pendingAction, resolve, reject);
+							return that._applyAndClearPending(pendingAction, resolve, reject).then(function() {
+								resolve();
+							});
 						}
 					} else {          // True, True, False  : No changes on client. Possible changes on server.  | Add to newUpdatedResources
 						resolve(newUpdatedResources.push(serverResource));
 					}
 				} else {
 					if (inPending) {  // True, False, True  : Deleted on Client                                  | Complete delete on server. Clear out pending.
-						return that._applyAndClearPending(pendingAction, resolve, reject);
+						// TODO: Log that this was done and/or have a callback because a pending client post/put was ignored becuase it was deleted on the server
+						return that._applyAndClearPending(pendingAction, resolve, reject).then(function() {
+							resolve();
+						});
 					} else {          // True, False, False : Post/Put on server                                 | Add to postUpdated
-						console.log(primaryKey + " TODO: 04 Add test");
+						resolve(newUpdatedResources.push(serverResource));
 					}
 				}
 			} else {
 				if (inRepo) {
 					if (inPending) {  // False, True, True  : Post/Put on client                                 | Clear out pending. Complete post/put on client
 						if (undefined === pendingAction.original) { // not on server no origional, so must have been created on client.
-							return that._applyAndClearPending(pendingAction, resolve, reject);
+							return that._applyAndClearPending(pendingAction, resolve, reject).then(function(){
+								resolve();
+							});
 						} else { // not on server, but had an original so must have been on server at one time. So, a delete.
 							var searchOptions = {}
 							searchOptions[that.primaryKeyName] = primaryKey;
@@ -411,12 +445,13 @@ RestOff.prototype._forEachHashEntry = function(repoName, joinedHash, serverResou
 							});
 						}
 					} else {          // False, True, False : Delete on server                                   | Remove from repoClient directly
-						// NOT POSSIBLE?
-						console.log(primaryKey + " TODO: 06 Add test");
+						// NOT POSSIBLE? Not on server, In Repo but not Pending...
+						console.log(primaryKey + " False, True, false: 07 Requires implementation. Please contact developer for use case.");
 					}
 				} else {
 					if (inPending) {  // False, False, True : Added then Deleted on Client                       | Don't complete delete on server. Clear out pending.
-						console.log(primaryKey + " TODO: 07 Add test");
+						// Have this case in test "73: A3, B3, C3" record emailEUpdated but never gets here.
+						console.log(primaryKey + " False, False, True: 07 Requires implementation. Please contact developer for use case.");
 					} // else False, False, False: Do Nothing becuase no Posted/Put/Deleted
 				}
 			}
@@ -522,7 +557,7 @@ RestOff.prototype.autoHeaderParamGet = function(name) {
 }
 
 // TODO: Maybe use a library. See http://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript
-RestOff.prototype._guid = function() {
+RestOff.prototype._guidGenerate = function() {
   function s4() {
     return Math.floor((1 + Math.random()) * 0x10000)
       .toString(16)
@@ -537,7 +572,7 @@ RestOff.prototype._pendingAdd = function(uri) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
 		var result = {
-			"id" : that._guid(),
+			"id" : that._guidGenerate(),
 			"restMethod" : uri.restMethod,
 			"resources" : uri.resources,
 			"clientTime" : new Date(),

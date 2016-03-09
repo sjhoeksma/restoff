@@ -1404,12 +1404,213 @@ describe ("restoff", function() {
 		});
 	});	
 
-	it("73: A3, B3, C3: should reconcile when client and server have both updated the same data\
-					   by adding another record.", function() {
+
+	// README: NOT PASSING? May be becuase the newly generated record with the new
+	//         GUID is in the users20 repository. Stop Gulp, do a git checkout database/db.json
+	//         and start gulp again.
+	//         TODO: With backend test framework, figure out a way to clera out the entire repo
+	//         before a test instead of deleting each repository item one at a time.
+	it("73: A3, B3, C3: should reconcile when client and server have both\
+						updated the same data by adding another record.\
+					    should also call the onBrentReconcile callback.", function() {
+
+		var emailA = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68400",
+			"first_name": "No Changes emailA",
+			"last_name": "Leave Alone"
+		};
 
 
+		var emailB = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68401",
+			"first_name": "Update On emailB",
+			"last_name": "Roff2 Client",
+			"changed_value": "No Change"
+		};
+
+		var emailBUpdated = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68401",
+			"first_name": "Update On emailBUpdated",
+			"last_name": "Roff2 Client",
+			"changed_value": "Now Roff2 Update B"
+		};
+
+		var emailC = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68402",
+			"first_name": "Update On emailC",
+			"last_name": "Roff Client",
+			"changed_value": "No Change"
+		};
+
+		var emailCUpdated = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68402",
+			"first_name": "Update On emailCUpdated",
+			"last_name": "Roff Client",
+			"changed_value": "Now Roff Update C"
+		};
+
+		var emailD = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68403",
+			"first_name": "Update On emailD",
+			"last_name": "Roff and Roff2 Client",
+			"changed_value": "No Change"
+		};
+
+		var emailDRoffUpdate = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68403",
+			"first_name": "Update On emailDRoffUpdate",
+			"last_name": "Roff and Roff2 Client",
+			"changed_value": "Now Roff Update D"
+		};
+
+		var emailDRoff2Update = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68403",
+			"first_name": "Update On emailDRoff2Update",
+			"last_name": "Roff and Roff2 Client",
+			"changed_value": "Now Roff2 D"
+		};
+
+		var emailE = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68404",
+			"first_name": "Update Then Deleted On emailE",
+			"last_name": "Roff Client",
+			"changed_value": "No Change"
+		};
+
+
+		var emailEUpdated = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68404",
+			"first_name": "Update Then Deleted On emailEUpdated",
+			"last_name": "Roff Client",
+			"changed_value": "Now Roff Update E"
+		};
+
+		var emailF = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68405",
+			"first_name": "Post on Roff emailF",
+			"last_name": "Roff Client",
+			"changed_value": "No Change"
+		};
+
+		var emailG = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68406",
+			"first_name": "Post on Roff2 emailG",
+			"last_name": "Roff2 Client",
+			"changed_value": "No Change"
+		};
+
+
+		var repoName = "users20";
+
+
+		var pendingRecFromReconcile;
+		var roff = restlib.restoff({
+			"rootUri" : ROOT_URI,
+			dbService : {
+				dbName : "restoff.json"
+			},
+			onBrentReconcile: function(pendingRec) {
+				pendingRecFromReconcile = pendingRec;
+			}
+		}); // changes on this client
+		var roff2 = restlib.restoff({
+			"rootUri" : ROOT_URI,
+			dbService : {
+				dbName : "restoff2.json"
+			}
+		}); // Changes from "another" client
+
+
+		return Promise.all([ // clean and load the database for test
+			roff.clear(repoName, true),
+			roff2.clear(repoName, true),
+			roff.post(repoName, emailA),
+			roff.post(repoName, emailB),
+			roff.post(repoName, emailC),
+			roff.post(repoName, emailD),
+			roff.post(repoName, emailE), 
+		]).then(function(result) {
+			return Promise.all([
+				roff.clear(repoName, true),
+				roff2.clear(repoName, true),
+				roff.get(repoName),
+				roff2.get(repoName)
+			]).then(function(results) { // verify everything is ready to go
+				var roffData = results[2];
+				var roff2Data = results[3];
+				expect(deepEqualOrderUnimportant([emailA, emailB, emailC, emailD, emailE], roffData, "id"), "initial setup should be correct").to.be.true;
+				expect(deepEqualOrderUnimportant([emailA, emailB, emailC, emailD, emailE], roff2Data, "id"), "initial setup should be correct").to.be.true;
+				roff.forcedOffline = true;
+				roff2.forcedOffline = true;
+				return Promise.all([ // do the updates offline
+					roff.post(repoName, emailCUpdated),
+					roff.put(repoName+"/"+emailDRoffUpdate.id, emailDRoffUpdate),
+					roff.post(repoName, emailEUpdated),
+					roff2.put(repoName+"/"+emailBUpdated.id, emailBUpdated),
+					roff2.post(repoName, emailDRoff2Update),
+					roff.post(repoName, emailF),
+					roff2.post(repoName, emailG)
+				]).then(function(results) {
+					return roff.delete(repoName+"/"+emailEUpdated.id).then(function() { // can't assure order of Promise.all so do the delete when above promise.all is done.
+						return Promise.all([
+							roff.get(repoName),
+							roff2.get(repoName)
+						]).then(function(results) { // verify everything updated correctly while offline
+							var roffData = results[0];
+							var roff2Data = results[1];
+							expect(deepEqualOrderUnimportant([emailA, emailB, emailCUpdated, emailDRoffUpdate, emailF], roffData, "id"), "initial offline update should be correct").to.be.true;
+							expect(deepEqualOrderUnimportant([emailA, emailBUpdated, emailC, emailDRoff2Update, emailE, emailG], roff2Data, "id"), "initial offline update should be correct").to.be.true;
+							roff2.forcedOffline = false;
+							return roff2.get(repoName).then(function(resultRoff2) { // can't use promise because the order of promise is unknown so do roff2 first (simulate roff being synced after roff2)
+								// console.log("roff2Data %O Expected %O", resultRoff2, [emailA, emailBUpdated, emailC, emailDRoff2Update, emailE, emailG]);
+								expect(deepEqualOrderUnimportant([emailA, emailBUpdated, emailC, emailDRoff2Update, emailE, emailG], resultRoff2, "id"), "roff2 get results should still be same as last expect(deepEqualOrderUnimportant) becuse no changes have occured on the server yet.").to.be.true;
+								roff.forcedOffline = false;
+								return roff.get(repoName).then(function(resultRoff) { // order of promise is unknown so now do roff
+									expect(pendingRecFromReconcile, "onBrentReconcile should have been called.").to.be.an("object"); // not undefined because of closure magic
+
+									// console.log("roffData %O Expected %O", resultRoff, [emailA, emailBUpdated, emailCUpdated, emailDRoffUpdate, emailDRoff2Update, emailF, emailG]);
+
+
+									// emailDRoffUpdate.id = pendingRecFromReconcile.primaryKey;
+									// emailA - Should be same becuase no changes on either side.
+									// emailBUpdated - Updated on Roff2 should have been brought over
+									// emailCUpdated - Updated on Roff should have been left
+									// emailDRoffUpdate, emailDRoff2Update - Both sides so both emailDRoff2Update and emailDRoffUpdate should be in the list
+									// NO emailE - Update then delete on client so should not be in the list
+									// emailF - New posted item in Roff so should be here
+									// emailG - New posted item in Roff2 so should now be here in Roff
+									expect(deepEqualOrderUnimportant([emailA, emailBUpdated, emailCUpdated, emailDRoffUpdate, emailDRoff2Update, emailF, emailG], resultRoff, "id"), "roff get should merge differences.").to.be.true;
+									expect(deepEqualOrderUnimportant([emailA, emailBUpdated, emailCUpdated, emailDRoffUpdate, emailDRoff2Update, emailF, emailG], roff.dbService.dbRepo.read(repoName), "id"), "repo should be valid.").to.be.true;
+
+									return roff2.get(repoName).then(function(result2Roff) { // order of promise is unknown so now do roff
+
+										expect(deepEqualOrderUnimportant([emailA, emailBUpdated, emailCUpdated, emailDRoffUpdate, emailDRoff2Update, emailF, emailG], resultRoff, "id"), "roff2 get should merge differences.").to.be.true;
+										expect(deepEqualOrderUnimportant([emailA, emailBUpdated, emailCUpdated, emailDRoffUpdate, emailDRoff2Update, emailF, emailG], roff2.dbService.dbRepo.read(repoName), "id"), "repo should be valid.").to.be.true;
+
+										expect(deepEqualOrderUnimportant(roff.dbService.dbRepo.read(repoName), roff2.dbService.dbRepo.read(repoName), "id"), "two repos should be equal.").to.be.true;
+
+										return dbRepoExactlyEqual(roff, repoName, true).then(function(result) {
+											expect(result, "db repo the same").to.be.true;
+											return Promise.all([ // clean up
+												roff.delete(repoName+"/"+emailA.id),
+												roff.delete(repoName+"/"+emailB.id),
+												roff.delete(repoName+"/"+emailC.id),
+												roff.delete(repoName+"/"+emailD.id),
+												roff.delete(repoName+"/"+emailE.id),
+												roff.delete(repoName+"/"+emailF.id),
+												roff.delete(repoName+"/"+emailG.id),
+												roff.delete(repoName+"/"+pendingRecFromReconcile.primaryKey)
+											]);
+										});
+									});
+								});
+							});
+						});
+					});
+				});
+			});
+		});
 	});
-
 
 
 	// // Actual offline test: Comment out this code and make sure your internet
@@ -1551,6 +1752,7 @@ describe ("restoff", function() {
 		right = right instanceof Array ? right : [right];
 
 		if (left.length != right.length) {
+			console.log("Lengths not equal %O %O", left.length, right.length);
 			return false;
 		}
 
@@ -1566,6 +1768,7 @@ describe ("restoff", function() {
 				}
 			}
 			if (!hadEqualRecord) {
+				console.log("Nothing found for leftItem %O", leftItem);
 				return false;
 			}
 		}
