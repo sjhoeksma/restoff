@@ -487,11 +487,17 @@ Read documentation in gulpfile.js to see how to setup automated web testing.
 $ gulp webserver
 ```
 
-## Publish
+## Publish and Push New Version
+
+Verifty package.json version is newer than one in npm (visit https://www.npmjs.com/package/restoff)
 
 ```
 $ npm adduser           # Need to do one time
 $ npm publish ./ 
+$ git tag -v 
+
+// NOW Increment the version for the next push.
+
 ```
 
 
@@ -506,6 +512,9 @@ Add to your /etc/hosts file:
 ```
 127.0.0.1 test.development.com
 ```
+
+
+
 
 ## TODOs
 
