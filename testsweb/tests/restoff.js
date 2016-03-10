@@ -1612,8 +1612,7 @@ describe ("restoff", function() {
 		});
 	});
 
-
-	it("74: should handle merging a delete on the sever.", function() {
+	it("74: should handle merging a delete on the sever while we still have pending changes.", function() {
 
 		var emailA = {
 			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68300",
@@ -1697,6 +1696,70 @@ describe ("restoff", function() {
 			});
 		});
 	});
+
+	it("75: should handle adding an item and then deleting it so that it was never on the server .", function() {
+
+		var emailA = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68300",
+			"first_name": "No Changes emailA",
+			"last_name": "Leave Alone"
+		};
+
+		var emailB = {
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68301",
+			"first_name": "No Changes emailA",
+			"last_name": "Post In A"
+		}
+
+		var repoName = "users21";
+
+
+		var roff = restlib.restoff({
+			"rootUri" : ROOT_URI,
+			dbService : {
+				dbName : "restoff.json"
+			},
+			onBrentReconcile: function(pendingRec) {
+				pendingRecFromReconcile = pendingRec;
+			}
+		}); // changes on this client
+
+		return Promise.all([ // clean and load the database for test
+			roff.clear(repoName, true),
+			roff.delete(repoName+"/"+emailB.id),
+			roff.delete(repoName+"/"+emailA.id)
+		]).then(function(result) {
+			return Promise.all([
+				roff.clear(repoName, true),
+				roff.get(repoName)
+			]).then(function(results) { // verify everything is ready to go
+				var roffData = results[1];
+				expect([], "empty to start with").to.deeply.equals([]);
+				roff.forcedOffline = true;
+				return Promise.all([
+					roff.post(repoName, emailA),
+					roff.post(repoName, emailB)
+				]).then(function() {
+					return roff.delete(repoName+"/"+emailB.id).then(function (results) {
+						var roffData = results[0];
+						expect([emailA], "should have one record").to.deep.equals(results);
+						expect(deepEqualOrderUnimportant([emailA], roffData, "id"), "initial setup should be correct").to.be.true;
+						roff.forcedOffline = false;
+						return roff.get(repoName).then(function(result) {
+							expect([emailA], "should have one record").to.deep.equals(result);
+							return dbRepoExactlyEqual(roff, repoName, true).then(function(result) {
+								expect(result, "db repo2 the same").to.be.true;
+								return dbRepoExactlyEqual(roff, repoName, true).then(function(result) {
+									expect(result, "db repo2 the same").to.be.true;
+									return roff.delete(repoName+"/"+emailA.id);
+								});
+							});
+						});
+					});
+				});
+			});
+		});
+	});	
 
 	// // Actual offline test: Comment out this code and make sure your internet
 	// // connection is turned off
