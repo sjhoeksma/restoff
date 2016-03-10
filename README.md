@@ -2,23 +2,23 @@
 
 Rest Offline uses your existing RESTful APIs to synchronize client/server data allowing your application to run even when it goes offline.
 
-* Now under MIT license
-* Database agnostic and schema-less
-	* Works against any database backend
-	* Supports multiple databases
-	* No need to worry about database schema changes
-* Run applications when they go offline
-	* Automatically reconciles any changes made while the application was offline (this feature is currently in development)
-	* in ```clientOnly``` mode, Restoff automatically provides a complete RESTful offline service on your client 
+* Now under MIT license.
+* Database agnostic and schema-less.
+	* Works against any database backend (SQL, Key/Value, Garph, etc.).
+	* Supports multiple databases sources.
+	* No need to worry about database schema changes.
+	* focus on your RESTful API and not your backend databases
+* Reconciliation and Offline Modes
+	* Automatic reconciliation of offline changes.
+	* in ```clientOnly``` mode, Restoff automatically provides a complete RESTful offline service for your app.
+	* Reconciliation without soft deletes or last modified date fields
 * Supports resources in the following formats:
 	* Json
-* Allows you to program around your RESTful API and not your backend databases
+* Limitations and Expectations:
+	* Every resource must have one unique ```primaryKey``` field.
 	* Best to follow [RESTful best known practices][rest-best-practices]
 * Next major features
-	* Restoff will reconcile changes between client and server.
-		* Currently reconciles resources that were edited either on the server or the client. A resource edited by both (conflicting) is in progresss.
-		* Uses Brent reconciliation: if there is a difference add the resource and let the user figure out which one to delete.
-	* direct replacement into Angular http
+	* Create an Angular injector overriding http
 	* support non-standard get/put/post.
 		- Example: a request GET actually does a delete
 	* major cleanup of documentation
@@ -26,9 +26,6 @@ Rest Offline uses your existing RESTful APIs to synchronize client/server data a
 		- requires better mockable restapi backend for testing)
 	* support nested resources (example: /users/45/addresses)
 	* support non-standard restful api: ability to map a user
-* Expectations:
-	* Every resource must have one unique key field.
-		* Unique key field should be a UUID.
 
 ## RestOff Usage
 
@@ -91,18 +88,20 @@ function synchronize(roff, userId) {
 
 ## Resoff Reconciliation in Detail
 
-| Row  | Action             | 1) Server Only Change            | 2) Client Only Change            | 3) Changes in Both               |
-| ---- | ------------------ | ---------------------------------| ---------------------------------| ---------------------------------|
-| A    | Insert (Post)      | Get and Overwrite on Client      | Post and Overwrite on Server     | Same Primary Key                 |
-| B    | Update (Post/Put)  | Get and Overwrite on Client      | Post and Overwrite on Server     | Reconcile Changes                |
-| C    | Delete             | Delete from Client               | Delete on Server                 | Nothing to Do: Both deleted      |
-| D    | Delete with Update |                                  |                                  | Still delete OR Keep updated?    |
+| Row  | Action                       | 1) Server Only Change            | 2) Client Only Change            | 3) Changes in Both                 |
+| ---- | ---------------------------- | ---------------------------------| ---------------------------------| -----------------------------------|
+| A    | Insert (Post)                | Get and Overwrite on Client      | Post and Overwrite on Server     | Same Primary Key. Apply B3.        |
+| B    | Update (Post/Put)            | Get and Overwrite on Client      | Post and Overwrite on Server     | Brent Reconciliation               |
+| C    | Delete                       | Delete from Client               | Delete on Server                 | Nothing to Do: Both deleted        |
+| D    | Delete with Update on client |                                  |                                  | Honor Delete: ignore client update |
 
 * A1, A2, B1, B2, C1, C2, C3: No potential merge conflicts
 * A3: This is the case where the same primary key was generated on each client. In this case we will simply view it as a reconciliation of changes because:
-	* You should be using UUIDs for keys and the chance of collisions is very low. If you are using incrementing IDs, then you will need a way to assure that the IDs being generated are unique.
+	* You should be using UUIDs for keys and the chance of collisions is very low. If you are using incrementing IDs, then you will need an algorithm to generate these IDs uniquely on the client. See the ```generateId``` function.
 * D3: The client/server deleted a record that was updated on the server/client. In this case, we honor the delete.
-* B3: Reconciliation. Using Brent reconciliation, we add a new record.
+* B3: Using Brent reconciliation which means we assign a new resource id (primaryKey) to the resource and post it.
+	* This does not work with hierarchical data. The intent is to allow a user to take advantage of the existing User Interface of an Application to deal with the merge conflict.
+	* TODO: We will be providing a call back that lets the developer provide a custom merge conflict screen.
 
 ## Restoff Options
 
@@ -157,7 +156,7 @@ var roff = restoff({
 Creates a backend RESTful service on your client.
 
 * Allows your RESTful API to run 100% on the client.
-* Note: Buy design, the ```pending``` repository runs in ```clientOnly``` mode meaning the pending RESTful endpoint never hits the backend service.
+* Note: By design, the ```pending``` repository runs in ```clientOnly``` mode meaning the pending RESTful endpoint never hits the backend service.
 
 ```javascript
 var rest = restoff({
@@ -203,9 +202,34 @@ NOTE: There is a slight difference between ```clientOnly``` mode and ```forcedof
 * In ```forcedOffline``` mode, Restoff will store any put/post/delete actions in the ```pending``` repository.
 * In ```clientOnly``` mode, Retsoff will **not** store any put/post/delete actions in the ```pending``` repository.
 
+### generateId [Optional]
+
+```generateId``` is the function called by Restoff to generate a primary key. Bey default, restOff uses ```RestOff.prototype._guidGenerate()``` but you can define your own.
+
+```javascript
+var rest = restoff({
+	rootUri: "http://api.example.com/",
+	generateId: function() { return Math.floor((1 + Math.random()) * 0x10000); } // not a great unique key generator
+});
+```
+### onReconciliation(completedAction) [Optional]
+
+```onReconciliation``` is the function called by Restoff after reconciliation of a given resource is complete.
+
+```javascript
+var rest = restoff({
+	rootUri: "http://api.example.com/",
+	onReconciliation: function(completedAction) {
+	  console.log("The following completed action was reconciled and saved to the server %O.", completedAction);
+	}
+});
+```
+
+Note: Placed features will provide a more robust reconciliation process allowing the developer to provide their own custom reconciliation process. Currently, Restoff always applies Brent Reconciliation. 
+
 ### pendingUri and pendingRepoName
 
-When offline, Restoff places any put/post/delete Restful operations in a ```pending``` repository. Restoff uses it's own persistence engine meaning it calls itself using get/post/delete.
+When offline, Restoff places any put/post/delete RESTful operations in a ```pending``` repository. Restoff uses it's own persistence engine meaning it calls itself using get/post/delete.
 
 Use ```pendingUri``` and ```pendingRepoName``` to configure the URI and repository name of the ```pending``` repository.
 
@@ -215,7 +239,7 @@ Use ```pendingUri``` and ```pendingRepoName``` to configure the URI and reposito
 
 ### autoQueryParamSet(name, value)
 
-A parameter of ```name``` with ```value``` will be added/appended to every RESTful api call. Useful for adding parameters such as an access token.
+A parameter of ```name``` with ```value``` will be added/appended to **EVERY** RESTful api call. Useful for adding parameters such as an access token.
 
 Example usage:
 
@@ -541,5 +565,5 @@ Add to your /etc/hosts file:
 * Is more than one instance of gulp running?
 
 
-[rest-best-practices]: http://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api
+[rest-best-practices]: https://codeplanet.io/principles-good-restful-api-design/
 [jsonplaceholder-link]: http://jsonplaceholder.typicode.com/

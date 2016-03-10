@@ -1227,6 +1227,7 @@ describe ("restoff", function() {
 															return roff.post(userRepo, user01).then(function(result) { // Return to prior dbState
 																return roff.post(userRepo, user02).then(function(result) {
 																	return roff.post(userRepo, user03Delete).then(function(result) { 
+																		pendingStatusCount(roff, 0);
 																		return roff.delete(userRepo + "/" + user04New.id).then(function(result) { // Above 4 restart test
 																		});
 																	});
@@ -1310,6 +1311,7 @@ describe ("restoff", function() {
 								return pendingResourcesGet(roff, emailRepo).then(function(pending) {
 									expect(pending.length, "Should have nothing pending").to.equal(0);
 									expect([emailA, emailBPut, emailD], "Client should sync up when placed online again and resource is accessed").to.deep.equals(updatedResults)
+									pendingStatusCount(roff, 0);
 									return Promise.all([
 										roff.delete(emailRepo+"/"+emailA.id),
 										roff.delete(emailRepo+"/"+emailB.id),
@@ -1396,6 +1398,8 @@ describe ("restoff", function() {
 						roff.forcedOffline = false;
 						return roff.get(emailRepo).then(function(results) {
 							expect([emailC], "should only have the one unchanged record as the other two are deleted").to.deep.equals(results);
+							pendingStatusCount(roff, 0);
+							pendingStatusCount(roff2, 0);							
 							return roff.delete(emailRepo+"/"+emailC.id);
 						});
 					});
@@ -1412,7 +1416,7 @@ describe ("restoff", function() {
 	//         before a test instead of deleting each repository item one at a time.
 	it("73: A3, B3, C3: should reconcile when client and server have both\
 						updated the same data by adding another record.\
-					    should also call the onBrentReconcile callback.", function() {
+					    should also call the onReconciliation callback.", function() {
 
 		var emailA = {
 			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68400",
@@ -1509,7 +1513,7 @@ describe ("restoff", function() {
 			dbService : {
 				dbName : "restoff.json"
 			},
-			onBrentReconcile: function(pendingRec) {
+			onReconciliation: function(pendingRec) {
 				pendingRecFromReconcile = pendingRec;
 			}
 		}); // changes on this client
@@ -1566,7 +1570,7 @@ describe ("restoff", function() {
 								expect(deepEqualOrderUnimportant([emailA, emailBUpdated, emailC, emailDRoff2Update, emailE, emailG], resultRoff2, "id"), "roff2 get results should still be same as last expect(deepEqualOrderUnimportant) becuse no changes have occured on the server yet.").to.be.true;
 								roff.forcedOffline = false;
 								return roff.get(repoName).then(function(resultRoff) { // order of promise is unknown so now do roff
-									expect(pendingRecFromReconcile, "onBrentReconcile should have been called.").to.be.an("object"); // not undefined because of closure magic
+									expect(pendingRecFromReconcile, "onReconciliation should have been called.").to.be.an("object"); // not undefined because of closure magic
 
 									// console.log("roffData %O Expected %O", resultRoff, [emailA, emailBUpdated, emailCUpdated, emailDRoffUpdate, emailDRoff2Update, emailF, emailG]);
 
@@ -1591,6 +1595,9 @@ describe ("restoff", function() {
 
 										return dbRepoExactlyEqual(roff, repoName, true).then(function(result) {
 											expect(result, "db repo the same").to.be.true;
+											pendingStatusCount(roff, 0);
+											pendingStatusCount(roff2, 0);
+
 											return Promise.all([ // clean up
 												roff.delete(repoName+"/"+emailA.id),
 												roff.delete(repoName+"/"+emailB.id),
@@ -1634,7 +1641,7 @@ describe ("restoff", function() {
 			dbService : {
 				dbName : "restoff.json"
 			},
-			onBrentReconcile: function(pendingRec) {
+			onReconciliation: function(pendingRec) {
 				pendingRecFromReconcile = pendingRec;
 			}
 		}); // changes on this client
@@ -1685,6 +1692,8 @@ describe ("restoff", function() {
 										expect([emailB], "should be empty").to.deep.equals(result);
 										return dbRepoExactlyEqual(roff, repoName, true).then(function(result) {
 											expect(result, "db repo2 the same").to.be.true;
+											pendingStatusCount(roff, 0);
+											pendingStatusCount(roff2, 0);
 											return roff.delete(repoName+"/"+emailB.id);
 										});
 									});
@@ -1697,7 +1706,9 @@ describe ("restoff", function() {
 		});
 	});
 
-	it("75: should handle adding an item and then deleting it so that it was never on the server .", function() {
+	it("75: should handle, while offline, adding a resource and then\
+			deleting it. The resource never ends up on the server.\
+			Pending should also have no more items.", function() {
 
 		var emailA = {
 			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68300",
@@ -1719,31 +1730,29 @@ describe ("restoff", function() {
 			dbService : {
 				dbName : "restoff.json"
 			},
-			onBrentReconcile: function(pendingRec) {
+			onReconciliation: function(pendingRec) {
 				pendingRecFromReconcile = pendingRec;
 			}
 		}); // changes on this client
 
 		return Promise.all([ // clean and load the database for test
-			roff.clear(repoName, true),
+			roff.clearAll(true),
 			roff.delete(repoName+"/"+emailB.id),
 			roff.delete(repoName+"/"+emailA.id)
 		]).then(function(result) {
+			pendingStatusCount(roff, 0);
 			return Promise.all([
 				roff.clear(repoName, true),
 				roff.get(repoName)
 			]).then(function(results) { // verify everything is ready to go
 				var roffData = results[1];
-				expect([], "empty to start with").to.deeply.equals([]);
+				expect(roffData, "empty to start with").to.deep.equals([]);
 				roff.forcedOffline = true;
 				return Promise.all([
 					roff.post(repoName, emailA),
-					roff.post(repoName, emailB)
+					roff.post(repoName, emailB) // Add two items while offline so we have a pending
 				]).then(function() {
-					return roff.delete(repoName+"/"+emailB.id).then(function (results) {
-						var roffData = results[0];
-						expect([emailA], "should have one record").to.deep.equals(results);
-						expect(deepEqualOrderUnimportant([emailA], roffData, "id"), "initial setup should be correct").to.be.true;
+					return roff.delete(repoName+"/"+emailB.id).then(function () {
 						roff.forcedOffline = false;
 						return roff.get(repoName).then(function(result) {
 							expect([emailA], "should have one record").to.deep.equals(result);
@@ -1751,6 +1760,7 @@ describe ("restoff", function() {
 								expect(result, "db repo2 the same").to.be.true;
 								return dbRepoExactlyEqual(roff, repoName, true).then(function(result) {
 									expect(result, "db repo2 the same").to.be.true;
+									pendingStatusCount(roff, 0);
 									return roff.delete(repoName+"/"+emailA.id);
 								});
 							});

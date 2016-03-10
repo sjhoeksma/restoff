@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.1.6
+// version: 0.2.0
 // author: ProductOps <restoff@productops.com>
 // license: MIT
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.1.6'; // version set through gulp build
+restlib["version-library"] = '0.2.0'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -307,6 +307,8 @@ RestOff.prototype._pendingDelete = function(itemId) {
 	return this.delete(this.pendingRepoName+"/"+itemId, {rootUri:this.pendingUri, clientOnly:true});
 }
 
+
+
 RestOff.prototype.clearAll = function(force) {
 	var that = this;
 
@@ -498,7 +500,6 @@ RestOff.prototype._forEachHashEntry = function(repoName, joinedHash, serverResou
 
 			// console.log(primaryKey + " Server %O Repo %O Pending %O", onServer, inRepo, inPending);
 			// console.log("Server %O Repo %O Pending %O", serverResource, repoResource, pendingAction);
-
 			if (onServer) {
 				if (inRepo) {
 					if (inPending) {  // True, True, True   : Client changes. Possible changes on server too. PUT/POST Only   | Reconcile. Clear out pending.
@@ -524,8 +525,8 @@ RestOff.prototype._forEachHashEntry = function(repoName, joinedHash, serverResou
 								newUpdatedResources.push(serverResource);
 
 								// Finally: Notify someone that Brent Reconciliation just happened
-								if (that.options.onBrentReconcile) {
-									that.options.onBrentReconcile(pendingAction);
+								if (that.options.onReconciliation) {
+									that.options.onReconciliation(pendingAction);
 								}
 
 								resolve();
@@ -576,14 +577,15 @@ RestOff.prototype._forEachHashEntry = function(repoName, joinedHash, serverResou
 							resolve();
 						});
 					}
-				} else {
-					if (inPending) {  // False, False, True : Added then Deleted on Client                       | Don't complete delete on server. Clear out pending.
+				} // else {  // Can't get to this case. We loop through the joined hash. A resource that is added and
+				             // then deleted while offline will not be in the joined hash BUT the pending will still be there.
+				  //	if (inPending) {  // False, False, True : Added then Deleted on Client                       | Don't complete delete on server. Clear out pending.
 						// Have this case in test "73: A3, B3, C3" record emailEUpdated but never gets here.
-						console.log(primaryKey + " False, False, True: 07 Requires implementation. Please contact developer for use case.");
-					} // else False, False, False: Do Nothing becuase no Posted/Put/Deleted
-				}
+				  //		console.log(primaryKey + " False, False, True: 07 Requires implementation. Please contact developer for use case.");
+				  //	} // else False, False, False: Do Nothing becuase no Posted/Put/Deleted
+				// }
 			}
-			resolve("Error: Should not be here or code is not complete.");
+			resolve("Error: Should not be here. It means the code is not complete.");
 		});
 	});
 }
@@ -609,9 +611,12 @@ RestOff.prototype._repoAddResource = function(uri) {
 
 							var actions = that._forEachHashEntry(uri.repoName, joinedHash, serverResources, repoResources, pendingHash, newUpdatedResources);
 							return Promise.all(actions).then(function(finalActions) {
-								return that.dbService.write(uri.repoName, newUpdatedResources).then(function(result){
-									return that._repoGet(uri).then(function(repoResources) {
-										resolve(repoResources);
+								return that.dbService.write(uri.repoName, newUpdatedResources).then(function(result) {
+									// that.delete removes any dangling pending changes like a post and then delete of the same resource while offline.
+									return that.delete(that.pendingRepoName + "?repoName=" + uri.repoName, {rootUri:that.pendingUri, clientOnly:true}).then(function(result) {
+										return that._repoGet(uri).then(function(repoResources) {
+											resolve(repoResources);
+										});
 									});
 								});
 
@@ -778,7 +783,7 @@ RestOff.prototype._dbDelete = function(uri, resolve, reject) {
 			}		
 		break;
 		default:
-			console.log ("WARNING: Unsupported HTTP response.");
+			console.log ("WARNING: Unsupported HTTP response " + request.status + " for uri '" + uri.uriFinal + "'.");
 	}
 }
 
@@ -808,7 +813,7 @@ RestOff.prototype._dbGet = function(uri) {
 				}
 			break;
 			default:
-				console.log ("WARNING: Unsupported HTTP response.");
+				console.log ("WARNING: Unsupported HTTP response " + request.status + ".");
 				reject();
 		}
 	});
