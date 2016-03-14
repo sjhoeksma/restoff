@@ -165,41 +165,41 @@ describe ("restoff", function() {
 	});
 
 	it("08: get should support enabling and disabling of the\
-			persistance engine. No information should be\
+			persistence engine. No information should be\
 			persisted on a get. When offline, nothing should\
 			be retrieved.", function() {
 		// TODO: Add Post, Delete, Put
 		var roffParam = restlib.restoff();
 
-		expect(roffParam.persistanceDisabled, "persistanceDisabled").to.equal(false);
+		expect(roffParam.persistenceDisabled, "persistenceDisabled").to.equal(false);
 		expect(roffParam.dbService, "dbService").to.be.an("object");
-		roffParam.persistanceDisabled = true;
-		expect(roffParam.persistanceDisabled, "persistanceDisabled").to.equal(true);
+		roffParam.persistenceDisabled = true;
+		expect(roffParam.persistenceDisabled, "persistenceDisabled").to.equal(true);
 		expect(roffParam.dbService, "dbService").to.be.an("object");
-		roffParam.persistanceDisabled = false;
+		roffParam.persistenceDisabled = false;
 		expect(roffParam.dbService, "dbService").to.be.an("object");
 
 		var roffParam2 = restlib.restoff({
-			"persistanceDisabled" : true
+			"persistenceDisabled" : true
 		});
 		
-		expect(roffParam2.persistanceDisabled, "persistanceDisabled").to.equal(true);
+		expect(roffParam2.persistenceDisabled, "persistenceDisabled").to.equal(true);
 
 		var userRepo = "users11";
 		var roff = restlib.restoff({
 			"rootUri" : ROOT_URI,
-			"persistanceDisabled" : false // to run clear and read db results
+			"persistenceDisabled" : false // to run clear and read db results
 		});
 		return roff.clear(userRepo, true).then(function(result) {
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
-			roff.persistanceDisabled = true;
+			roff.persistenceDisabled = true;
 			return roff.get(userRepo).then(function(result) {
-				roff.persistanceDisabled = false; // to read db results
+				roff.persistenceDisabled = false; // to read db results
 				dbRepoShouldBeEmptyAndResourceNotEmpty(roff, userRepo, result);
-				roff.persistanceDisabled = true;
+				roff.persistenceDisabled = true;
 				roff.forcedOffline = true;
 				return roff.get(userRepo).then(function(result2) {
-					roff.persistanceDisabled = false; // to read db results
+					roff.persistenceDisabled = false; // to read db results
 					dbRepoShouldBeEqual(roff, userRepo, result2, 0); // when offline repo is also empty
 				});
 			});
@@ -456,15 +456,15 @@ describe ("restoff", function() {
 		});
 	});
 
-	it("17: get, when persistanceDisabled properties are true, should not persist the data locally\
+	it("17: get, when persistenceDisabled properties are true, should not persist the data locally\
 			and there SHOULD BE no pending changes for update/put/delete.\
-			persistanceDisabled is ignored for get", function() {
+			persistenceDisabled is ignored for get", function() {
 
 		var roff = restlib.restoff({
 			"rootUri" : ROOT_URI
 		});
 		var userRepo = "users11";
-		var pendingRepo = "persistanceDisabled";
+		var pendingRepo = "persistenceDisabled";
 
 		var pendingRec = {
 			"id": "9783df16-0d70-4362-a1ee-3cb39818fd13",
@@ -474,26 +474,26 @@ describe ("restoff", function() {
 		return roff.clearAll(true).then(function(result) {		
 			return roff.delete(pendingRepo + "/" + pendingRec.id).then(function() { // reset test for delete
 				expect(roff.dbService.dbRepo.length(pendingRepo), "should have just one record").to.equal(0);
-				return roff.get(userRepo, {forcedOffline: false, persistanceDisabled:false}).then(function(result) { // useres11 is still a client
-					expect(roff.dbService.dbRepo.length(userRepo), "repository should be empty when persistanceDisabled is true").to.equal(3);
-					return roff.get(userRepo, {forcedOffline: true, persistanceDisabled:true}).then(function(result) { // useres11 is still a client
-						expect(result.length, "repository should be empty when persistanceDisabled is true").to.equal(0);
-						return roff.post(pendingRepo, pendingRec, {forcedOffline: true, persistanceDisabled:true}).then(function(result) {
+				return roff.get(userRepo, {forcedOffline: false, persistenceDisabled:false}).then(function(result) { // useres11 is still a client
+					expect(roff.dbService.dbRepo.length(userRepo), "repository should be empty when persistenceDisabled is true").to.equal(3);
+					return roff.get(userRepo, {forcedOffline: true, persistenceDisabled:true}).then(function(result) { // useres11 is still a client
+						expect(result.length, "repository should be empty when persistenceDisabled is true").to.equal(0);
+						return roff.post(pendingRepo, pendingRec, {forcedOffline: true, persistenceDisabled:true}).then(function(result) {
 							expect(roff.dbService.dbRepo.length(pendingRepo), "repository should have no records").to.equal(0);
 							pendingStatusCount(roff, 0, "post"); // should have no pending
-							return roff.post(pendingRepo, pendingRec, {persistanceDisabled:true}).then(function(result) {
+							return roff.post(pendingRepo, pendingRec, {persistenceDisabled:true}).then(function(result) {
 								expect(roff.dbService.dbRepo.length(pendingRepo), "repository should have no records").to.equal(0);
 								pendingStatusCount(roff, 0, "post 2nd"); // should have no pending
 
-								return roff.put(pendingRepo + "/" + pendingRec.id, pendingRec, {persistanceDisabled:true}).then(function(result) {
+								return roff.put(pendingRepo + "/" + pendingRec.id, pendingRec, {persistenceDisabled:true}).then(function(result) {
 									expect(roff.dbService.dbRepo.length(pendingRepo), "repository should not have one record").to.equal(0);
 									pendingStatusCount(roff, 0, "put"); // should have no pending
 									return dbRepoExactlyEqual(roff, pendingRepo, false).then(function(result) {
-										expect(result, "persistanceDisabled was true so should not be equal").to.be.false;
+										expect(result, "persistenceDisabled was true so should not be equal").to.be.false;
 										return roff.post(pendingRepo, pendingRec).then(function(result) { // get a post in the repo so we can test that delete doesn't remove it
 											expect(roff.dbService.dbRepo.length(pendingRepo), "repository should have one record").to.equal(1);
-											return roff.delete(pendingRepo + "/" + pendingRec.id, {persistanceDisabled:true}).then(function() { // for delete, while persistanceDisabled, should delete
-												expect(roff.dbService.dbRepo.length(pendingRepo), "repository should be empty when persistanceDisabled is true").to.equal(1); // should not delete from repo
+											return roff.delete(pendingRepo + "/" + pendingRec.id, {persistenceDisabled:true}).then(function() { // for delete, while persistenceDisabled, should delete
+												expect(roff.dbService.dbRepo.length(pendingRepo), "repository should be empty when persistenceDisabled is true").to.equal(1); // should not delete from repo
 												pendingStatusCount(roff, 0, "delete"); // should have no pending
 											});
 										});
@@ -913,7 +913,7 @@ describe ("restoff", function() {
 
 	it("60: delete should, when online, handle a 404\
 			(resource not found) by 'ignoring' them. \
-			Should also ignore when persistanceDisabled is true", function() {
+			Should also ignore when persistenceDisabled is true", function() {
 		var userRepo = "users44";
 
 		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
@@ -923,9 +923,9 @@ describe ("restoff", function() {
 			return roff.delete(userRepo).then(function(result) {
 				dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 				onlineStatusShouldEqual(roff, true, false, false, false);
-				roff.persistanceDisabled = true;
+				roff.persistenceDisabled = true;
 				return roff.delete(userRepo).then(function(result) {
-					roff.persistanceDisabled = false;
+					roff.persistenceDisabled = false;
 					dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 					onlineStatusShouldEqual(roff, true, false, false, false);
 				});			
@@ -1021,7 +1021,7 @@ describe ("restoff", function() {
 		});
 	});
 
-	it("65: delete should, when offline and persistanceDisabled,\
+	it("65: delete should, when offline and persistenceDisabled,\
 		not delete the resource when it is in the client database\
 		and not add the request to pending", function() {
 
@@ -1039,9 +1039,9 @@ describe ("restoff", function() {
 		return roff.clearAll(true).then(function(result) {
 			pendingStatusCount(roff,0,"clear"); // should have no pending
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
-			roff.persistanceDisabled = true;
+			roff.persistenceDisabled = true;
 			return roff.delete(userRepo + "/" + userToDelete.id).then(function(getResults) {
-				roff.persistanceDisabled = false;
+				roff.persistenceDisabled = false;
 				dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 				pendingStatusCount(roff,0,"delete"); // should have no pending
 			});
@@ -1212,12 +1212,12 @@ describe ("restoff", function() {
 						return roff.delete(userRepo + "/" + user04New.id).then(function(result) { // Above 4 rest test
 							return dbRepoExactlyEqual(roff, userRepo, true).then(function(result) { // verify posted to server
 								expect(result, "db repo the same").to.be.true;
-								roff.persistanceDisabled = true; // Make updates without making them locally
+								roff.persistenceDisabled = true; // Make updates without making them locally
 								return roff.put(userRepo + "/" + user01Update.id, user01Update).then(function(result) {
 									return roff.post(userRepo, user02Post).then(function(result) {
 										return roff.post(userRepo, user04New).then(function(result) {
 											return roff.delete(userRepo + "/" + user03Delete.id).then(function(result) { // Above 4 rest test
-												roff.persistanceDisabled = false;
+												roff.persistenceDisabled = false;
 												return dbRepoExactlyEqual(roff, userRepo, false).then(function(result) { // verify posted to server
 													expect(result, "db repo the same").to.be.false;
 													return roff.get(userRepo).then(function(result) {
@@ -1859,11 +1859,11 @@ describe ("restoff", function() {
 			// to the table/data in the servers database
 			var roffDisabled = restlib.restoff({
 				"rootUri" : ROOT_URI,			
-				"persistanceDisabled" : true // Don't store the results anywhere
+				"persistenceDisabled" : true // Don't store the results anywhere
 			});
 
 			return roffDisabled.get(repoName).then(function(result) {
-				// roff.persistanceDisabled = false; // to read db results
+				// roff.persistenceDisabled = false; // to read db results
 				resolve(dbResourceCompare(roff, repoName, result, similarExpected));
 			});
 		});
@@ -1877,7 +1877,7 @@ describe ("restoff", function() {
 		}
 
 		if (null === roff.dbService.dbRepo) {
-			console.log("WARNING! persistanceDisabled is disabled. Please enable before comparing databases.");
+			console.log("WARNING! persistenceDisabled is disabled. Please enable before comparing databases.");
 			return !similarExpected;
 		}
 

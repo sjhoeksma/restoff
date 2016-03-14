@@ -135,7 +135,7 @@ roff.get("http://another.example.com/support/users").then(function(result){
 }
 ```
 
-### persistanceDisabled [Optional]
+### persistenceDisabled [Optional]
 
 When true, storage of RESTful results on the client are disabled.
 
@@ -147,7 +147,7 @@ Example configuration:
 ```
 var roff = restoff({
 	rootUri : "http://api.example.com/",
-	persistanceDisabled	: true
+	persistenceDisabled	: true
 });
 ```
 

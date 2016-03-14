@@ -213,7 +213,7 @@ function restoff(config) {
 		rootUri: "",
 		clientOnly: false,
 		forcedOffline: false,
-		persistanceDisabled: false,
+		persistenceDisabled: false,
 		pendingUri: "http://localhost/",
 		pendingRepoName: "pending"
 	};
@@ -252,9 +252,9 @@ RestOff.prototype = Object.create(Object.prototype, {
 	pendingUri: {
 		get: function() { return this._options.pendingUri; }
 	},
-	persistanceDisabled: {
-		get: function() { return this._options.persistanceDisabled; },
-		set: function(value) { this._options.persistanceDisabled = value; }
+	persistenceDisabled: {
+		get: function() { return this._options.persistenceDisabled; },
+		set: function(value) { this._options.persistenceDisabled = value; }
 	},
 	primaryKeyName: {
 		get: function() { return this.dbService.primaryKeyName; },
@@ -443,7 +443,7 @@ RestOff.prototype._repoGet = function(uri) {
 			query[uri.primaryKeyName] = uri.primaryKey;
 		}
 
-		if (uri.options.persistanceDisabled) {
+		if (uri.options.persistenceDisabled) {
 			resolve([]);
 		} else {
 			return that.dbService.find(uri.repoName, query).then(function(result) {
@@ -684,7 +684,7 @@ RestOff.prototype._forEachHashEntry = function(repoName, joinedHash, serverResou
 RestOff.prototype._repoAddResource = function(uri) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
-		if (!uri.options.persistanceDisabled) {
+		if (!uri.options.persistenceDisabled) {
 			if (("" === uri.primaryKey) && ("GET" === uri.restMethod)) {  // Complete get, doing a merge because we don't have soft_delete
 				var serverResources = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // makes logic easier
 				return that._pendingRecords(uri.repoName).then(function(pending) {
@@ -727,7 +727,7 @@ RestOff.prototype._repoAddResource = function(uri) {
 }
 
 RestOff.prototype._repoDeleteResource = function(uri, resolve) {
-	if (!uri.options.persistanceDisabled) {
+	if (!uri.options.persistenceDisabled) {
 		var searchOptions = uri.searchOptions;
 		if ("" !== uri.primaryKey) {
 			searchOptions[uri.primaryKeyName] = uri.primaryKey;
@@ -799,7 +799,7 @@ RestOff.prototype._pendingAdd = function(uri) {
 			"primaryKey" : uri.primaryKey
 		}
 
-		if (!uri.options.persistanceDisabled) {
+		if (!uri.options.persistenceDisabled) {
 			var query = {};
 			query[that.primaryKeyName] = uri.primaryKey;
 			return that.dbService.find(uri.repoName, query).then(function(original) {
