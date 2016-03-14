@@ -100,7 +100,7 @@
     {
       "id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa",
       "first_name": "Existing",
-      "last_name": "Edited"
+      "last_name": "New Name"
     }
   ],
   "users06": [],
@@ -1635,11 +1635,6 @@
       "id": "56df6d962eb37d16a040bb31",
       "first_name": "some",
       "last_name": "user"
-    },
-    {
-      "id": "aedfa5a4-d748-11e5-b5d2-0a1d41d68522",
-      "first_name": "Go",
-      "last_name": "Away"
     }
   ]
 }
