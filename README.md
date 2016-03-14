@@ -11,14 +11,14 @@ Rest Offline uses your existing RESTful APIs to synchronize client/server data a
 * Reconciliation and Offline Modes
 	* Automatic reconciliation of offline changes.
 	* in ```clientOnly``` mode, Restoff automatically provides a complete RESTful offline service for your app.
-	* Reconciliation without soft deletes or last modified date fields
+	* Reconciliation works without soft deletes or last modified date columns in your database
 * Supports resources in the following formats:
 	* Json
 * Limitations and Expectations:
 	* Every resource must have one unique ```primaryKey``` field.
 	* Best to follow [RESTful best known practices][rest-best-practices]
 * Next major features
-	* Create an Angular injector overriding http
+	* Create a restoff Angular Provider
 	* support non-standard get/put/post.
 		- Example: a request GET actually does a delete
 	* major cleanup of documentation
