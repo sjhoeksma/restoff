@@ -2,7 +2,7 @@
 
 if (typeof angular !== "undefined") {
 
-	console.log(angular.$provider);
+	//console.log(angular.$provider);
 
 
 

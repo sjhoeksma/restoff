@@ -62,6 +62,9 @@ RestOffService.prototype.write = function(repoName, resources, options) {
 	return new Promise(function(resolve, reject) {
 		var pkName = that._pkNameGet(repoName, options);
 		resources = (resources instanceof Array) ? resources : [resources]; // make logic easier
+		// TODO: Need to fix this to do something better than do a reject.
+		//       Can we assume that resources contain the same type of resources? If so, just
+		//       look at the first one resources[0] and if it has a valid PK assume the rest do.
 		resources.forEach(function(resource) {
 			var primaryKey = resource[pkName];
 			if (undefined === primaryKey) {

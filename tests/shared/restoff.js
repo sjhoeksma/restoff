@@ -72,7 +72,7 @@ describe("restoffService", function() {
 
 		var address = {
 			id : "8af8f277-77c9-4c6d-8819-9f97a3545522"
-		}
+		};
 
 		return roffs.clearAll().then(function() {
 			return roffs.write("users", user).then(function(result) {
@@ -132,17 +132,17 @@ describe("restoffService", function() {
 
 		var address = {
 			id2 : "8af8f277-77c9-4c6d-8819-9f97a3545522"
-		}
+		};
 
 		return roffs.clearAll().then(function() {
-			return roffs.write("users", user).then(function(result) {
-				return roffs.write("addresses", address).then(function(result) {
-					return roffs.write("users", users).then(function(result) {
-						return roffs.find("users").then(function(result) {
-							return roffs.delete("users", {id2:"8af8f277-77c9-4c6d-8819-9f97a3545598"}).then(function(deletedId) {
-								return roffs.find("users").then(function(result) {
+			return roffs.write("users", user).then(function() {
+				return roffs.write("addresses", address).then(function() {
+					return roffs.write("users", users).then(function() {
+						return roffs.find("users").then(function() {
+							return roffs.delete("users", {id2:"8af8f277-77c9-4c6d-8819-9f97a3545598"}).then(function() {
+								return roffs.find("users").then(function() {
 									return roffs.clear("users").then(function() {
-										return roffs.find("users").then(function(result) {
+										return roffs.find("users").then(function() {
 											return roffs.clearAll().then(function() {
 											});
 										});
@@ -161,19 +161,19 @@ describe("restoffService", function() {
 		var address = {
 			guid : "8af8f277-77c9-4c6d-8819-9f97a3545522",
 			line : "114 Happy Drive"
-		}
+		};
 
 		var addressUpdated = {
 			guid : "8af8f277-77c9-4c6d-8819-9f97a3545522",
 			line : "114 Happy Drive2"
-		}
+		};
 
 		return roffs.clearAll().then(function() {
 			return roffs.write("addresses", address, {primaryKeyName:"guid"}).then(function(result) {
 				return roffs.write("addresses", addressUpdated, {primaryKeyName:"guid"}).then(function(result) {
 					return roffs.find("addresses").then(function(result) {
 						expect([addressUpdated], "result should equal address").to.deep.equals(result);
-						return roffs.delete("addresses", {guid:"8af8f277-77c9-4c6d-8819-9f97a3545522"}).then(function(deletedId) {
+						return roffs.delete("addresses", {guid:"8af8f277-77c9-4c6d-8819-9f97a3545522"}).then(function() {
 							return roffs.find("addresses", {primaryKeyName:"guid"}).then(function(result) {
 								expect(result, "addresses should be empty").to.deep.equals([]);
 							});
@@ -226,7 +226,7 @@ describe("restoffService", function() {
 		var emailRepoOpt = {
 			repoName: "emailaddresses",
 			primaryKeyName: "id3"
-		}
+		};
 
 		expect(roffs.repoOptionsSet(emailRepoOpt), "method chaining works").to.equals(roffs);
 		expect(roffs.repoOptionsGet("emailaddresses"), "correct emailaddress repo").to.deep.equals(emailRepoOpt);
@@ -238,19 +238,19 @@ describe("restoffService", function() {
 		var address = {
 			guid : "8af8f277-77c9-4c6d-8819-9f97a3545522",
 			line : "114 Happy Drive"
-		}
+		};
 
 		var addressUpdated = {
 			guid : "8af8f277-77c9-4c6d-8819-9f97a3545522",
 			line : "114 Happy Drive2"
-		}
+		};
 
 		return roffs.clearAll().then(function() {
 			return roffs.write("addresses", address).then(function(result) {
 				return roffs.write("addresses", addressUpdated).then(function(result) {
 					return roffs.find("addresses").then(function(result) {
 						expect([addressUpdated], "result should equal address").to.deep.equals(result);
-						return roffs.delete("addresses", {guid:"8af8f277-77c9-4c6d-8819-9f97a3545522"}).then(function(deletedId) {
+						return roffs.delete("addresses", {guid:"8af8f277-77c9-4c6d-8819-9f97a3545522"}).then(function() {
 							return roffs.find("addresses").then(function(result) {
 								expect(result, "addresses should be empty").to.deep.equals([]);
 							});
@@ -285,10 +285,10 @@ describe("restoffService", function() {
 			sex: "Female"
 		};
 
-		var users = [user01, user02, user03]
+		var users = [user01, user02, user03];
 
 		return roffs.clearAll().then(function() {
-			return roffs.write("users", users).then(function(result) {
+			return roffs.write("users", users).then(function() {
 				return roffs.find("users", {sex:"Female"}).then(function(result) {
 					expect([user03], "should find correct records").to.deep.equals(result);
 					return roffs.delete("users", {sex:"Male"}).then(function() {

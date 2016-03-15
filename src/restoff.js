@@ -145,7 +145,7 @@ RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) 
 	if (search.length > 1) {
 		var that = this;
 		result = search[0];
-		uriResult.search = search[1]
+		uriResult.search = search[1];
 		uriResult.search.split("&").forEach(function(item) {
 			var itemParts = item.split("=");
 			if (2 === itemParts.length) {
@@ -194,7 +194,7 @@ RestOff.prototype.clearAll = function(force) {
 				reject("Submit pending changes before clearing database or call clearAll(true) to force.");
 			} else {
 				return that.dbService.clearAll().then(function() {
-					return that.delete(that.pendingRepoName, {rootUri:that.pendingUri, clientOnly:true}).then(function(result) {
+					return that.delete(that.pendingRepoName, {rootUri:that.pendingUri, clientOnly:true}).then(function() {
 						resolve();
 					}).catch(function(error) {
 						reject(error);
@@ -213,8 +213,8 @@ RestOff.prototype.clear = function(repoName, force) {
 			if ((pendLength > 0) && (false === force)) {
 				reject("Submit pending changes before clearing database or call clear(repoName, true) to force.");
 			} else {
-				return that.dbService.clear(repoName).then(function(result) {
-					return that.delete(that.pendingRepoName + "?repoName=" + repoName, {rootUri:that.pendingUri, clientOnly:true}).then(function(result) {
+				return that.dbService.clear(repoName).then(function() {
+					return that.delete(that.pendingRepoName + "?repoName=" + repoName, {rootUri:that.pendingUri, clientOnly:true}).then(function() {
 						resolve();
 					}).catch(function(error) {
 						reject(error);
@@ -227,7 +227,7 @@ RestOff.prototype.clear = function(repoName, force) {
 
 RestOff.prototype._repoGet = function(uri) {
 	var that = this;
-	return new Promise(function(resolve, reject) {
+	return new Promise(function(resolve) {
 		var query = uri.searchOptions;
 		if ("" !== uri.primaryKey) {
 			query[uri.primaryKeyName] = uri.primaryKey;
@@ -247,7 +247,7 @@ RestOff.prototype._repoGet = function(uri) {
 
 RestOff.prototype._repoFind = function(uri) {
 	var that = this;
-	return new Promise(function(resolve, reject) {
+	return new Promise(function(resolve) {
 		var query = {};
 		query[uri.keyName] = uri.primaryKey;
 		return that.dbService.find(uri.repoName, query).then(function(result) {
@@ -258,7 +258,7 @@ RestOff.prototype._repoFind = function(uri) {
 
 RestOff.prototype._repoAdd = function(uri, resourceRaw) {
 	var that = this;
-	return new Promise(function(resolve, reject) {
+	return new Promise(function(resolve) {
 		uri.resources = JSON.parse(resourceRaw); // TODO: Check for non-json result and throw error/convert/support images/etc.
 		return that._repoAddResource(uri).then(function(result) {
 			resolve(result);
@@ -289,16 +289,11 @@ RestOff.prototype._deepEquals = function(x, y) {
 			}
 		}
 	return true;
-	} else if (x !== y) {
-		return false;
-	} else {
-		return true;
-	}
+	} else return x === y;
 };
 
 RestOff.prototype._hashify = function(primaryKeyName, resources) {
 	var repositoryHash = {};
-	var that = this;
 	resources.forEach(function(resource) {
 		if (undefined !== resource) {
 			var repositoryPrimaryKey = resource[primaryKeyName];
@@ -335,8 +330,8 @@ RestOff.prototype._joinedHash = function(primaryKeyName, serverResources, client
 RestOff.prototype._applyAndClearPending = function(pendingAction) {
 	var that = this;
 	return new Promise(function(resolve, reject) {	
-		return that._restCall(pendingAction.uri, pendingAction.restMethod, undefined, pendingAction.resources).then(function(result) {
-			return that._pendingDelete(pendingAction.id).then(function(result) {
+		return that._restCall(pendingAction.uri, pendingAction.restMethod, undefined, pendingAction.resources).then(function() {
+			return that._pendingDelete(pendingAction.id).then(function() {
 				resolve(undefined); // return this because we want to process it.
 			}).catch(function(error) {
 				console.log ("WARNING! 002 Error %O occured.", error);
@@ -369,7 +364,7 @@ RestOff.prototype._forEachHashEntry = function(repoName, joinedHash, serverResou
 			var serverResource = joinedHash[primaryKey].server;
 			var repoResource = joinedHash[primaryKey].client;
 			var pendingAction = pendingHash[primaryKey];
-			var onServer = (undefined !== serverResource)
+			var onServer = (undefined !== serverResource);
 			var inRepo = (undefined !== repoResource);
 			var inPending = (undefined !== pendingHash[primaryKey]);
 
@@ -434,10 +429,10 @@ RestOff.prototype._forEachHashEntry = function(repoName, joinedHash, serverResou
 								resolve();
 							});
 						} else { // not on server, but had an original so must have been on server at one time. So, a delete.
-							var searchOptions = {}
+							var searchOptions = {};
 							searchOptions[that.primaryKeyName] = primaryKey;
-							return that.dbService.delete(repoName, searchOptions).then(function(result) {
-								return that._pendingDelete(pendingAction.id).then(function(result) {
+							return that.dbService.delete(repoName, searchOptions).then(function() {
+								return that._pendingDelete(pendingAction.id).then(function() {
 									resolve();
 								}).catch(function(error) {
 									console.log ("WARNING! 002 Error %O occured.", error);
@@ -446,9 +441,9 @@ RestOff.prototype._forEachHashEntry = function(repoName, joinedHash, serverResou
 							});
 						}
 					} else {          // False, True, False : Delete on server                                   | Remove from repoClient directly
-						var searchOptions = {}
-						searchOptions[that.primaryKeyName] = primaryKey;
-						return that.dbService.delete(repoName, searchOptions).then(function(result) {
+						var searchOptions2 = {};
+						searchOptions2[that.primaryKeyName] = primaryKey;
+						return that.dbService.delete(repoName, searchOptions2).then(function() {
 							resolve();
 						});
 					}
@@ -473,7 +468,7 @@ RestOff.prototype._forEachHashEntry = function(repoName, joinedHash, serverResou
 //       against databases that have soft deletes and last updated dates
 RestOff.prototype._repoAddResource = function(uri) {
 	var that = this;
-	return new Promise(function(resolve, reject) {
+	return new Promise(function(resolve) {
 		if (!uri.options.persistenceDisabled) {
 			if (("" === uri.primaryKey) && ("GET" === uri.restMethod)) {  // Complete get, doing a merge because we don't have soft_delete
 				var serverResources = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // makes logic easier
@@ -485,10 +480,10 @@ RestOff.prototype._repoAddResource = function(uri) {
 							var pendingHash = that._hashify("primaryKey", pending);
 
 							var actions = that._forEachHashEntry(uri.repoName, joinedHash, serverResources, repoResources, pendingHash, newUpdatedResources);
-							return Promise.all(actions).then(function(finalActions) {
-								return that.dbService.write(uri.repoName, newUpdatedResources).then(function(result) {
+							return Promise.all(actions).then(function() {
+								return that.dbService.write(uri.repoName, newUpdatedResources).then(function() {
 									// that.delete removes any dangling pending changes like a post and then delete of the same resource while offline.
-									return that.delete(that.pendingRepoName + "?repoName=" + uri.repoName, {rootUri:that.pendingUri, clientOnly:true}).then(function(result) {
+									return that.delete(that.pendingRepoName + "?repoName=" + uri.repoName, {rootUri:that.pendingUri, clientOnly:true}).then(function() {
 										return that._repoGet(uri).then(function(repoResources) {
 											resolve(repoResources);
 										});
@@ -499,7 +494,7 @@ RestOff.prototype._repoAddResource = function(uri) {
 						});
 					} else {
 						return that.clear(uri.repoName).then(function() {
-							return that.dbService.write(uri.repoName, serverResources).then(function(result){
+							return that.dbService.write(uri.repoName, serverResources).then(function(){
 								resolve(serverResources);
 							});
 						});
@@ -507,7 +502,7 @@ RestOff.prototype._repoAddResource = function(uri) {
 				});
 			} else {
 				var resourceArray = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // make logic easier
-				return that.dbService.write(uri.repoName, resourceArray).then(function(result){
+				return that.dbService.write(uri.repoName, resourceArray).then(function(){
 					resolve(uri.resources);
 				})
 			}
@@ -522,7 +517,7 @@ RestOff.prototype._repoDeleteResource = function(uri, resolve) {
 		if ("" !== uri.primaryKey) {
 			searchOptions[uri.primaryKeyName] = uri.primaryKey;
 		}
-		return this.dbService.delete(uri.repoName, searchOptions).then(function(result) {
+		return this.dbService.delete(uri.repoName, searchOptions).then(function() {
 			resolve(uri.primaryKey);
 		});
 	}
@@ -587,7 +582,7 @@ RestOff.prototype._pendingAdd = function(uri) {
 			"uri" : uri.uriFinal,
 			"repoName" : uri.repoName,
 			"primaryKey" : uri.primaryKey
-		}
+		};
 
 		if (!uri.options.persistenceDisabled) {
 			var query = {};
@@ -646,7 +641,7 @@ RestOff.prototype._dbDelete = function(uri, resolve, reject) {
 				if (!clientOnly) {
 					var that = this;
 					this._isOnline = false;
-					this._pendingAdd(uri).then(function(result) {
+					this._pendingAdd(uri).then(function() {
 						that._repoDeleteResource(uri, resolve);
 					});
 				} else {
@@ -694,10 +689,10 @@ RestOff.prototype._dbGet = function(uri) {
 	});
 };
 
-RestOff.prototype._pendingRepoAdd = function(uri, clientOnly,resolve, reject) {
+RestOff.prototype._pendingRepoAdd = function(uri, clientOnly, resolve) {
 	if (!clientOnly) {
 		var that = this;
-		return this._pendingAdd(uri).then(function(result) {
+		return this._pendingAdd(uri).then(function() {
 			return that._repoAddResource(uri).then(function(result) {
 				resolve(result);
 			});
@@ -743,8 +738,6 @@ RestOff.prototype._dbPut = function(uri, resolve, reject) {
 			resolve(this._repoAddResource(uri)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
 		break;
 		default:
-			var finalStatus = request.status;
-			var finalMessage = request.statusText;
 			this._isOnline = 0 !== request.status ? true : null;
 			var clientOnly = uri.options.clientOnly;
 			if (uri.options.forcedOffline || clientOnly) { // we are offline, but resource not found so 404 it.
