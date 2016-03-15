@@ -55,30 +55,30 @@ restlib.lowdbRepo = lowdbRepo;
 
 LowdbRepo.prototype.length = function(repoName) {
 	return this._low(repoName).size();
-}
+};
 
 LowdbRepo.prototype.clear = function(repoName) {
 	delete this._low.object[repoName];
 	this._low.write()
-}
+};
 
 LowdbRepo.prototype.clearAll = function() {
 	this._low.object = {};
 	this._low.write();
-}
+};
 
 LowdbRepo.prototype.find = function(repoName, keyName, primaryKey) {
 	var query = {};
 	query[keyName] = primaryKey;
 	return this._low(repoName).find(query);
-}
+};
 
 LowdbRepo.prototype.read = function(repoName, query) {
 	return this._low(repoName)
 		.chain()
 		.filter(query)
 		.value();
-}
+};
 
 LowdbRepo.prototype.write = function(repoName, keyName, primaryKey, resource) {
 	// TODO: There is no consolodiation at this time
@@ -95,11 +95,11 @@ LowdbRepo.prototype.write = function(repoName, keyName, primaryKey, resource) {
 			.assign(resource)
 			.value();
 	}
-}
+};
 
 LowdbRepo.prototype.delete = function(repoName, query) {
 	this._low(repoName).remove(query);
-}
+};
 
 function restoffService(config) {
 	var defaultConfig = {
@@ -137,17 +137,17 @@ RestOffService.prototype._pkNameGet = function(repoName, options) {
 		pkName = options.primaryKeyName;
 	}
 	return pkName;
-}
+};
 
 RestOffService.prototype.repoOptionsGet = function(repoName) {
-	var result;
+	var result = undefined;
 	this.options.repoOptions.forEach(function(item) {
 		if (item.repoName === repoName) {
 			result = item;
 		}
 	});
 	return result;
-}
+};
 
 RestOffService.prototype.repoOptionsSet = function(options) {
 	var that = this;
@@ -158,7 +158,7 @@ RestOffService.prototype.repoOptionsSet = function(options) {
 	});
 	this.options.repoOptions.push(options);
 	return this;
-}
+};
 
 RestOffService.prototype.write = function(repoName, resources, options) {
 	var that = this;
@@ -175,37 +175,36 @@ RestOffService.prototype.write = function(repoName, resources, options) {
 			}
 		});
 		resolve(resources);
-		return;
 	});
-}
+};
 
 RestOffService.prototype.clearAll = function() {
 	var that = this;
-	return new Promise(function(resolve, reject) {
+	return new Promise(function(resolve) {
 		resolve(that.dbRepo.clearAll());
 	});
-}
+};
 
 RestOffService.prototype.clear = function(repoName) {
 	var that = this;
-	return new Promise(function(resolve, reject) {
+	return new Promise(function(resolve) {
 		resolve(that.dbRepo.clear(repoName));
 	});
-}
+};
 
 RestOffService.prototype.delete = function(repoName, query) {
 	var that = this;
-	return new Promise(function(resolve, reject) {
+	return new Promise(function(resolve) {
 		resolve(that.dbRepo.delete(repoName, query));
 	});
-}
+};
 
 RestOffService.prototype.find = function(repoName, query) {
 	var that = this;
-	return new Promise(function(resolve, reject) {
+	return new Promise(function(resolve) {
 		resolve(that.dbRepo.read(repoName, query));
 	});	
-}
+};
 
 restlib.restoffService = restoffService;
 function restoff(config) {
@@ -271,12 +270,12 @@ RestOff.prototype = Object.create(Object.prototype, {
 
 RestOff.prototype._logMessage = function(message) {
 	console.log(message);
-}
+};
 
 RestOff.prototype._pendingRecords = function(repoName) {
 	var pendingUri = this.pendingRepoName + (repoName ? "?repoName=" + repoName : "");
 	return this.get(pendingUri, {rootUri:this.pendingUri,clientOnly:true});
-}
+};
 
 RestOff.prototype._pendingLength = function(repoName) {
 	var that = this;
@@ -289,7 +288,7 @@ RestOff.prototype._pendingLength = function(repoName) {
 			reject(error);
 		});
 	});
-}
+};
 
 RestOff.prototype._requestGet = function(uri) {
 	var request = window.XMLHttpRequest ?
@@ -307,7 +306,7 @@ RestOff.prototype._requestGet = function(uri) {
 		request.__defineGetter__('readyStateRestOff', function(){ return this.readyState; });
 	}
 	return request;
-}
+};
 
 RestOff.prototype._uriGenerate = function(uri) {
 	var result = uri.uri;
@@ -331,7 +330,7 @@ RestOff.prototype._uriGenerate = function(uri) {
 		);
 	}
 	return result;
-}
+};
 
 
 RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) {
@@ -385,12 +384,12 @@ RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) 
 		this._logMessage("WARNING: repoName invalid. Had a uri of '" + uri + "' and a rootUri of '" + uriResult.options.rootUri + "'' which may be incorrect?");
 	}
 	return uriResult;
-}
+};
 
 
 RestOff.prototype._pendingDelete = function(itemId) {
 	return this.delete(this.pendingRepoName+"/"+itemId, {rootUri:this.pendingUri, clientOnly:true});
-}
+};
 
 
 
@@ -413,7 +412,7 @@ RestOff.prototype.clearAll = function(force) {
 			}
 		});
 	});
-}
+};
 
 RestOff.prototype.clear = function(repoName, force) {
 	var that = this;
@@ -433,7 +432,7 @@ RestOff.prototype.clear = function(repoName, force) {
 			}
 		});
 	});
-}
+};
 
 RestOff.prototype._repoGet = function(uri) {
 	var that = this;
@@ -453,7 +452,7 @@ RestOff.prototype._repoGet = function(uri) {
 	});
 
 
-}
+};
 
 RestOff.prototype._repoFind = function(uri) {
 	var that = this;
@@ -464,7 +463,7 @@ RestOff.prototype._repoFind = function(uri) {
 			resolve(result);
 		});
 	});
-}
+};
 
 RestOff.prototype._repoAdd = function(uri, resourceRaw) {
 	var that = this;
@@ -474,13 +473,13 @@ RestOff.prototype._repoAdd = function(uri, resourceRaw) {
 			resolve(result);
 		});
 	});
-}
+};
 
 RestOff.prototype._findBy = function(resources, id) {
 	return resources.filter(function(item) {
 		return item["id"] === id;
 	})[0];
-}
+};
 
 RestOff.prototype._deepEquals = function(x, y) {
 	if ((typeof x == "object" && x != null) && (typeof y == "object" && y != null)) {
@@ -504,7 +503,7 @@ RestOff.prototype._deepEquals = function(x, y) {
 	} else {
 		return true;
 	}
-}
+};
 
 RestOff.prototype._hashify = function(primaryKeyName, resources) {
 	var repositoryHash = {};
@@ -516,7 +515,7 @@ RestOff.prototype._hashify = function(primaryKeyName, resources) {
 		}
 	});
 	return repositoryHash;
-}
+};
 
 RestOff.prototype._joinedHash = function(primaryKeyName, serverResources, clientResources) {
 	var hash = {};
@@ -540,7 +539,7 @@ RestOff.prototype._joinedHash = function(primaryKeyName, serverResources, client
 	});
 
 	return hash;
-}
+};
 
 RestOff.prototype._applyAndClearPending = function(pendingAction) {
 	var that = this;
@@ -557,7 +556,7 @@ RestOff.prototype._applyAndClearPending = function(pendingAction) {
 			reject(error);
 		});
 	});
-}
+};
 
 
 // Logic table when we go back online
@@ -673,7 +672,7 @@ RestOff.prototype._forEachHashEntry = function(repoName, joinedHash, serverResou
 			resolve("Error: Should not be here. It means the code is not complete.");
 		});
 	});
-}
+};
 
 // NOTE: Will alter the order of the records returned. So, if a sort
 // order was applied it will pobably not be valid after the merge.
@@ -724,7 +723,7 @@ RestOff.prototype._repoAddResource = function(uri) {
 		} // else don't persist
 		resolve(uri.resources);	
 	});
-}
+};
 
 RestOff.prototype._repoDeleteResource = function(uri, resolve) {
 	if (!uri.options.persistenceDisabled) {
@@ -737,7 +736,7 @@ RestOff.prototype._repoDeleteResource = function(uri, resolve) {
 		});
 	}
 	resolve(uri.primaryKey);
-}
+};
 
 RestOff.prototype._createError = function(uri) {
 	var request = uri.request;
@@ -754,25 +753,25 @@ RestOff.prototype._createError = function(uri) {
 		"status": request.status,
 		"uri": uri.uriFinal
 	};
-}
+};
 
 RestOff.prototype.autoQueryParamSet = function(name, value) {
 	this._autoParams[name] = value;
 	return this;
-}
+};
 
 RestOff.prototype.autoQueryParamGet = function(name) {
 	return this._autoParams[name];
-}
+};
 
 RestOff.prototype.autoHeaderParamSet = function(name, value) {
 	this._autoHeaders[name] = value;
 	return this;
-}
+};
 
 RestOff.prototype.autoHeaderParamGet = function(name) {
 	return this._autoHeaders[name];
-}
+};
 
 // TODO: Maybe use a library. See http://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript
 RestOff.prototype._guidGenerate = function() {
@@ -783,7 +782,7 @@ RestOff.prototype._guidGenerate = function() {
   }
   return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
     s4() + '-' + s4() + s4() + s4();
-}
+};
 
 // TODO: Add database calling type
 RestOff.prototype._pendingAdd = function(uri) {
@@ -817,7 +816,7 @@ RestOff.prototype._pendingAdd = function(uri) {
 			resolve(result);
 		}
 	});
-}
+};
 
 RestOff.prototype._requestHeaderSet = function(request) {
 	var autoHeaders = this._autoHeaders;
@@ -826,7 +825,7 @@ RestOff.prototype._requestHeaderSet = function(request) {
 			request.setRequestHeader(key, autoHeaders[key]); // TODO: Write a test to cover this
 		}
 	);
-}
+};
 
 RestOff.prototype._uriAddRequest = function(uri, request) {
 	uri.request = {
@@ -838,7 +837,7 @@ RestOff.prototype._uriAddRequest = function(uri, request) {
 	};
 	return uri;
 }
-
+;
 RestOff.prototype._dbDelete = function(uri, resolve, reject) {
 	var request = uri.request;
 	switch (request.status) {
@@ -870,7 +869,7 @@ RestOff.prototype._dbDelete = function(uri, resolve, reject) {
 		default:
 			console.log ("WARNING: Unsupported HTTP response " + request.status + " for uri '" + uri.uriFinal + "'.");
 	}
-}
+};
 
 RestOff.prototype._dbGet = function(uri) {
 	var that = this;
@@ -902,7 +901,7 @@ RestOff.prototype._dbGet = function(uri) {
 				reject();
 		}
 	});
-}
+};
 
 RestOff.prototype._pendingRepoAdd = function(uri, clientOnly,resolve, reject) {
 	if (!clientOnly) {
@@ -917,7 +916,7 @@ RestOff.prototype._pendingRepoAdd = function(uri, clientOnly,resolve, reject) {
 			resolve(result);
 		});
 	}
-}
+};
 
 RestOff.prototype._dbPost = function(uri, resolve, reject) {
 	var request = uri.request;
@@ -943,7 +942,7 @@ RestOff.prototype._dbPost = function(uri, resolve, reject) {
 		default:
 			console.log ("WARNING: Unsupported HTTP response.");
 	}
-}
+};
 
 RestOff.prototype._dbPut = function(uri, resolve, reject) {
 	var request = uri.request;
@@ -976,7 +975,7 @@ RestOff.prototype._dbPut = function(uri, resolve, reject) {
 				reject(this._createError(uri));
 			}
 	}
-}
+};
 
 RestOff.prototype._restCall = function(uriClient, restMethod, options, resource) {
 	var that = this;
@@ -1017,23 +1016,23 @@ RestOff.prototype._restCall = function(uriClient, restMethod, options, resource)
 			request.send();
 		}
 	});
-}
+};
 
 RestOff.prototype.delete = function(uri, options) {
 	return this._restCall(uri, "DELETE", options);
-}
+};
 
 RestOff.prototype.get = function(uri, options) {
 	return this._restCall(uri, "GET", options);
-}
+};
 
 RestOff.prototype.post = function(uri, resource, options) {
 	return this._restCall(uri, "POST", options, resource);
-}
+};
 
 RestOff.prototype.put = function(uri, resource, options) {
 	return this._restCall(uri, "PUT", options, resource);
-}
+};
 
 restlib.restoff = restoff; 
 // We are running with angular available

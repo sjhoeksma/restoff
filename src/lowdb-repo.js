@@ -37,30 +37,30 @@ restlib.lowdbRepo = lowdbRepo;
 
 LowdbRepo.prototype.length = function(repoName) {
 	return this._low(repoName).size();
-}
+};
 
 LowdbRepo.prototype.clear = function(repoName) {
 	delete this._low.object[repoName];
 	this._low.write()
-}
+};
 
 LowdbRepo.prototype.clearAll = function() {
 	this._low.object = {};
 	this._low.write();
-}
+};
 
 LowdbRepo.prototype.find = function(repoName, keyName, primaryKey) {
 	var query = {};
 	query[keyName] = primaryKey;
 	return this._low(repoName).find(query);
-}
+};
 
 LowdbRepo.prototype.read = function(repoName, query) {
 	return this._low(repoName)
 		.chain()
 		.filter(query)
 		.value();
-}
+};
 
 LowdbRepo.prototype.write = function(repoName, keyName, primaryKey, resource) {
 	// TODO: There is no consolodiation at this time
@@ -77,8 +77,8 @@ LowdbRepo.prototype.write = function(repoName, keyName, primaryKey, resource) {
 			.assign(resource)
 			.value();
 	}
-}
+};
 
 LowdbRepo.prototype.delete = function(repoName, query) {
 	this._low(repoName).remove(query);
-}
+};

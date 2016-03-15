@@ -34,17 +34,17 @@ RestOffService.prototype._pkNameGet = function(repoName, options) {
 		pkName = options.primaryKeyName;
 	}
 	return pkName;
-}
+};
 
 RestOffService.prototype.repoOptionsGet = function(repoName) {
-	var result;
+	var result = undefined;
 	this.options.repoOptions.forEach(function(item) {
 		if (item.repoName === repoName) {
 			result = item;
 		}
 	});
 	return result;
-}
+};
 
 RestOffService.prototype.repoOptionsSet = function(options) {
 	var that = this;
@@ -55,7 +55,7 @@ RestOffService.prototype.repoOptionsSet = function(options) {
 	});
 	this.options.repoOptions.push(options);
 	return this;
-}
+};
 
 RestOffService.prototype.write = function(repoName, resources, options) {
 	var that = this;
@@ -72,36 +72,35 @@ RestOffService.prototype.write = function(repoName, resources, options) {
 			}
 		});
 		resolve(resources);
-		return;
 	});
-}
+};
 
 RestOffService.prototype.clearAll = function() {
 	var that = this;
-	return new Promise(function(resolve, reject) {
+	return new Promise(function(resolve) {
 		resolve(that.dbRepo.clearAll());
 	});
-}
+};
 
 RestOffService.prototype.clear = function(repoName) {
 	var that = this;
-	return new Promise(function(resolve, reject) {
+	return new Promise(function(resolve) {
 		resolve(that.dbRepo.clear(repoName));
 	});
-}
+};
 
 RestOffService.prototype.delete = function(repoName, query) {
 	var that = this;
-	return new Promise(function(resolve, reject) {
+	return new Promise(function(resolve) {
 		resolve(that.dbRepo.delete(repoName, query));
 	});
-}
+};
 
 RestOffService.prototype.find = function(repoName, query) {
 	var that = this;
-	return new Promise(function(resolve, reject) {
+	return new Promise(function(resolve) {
 		resolve(that.dbRepo.read(repoName, query));
 	});	
-}
+};
 
 restlib.restoffService = restoffService;
