@@ -13,7 +13,7 @@
     "src/lowdb-repo.js",
     "src/restoff-service.js",
     "src/restoff.js",
-    "src/restoff-angular-provider.js",
+    "src/restoff-angular.js",
     "src/util/footer.js"
   ],
   "repository": {

@@ -14,6 +14,8 @@ Rest Offline uses your existing RESTful APIs to synchronize client/server data a
 	* Reconciliation works without soft deletes or last modified date columns in your database
 * Supports resources in the following formats:
 	* Json
+* Works in following frameworks
+    * [Angular][angular-home-link]
 * Limitations and Expectations:
 	* Every resource must have one unique ```primaryKey``` field.
 	* Best to follow [RESTful best known practices][rest-best-practices]
@@ -549,8 +551,22 @@ Add to your /etc/hosts file:
 127.0.0.1 test.development.com
 ```
 
+## Restoff Angular
 
+Restoff is wraped in an [angular provider](http://www.learn-angular.org/#!/lessons/the-provider-recipe).
 
+Example Usage:
+
+```javascript
+angular.module("fakeRoot", ["restoff"])
+    .config(["restoffProvider", function (restoffProvider) {
+        restoffProvider.setConfig({
+            rootUri:"http://localhost/"
+        });
+    }]);
+```
+
+Note that we "hard code" the configuration, but you could also get the configuration from another service.
 
 ## TODOs
 
@@ -567,3 +583,4 @@ Add to your /etc/hosts file:
 
 [rest-best-practices]: https://codeplanet.io/principles-good-restful-api-design/
 [jsonplaceholder-link]: http://jsonplaceholder.typicode.com/
+[angular-home-link]: https://angularjs.org/

@@ -818,4 +818,4 @@ RestOff.prototype.put = function(uri, resource, options) {
 	return this._restCall(uri, "PUT", options, resource);
 };
 
-restlib.restoff = restoff; 
+restlib.restoff = restoff;
