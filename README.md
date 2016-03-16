@@ -20,10 +20,8 @@ Rest Offline uses your existing RESTful APIs to synchronize client/server data a
 	* Every resource must have one unique ```primaryKey``` field.
 	* Best to follow [RESTful best known practices][rest-best-practices]
 * Next major features
-	* Create a restoff Angular Provider
 	* support non-standard get/put/post.
 		- Example: a request GET actually does a delete
-	* major cleanup of documentation
 	* support put/post updates where resource is changed on the server
 		- requires better mockable restapi backend for testing)
 	* support nested resources (example: /users/45/addresses)

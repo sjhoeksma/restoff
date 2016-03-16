@@ -46,10 +46,6 @@ RestOff.prototype = Object.create(Object.prototype, {
 		get: function() { return this._options.persistenceDisabled; },
 		set: function(value) { this._options.persistenceDisabled = value; }
 	},
-	primaryKeyName: {
-		get: function() { return this.dbService.primaryKeyName; },
-		set: function(value) { this.dbService.primaryKeyName = value; }
-	},
 	rootUri: {
 		get: function() { return this._options.rootUri; },
 		set: function(value) { this._options.rootUri = value; }
@@ -58,6 +54,10 @@ RestOff.prototype = Object.create(Object.prototype, {
 		get: function() { return this._options; }
 	}
 });
+
+RestOff.prototype._pkNameGet = function(uri) {
+	return this.dbService.pkNameGet(uri.repoName, uri.options);
+}
 
 RestOff.prototype._logMessage = function(message) {
 	console.log(message);
@@ -123,12 +123,10 @@ RestOff.prototype._uriGenerate = function(uri) {
 	return result;
 };
 
-
 RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) {
 	var uriResult = {
 		uri: uri,
 		primaryKey : "",
-		primaryKeyName : this.primaryKeyName,
 		restMethod : restMethod,
 		resources : resources,
 		options : Object.assign({}, this._options, options),
@@ -162,9 +160,23 @@ RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) 
 		uriResult.primaryKey = uriPrimaryKey[1]; // TODO Support nested resources
 	}
 
-	// TODO: Check if resource PK != uri pk and warn
-	if (("" === uriResult.primaryKey) && (undefined !== resources) && (null !== resources) && (undefined !== resources[this.primaryKeyName])) {
-		uriResult.primaryKey = resources[this.primaryKeyName];
+	var pkName = this._pkNameGet(uriResult);
+
+	if (undefined !== resources) {
+		if ("id" !== pkName && "guid" !== pkName) { // lowdb requires keyname of id. Can't find documentation that let's us set it. Will do more research later
+			if (resources instanceof Array) {
+				resources.forEach(function (item) {
+					item.id = item[pkName];
+				});
+			} else {
+				resources.id = resources[pkName];
+			}
+		}
+	}
+
+	// TODO: Check if resource's primary key != uri primary key and warn (some cases when this could happen)
+	if (("" === uriResult.primaryKey) && (undefined !== resources) && (null !== resources) && (undefined !== resources[pkName])) {
+		uriResult.primaryKey = resources[pkName];
 	}
 	uriResult.repoName = result;	
 	if (("http:" === uriResult.repoName) || ("" === uriResult.repoName)) {
@@ -177,12 +189,9 @@ RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) 
 	return uriResult;
 };
 
-
 RestOff.prototype._pendingDelete = function(itemId) {
 	return this.delete(this.pendingRepoName+"/"+itemId, {rootUri:this.pendingUri, clientOnly:true});
 };
-
-
 
 RestOff.prototype.clearAll = function(force) {
 	var that = this;
@@ -230,7 +239,8 @@ RestOff.prototype._repoGet = function(uri) {
 	return new Promise(function(resolve) {
 		var query = uri.searchOptions;
 		if ("" !== uri.primaryKey) {
-			query[uri.primaryKeyName] = uri.primaryKey;
+			var pkName = that._pkNameGet(uri);
+			query[pkName] = uri.primaryKey;
 		}
 
 		if (uri.options.persistenceDisabled) {
@@ -249,7 +259,8 @@ RestOff.prototype._repoFind = function(uri) {
 	var that = this;
 	return new Promise(function(resolve) {
 		var query = {};
-		query[uri.keyName] = uri.primaryKey;
+		var keyName = that._pkNameGet(uri);
+		query[keyName] = uri.primaryKey;
 		return that.dbService.find(uri.repoName, query).then(function(result) {
 			resolve(result);
 		});
@@ -264,12 +275,6 @@ RestOff.prototype._repoAdd = function(uri, resourceRaw) {
 			resolve(result);
 		});
 	});
-};
-
-RestOff.prototype._findBy = function(resources, id) {
-	return resources.filter(function(item) {
-		return item["id"] === id;
-	})[0];
 };
 
 RestOff.prototype._deepEquals = function(x, y) {
@@ -292,29 +297,29 @@ RestOff.prototype._deepEquals = function(x, y) {
 	} else return x === y;
 };
 
-RestOff.prototype._hashify = function(primaryKeyName, resources) {
+RestOff.prototype._hashify = function(pKeyName, resources) {
 	var repositoryHash = {};
 	resources.forEach(function(resource) {
 		if (undefined !== resource) {
-			var repositoryPrimaryKey = resource[primaryKeyName];
+			var repositoryPrimaryKey = resource[pKeyName];
 			repositoryHash[repositoryPrimaryKey] = resource;
 		}
 	});
 	return repositoryHash;
 };
 
-RestOff.prototype._joinedHash = function(primaryKeyName, serverResources, clientResources) {
+RestOff.prototype._joinedHash = function(pKeyName, serverResources, clientResources) {
 	var hash = {};
 
 	serverResources.forEach(function(resource) {
-		var primaryKey = resource[primaryKeyName];
+		var primaryKey = resource[pKeyName];
 		var hashEntry = {};
 		hashEntry.server = resource;
 		hash[primaryKey] = hashEntry;
 	});
 
 	clientResources.forEach(function(resource) {
-		var primaryKey = resource[primaryKeyName];
+		var primaryKey = resource[pKeyName];
 		if (undefined !== hash[primaryKey]) {
 			hash[primaryKey].client = resource;
 		} else {
@@ -344,7 +349,6 @@ RestOff.prototype._applyAndClearPending = function(pendingAction) {
 	});
 };
 
-
 // Logic table when we go back online
 //
 // On Server In Repo  In Pending  Meaning                                              Action
@@ -356,7 +360,7 @@ RestOff.prototype._applyAndClearPending = function(pendingAction) {
 // false     true     false       Delete on server                                   | Remove from repoClient directly
 // false     false    true        Added then Deleted on Client                       | Don't complete delete on server. Clear out pending.
 // false     false    false       NOT POSSIBLE (Nothing Posted/Put/Deleted/Added)    | Do Nothing
-RestOff.prototype._forEachHashEntry = function(repoName, joinedHash, serverResources, repoResources, pendingHash, newUpdatedResources) {
+RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources, repoResources, pendingHash, newUpdatedResources) {
 	var that = this;
 
 	return Object.keys(joinedHash).map(function(primaryKey) {
@@ -380,7 +384,8 @@ RestOff.prototype._forEachHashEntry = function(repoName, joinedHash, serverResou
 							var newId = that.options.generateId();
 							pendingAction.primaryKeyOriginal = pendingAction.primaryKey;
 							pendingAction.primaryKey = newId;
-							pendingAction.resources[that.primaryKeyName] = newId;
+							var pkName = that._pkNameGet(uri);
+							pendingAction.resources[pkName] = newId;
 							if ("PUT" === pendingAction.restMethod) { // will need to convert a PUT to a POST but can keep the existing post the same
 								pendingAction.restMethod = "POST";
 								pendingAction.uri = pendingAction.uri.replace(pendingAction.primaryKeyOriginal, "");
@@ -430,8 +435,9 @@ RestOff.prototype._forEachHashEntry = function(repoName, joinedHash, serverResou
 							});
 						} else { // not on server, but had an original so must have been on server at one time. So, a delete.
 							var searchOptions = {};
-							searchOptions[that.primaryKeyName] = primaryKey;
-							return that.dbService.delete(repoName, searchOptions).then(function() {
+							var pkName = that._pkNameGet(uri);
+							searchOptions[pkName] = primaryKey;
+							return that.dbService.delete(uri.repoName, searchOptions).then(function() {
 								return that._pendingDelete(pendingAction.id).then(function() {
 									resolve();
 								}).catch(function(error) {
@@ -442,8 +448,9 @@ RestOff.prototype._forEachHashEntry = function(repoName, joinedHash, serverResou
 						}
 					} else {          // False, True, False : Delete on server                                   | Remove from repoClient directly
 						var searchOptions2 = {};
-						searchOptions2[that.primaryKeyName] = primaryKey;
-						return that.dbService.delete(repoName, searchOptions2).then(function() {
+						var pkName = that._pkNameGet(uri);
+						searchOptions2[pkName] = primaryKey;
+						return that.dbService.delete(uri.repoName, searchOptions2).then(function() {
 							resolve();
 						});
 					}
@@ -476,10 +483,11 @@ RestOff.prototype._repoAddResource = function(uri) {
 					if (pending.length > 0 ) { // we got reconciliation work to do!!!
 						return that._repoGet(uri).then(function(repoResources) {
 							var newUpdatedResources = [];
-							var joinedHash = that._joinedHash(that.primaryKeyName, serverResources, repoResources);
+							var pkName = that._pkNameGet(uri);
+							var joinedHash = that._joinedHash(pkName, serverResources, repoResources);
 							var pendingHash = that._hashify("primaryKey", pending);
 
-							var actions = that._forEachHashEntry(uri.repoName, joinedHash, serverResources, repoResources, pendingHash, newUpdatedResources);
+							var actions = that._forEachHashEntry(uri, joinedHash, serverResources, repoResources, pendingHash, newUpdatedResources);
 							return Promise.all(actions).then(function() {
 								return that.dbService.write(uri.repoName, newUpdatedResources).then(function() {
 									// that.delete removes any dangling pending changes like a post and then delete of the same resource while offline.
@@ -502,7 +510,7 @@ RestOff.prototype._repoAddResource = function(uri) {
 				});
 			} else {
 				var resourceArray = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // make logic easier
-				return that.dbService.write(uri.repoName, resourceArray).then(function(){
+				return that.dbService.write(uri.repoName, resourceArray, uri.options).then(function(){
 					resolve(uri.resources);
 				})
 			}
@@ -515,7 +523,8 @@ RestOff.prototype._repoDeleteResource = function(uri, resolve) {
 	if (!uri.options.persistenceDisabled) {
 		var searchOptions = uri.searchOptions;
 		if ("" !== uri.primaryKey) {
-			searchOptions[uri.primaryKeyName] = uri.primaryKey;
+			var pkName = this._pkNameGet(uri);
+			searchOptions[pkName] = uri.primaryKey;
 		}
 		return this.dbService.delete(uri.repoName, searchOptions).then(function() {
 			resolve(uri.primaryKey);
@@ -586,7 +595,8 @@ RestOff.prototype._pendingAdd = function(uri) {
 
 		if (!uri.options.persistenceDisabled) {
 			var query = {};
-			query[that.primaryKeyName] = uri.primaryKey;
+			var pkName = that._pkNameGet(uri);
+			query[pkName] = uri.primaryKey;
 			return that.dbService.find(uri.repoName, query).then(function(original) {
 				if (undefined !== original[0]) {
 					result.original = JSON.parse(JSON.stringify(original[0])); // need to clone original record

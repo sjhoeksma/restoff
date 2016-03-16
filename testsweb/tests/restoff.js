@@ -28,9 +28,9 @@ describe ("restoff", function() {
 		roff.rootUri = ROOT_URI;
 		expect(roff.rootUri, "rootUri").to.equal(ROOT_URI);
 
-		expect(roff.primaryKeyName, "primaryKeyName").to.equal("id");
-		roff.primaryKeyName = "id3";
-		expect(roff.primaryKeyName, "primaryKeyName").to.equal("id3");
+		//expect(roff.primaryKeyName, "primaryKeyName").to.equal("id");
+		//roff.primaryKeyName = "id3";
+		//expect(roff.primaryKeyName, "primaryKeyName").to.equal("id3");
 
 		expect(roff.clientOnly, "clientOnly").to.be.false;
 		roff.clientOnly = true;
@@ -57,7 +57,7 @@ describe ("restoff", function() {
 
 		expect(roff2.dbService.dbName, "dbService.dbName").to.equal("TestDb");
 		expect(roff2.rootUri, "rootUri").to.equal(ROOT_URI);
-		expect(roff2.primaryKeyName, "primaryKeyName").to.equal("id2");
+		//expect(roff2.primaryKeyName, "primaryKeyName").to.equal("id2");
 		expect(roff2.clientOnly, "clientOnly").to.be.true;
 		expect(roff2.forcedOffline, "forcedOffline").to.be.true;
 		expect(roff2.pendingUri, "pendingUri").to.equal("http://notlocalhost/pending/");
@@ -216,7 +216,7 @@ describe ("restoff", function() {
 			}
 		});
 		return roff.get("http://test.development.com:4050/testsweb/testdata/addresses").then(function(addresses) {
-			dbRepoShouldBeEqual(roff, "addresses", addresses, 1);
+			dbRepoShouldBeEqual(roff, "addresses", addresses, 1, "guid");
 		});
 	});	
 
@@ -283,9 +283,10 @@ describe ("restoff", function() {
 			repository.", function () {
 
 		var userReturned =  {
-			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa",
+			"ID": "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa",
 			"first_name": "Existing",
-			"last_name": "New Name"
+			"last_name": "New Name",
+			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa"
 		};
 
 		var usersReturned = [userReturned];
@@ -297,7 +298,7 @@ describe ("restoff", function() {
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 			return roff.get(userRepo).then(function(users) {
 				dbRepoShouldBeEqual(roff, userRepo, users, 3);
-				return roff.get(userRepo + "/" + "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa").then(function (userOnline) {
+				return roff.get(userRepo + "/" + "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa", {primaryKeyName: "ID"}).then(function (userOnline) {
 					dbRepoShouldBeEqual(roff, userRepo, users, 3); // no changes to existing repository
 					expect(deepEqual(userReturned, userOnline), " users returned should be the same").to.be.true;
 					roff.forcedOffline = true;
@@ -1152,9 +1153,6 @@ describe ("restoff", function() {
 
 	});
 
-	// TODO: Allow for configuring primaryKeyName at the options level.
-
-
 	// Reconciliation
 
 	// Action              -  Server Only Change          | Client Only Change          | Change in Both
@@ -1164,39 +1162,40 @@ describe ("restoff", function() {
 	// D     Other was Updated  1 Updated ? Do What? DONE |   2 Updated ? Do What? DONE 
 
 	it("70: A1, B1, C1: should reconcile when server has put/insert/post/delete\
-					    changes and client has no changes.", function() {
+					    changes and client has no changes\
+					    and support setting primaryKeyName in options.", function() {
 
 		var user01 = {
-			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
+			"ID": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
 			"first_name": "Happy3",
 			"last_name": "User3"
 		};
 		var user01Update = {
-			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
+			"ID": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
 			"first_name": "Happy3",
 			"last_name": "Position"
 		};
 
 		var user02 = {
-			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
+			"ID": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
 			"first_name": "Existing",
 			"last_name": "New Name"
 		};
 
 		var user02Post = {
-			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
+			"ID": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
 			"first_name": "Existing",
 			"last_name": "Posted"
 		};
 	
 		var user03Delete = {
-			"id": "9783df16-0d70-4364-a1ee-3cb39818fd13",
+			"ID": "9783df16-0d70-4364-a1ee-3cb39818fd13",
 			"first_name": "Joyous",
 			"last_name": "WillDelete"
 		};
 
 		var user04New = {
-			"id": "9783df16-0d70-4364-a1ee-3cb39818fd14",
+			"ID": "9783df16-0d70-4364-a1ee-3cb39818fd14",
 			"first_name": "Joyous",
 			"last_name": "And New"
 		};
@@ -1204,19 +1203,19 @@ describe ("restoff", function() {
 
 		var userRepo = "users15";
 		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
-		return roff.clear(userRepo, true).then(function(result) {		
+		return roff.clear(userRepo, true).then(function(result) {
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
-			return roff.post(userRepo, user01).then(function(result) {
-				return roff.post(userRepo, user02).then(function(result) {
-					return roff.post(userRepo, user03Delete).then(function(result) { 
-						return roff.delete(userRepo + "/" + user04New.id).then(function(result) { // Above 4 rest test
+			return roff.post(userRepo, user01, {primaryKeyName:"ID"}).then(function(result) {
+				return roff.post(userRepo, user02, {primaryKeyName:"ID"}).then(function(result) {
+					return roff.post(userRepo, user03Delete, {primaryKeyName:"ID"}).then(function(result) {
+						return roff.delete(userRepo + "/" + user04New.ID, {primaryKeyName:"ID"}).then(function(result) { // Above 4 rest test
 							return dbRepoExactlyEqual(roff, userRepo, true).then(function(result) { // verify posted to server
 								expect(result, "db repo the same").to.be.true;
 								roff.persistenceDisabled = true; // Make updates without making them locally
-								return roff.put(userRepo + "/" + user01Update.id, user01Update).then(function(result) {
-									return roff.post(userRepo, user02Post).then(function(result) {
-										return roff.post(userRepo, user04New).then(function(result) {
-											return roff.delete(userRepo + "/" + user03Delete.id).then(function(result) { // Above 4 rest test
+								return roff.put(userRepo + "/" + user01Update.ID, user01Update, {primaryKeyName:"ID"}).then(function(result) {
+									return roff.post(userRepo, user02Post, {primaryKeyName:"ID"}).then(function(result) {
+										return roff.post(userRepo, user04New, {primaryKeyName:"ID"}).then(function(result) {
+											return roff.delete(userRepo + "/" + user03Delete.ID, {primaryKeyName:"ID"}).then(function(result) { // Above 4 rest test
 												roff.persistenceDisabled = false;
 												return dbRepoExactlyEqual(roff, userRepo, false).then(function(result) { // verify posted to server
 													expect(result, "db repo the same").to.be.false;
@@ -1224,11 +1223,11 @@ describe ("restoff", function() {
 														dbRepoShouldBeEqual(roff, userRepo, result, 3); // one was deleted one was added
 														return dbRepoExactlyEqual(roff, userRepo, true).then(function(result) { // verify posted to server
 															expect(result, "db repo the same").to.be.true;
-															return roff.post(userRepo, user01).then(function(result) { // Return to prior dbState
-																return roff.post(userRepo, user02).then(function(result) {
-																	return roff.post(userRepo, user03Delete).then(function(result) { 
+															return roff.post(userRepo, user01, {primaryKeyName:"ID"}).then(function(result) { // Return to prior dbState
+																return roff.post(userRepo, user02, {primaryKeyName:"ID"}).then(function(result) {
+																	return roff.post(userRepo, user03Delete, {primaryKeyName:"ID"}).then(function(result) {
 																		pendingStatusCount(roff, 0);
-																		return roff.delete(userRepo + "/" + user04New.id).then(function(result) { // Above 4 restart test
+																		return roff.delete(userRepo + "/" + user04New.ID, {primaryKeyName:"ID"}).then(function(result) { // Above 4 restart test
 																		});
 																	});
 																});
@@ -1248,38 +1247,72 @@ describe ("restoff", function() {
 		});
 	});
 
-
 	it("71: A2, B2, C2: should reconcile when client has put/insert/post/delete\
 					    changes and server has no changes.", function() {
 
 		var emailA = {
-			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
+			"ID": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
 			"first_name": "Happy3",
 			"last_name": "Leave Alone"
 		};
 
 		var emailB = {
-			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
+			"ID": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
 			"first_name": "Existing",
 			"last_name": "Put New Value"
 		};
 
 		var emailBPut = {
-			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
+			"ID": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
 			"first_name": "Existing",
 			"last_name": "Putted the New Value"
 		};
 
 		var emailC = {
-			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f813",
+			"ID": "4a30a4fb-b71e-4ef2-b430-d46f9af3f813",
 			"first_name": "Existing",
 			"last_name": "Will Delete This One"
 		};
 	
 		var emailD = {
-			"id": "9783df16-0d70-4364-a1ee-3cb39818fd14",
+			"ID": "9783df16-0d70-4364-a1ee-3cb39818fd14",
 			"first_name": "Joyous",
 			"last_name": "Post This One"
+		};
+
+		var emailAId = {
+			"ID": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
+			"first_name": "Happy3",
+			"last_name": "Leave Alone",
+			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511"
+		};
+
+		var emailBId = {
+			"ID": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
+			"first_name": "Existing",
+			"last_name": "Put New Value",
+			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812"
+		};
+
+		var emailBPutId = {
+			"ID": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
+			"first_name": "Existing",
+			"last_name": "Putted the New Value",
+			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812"
+		};
+
+		var emailCId = {
+			"ID": "4a30a4fb-b71e-4ef2-b430-d46f9af3f813",
+			"first_name": "Existing",
+			"last_name": "Will Delete This One",
+			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f813"
+		};
+
+		var emailDId = {
+			"ID": "9783df16-0d70-4364-a1ee-3cb39818fd14",
+			"first_name": "Joyous",
+			"last_name": "Post This One",
+			"id": "9783df16-0d70-4364-a1ee-3cb39818fd14"
 		};
 
 		var emailRepo = "emailAddresses01";
@@ -1288,35 +1321,34 @@ describe ("restoff", function() {
 
 		return Promise.all([
 			roff.clear(emailRepo, true),
-			roff.post(emailRepo, emailA),
-			roff.post(emailRepo, emailB),
-			roff.post(emailRepo, emailC),
-			roff.delete(emailRepo + "/" + emailD.id),
-		]).then(function(results) {
+			roff.post(emailRepo, emailA, {primaryKeyName:"ID"}),
+			roff.post(emailRepo, emailB, {primaryKeyName:"ID"}),
+			roff.post(emailRepo, emailC, {primaryKeyName:"ID"}),
+			roff.delete(emailRepo + "/" + emailD.ID, {primaryKeyName:"ID"}),
+		]).then(function() {
 			return roff.get(emailRepo).then(function(results) {
-				expect([emailA, emailB, emailC], "initial setup should be correct").to.deep.equals(results)
+				expect([emailAId, emailBId, emailCId], "initial setup should be correct").to.deep.equals(results)
 				roff.forcedOffline = true;
 				return Promise.all([
-					roff.put(emailRepo+"/"+emailBPut.id, emailBPut),
-					roff.delete(emailRepo+"/"+emailC.id),
-					roff.post(emailRepo, emailD),
-				]).then(function(results) {
-					var pendingUri = "pending?repoName=" + emailRepo;			
+					roff.put(emailRepo+"/"+emailBPut.ID, emailBPut, {primaryKeyName:"ID"}),
+					roff.delete(emailRepo+"/"+emailC.ID, {primaryKeyName:"ID"}),
+					roff.post(emailRepo, emailD, {primaryKeyName:"ID"}),
+				]).then(function() {
 					return pendingResourcesGet(roff, emailRepo).then(function(pending) {
 						return roff.get(emailRepo).then(function(updatedResults) {
 							expect(pending.length, "Should have 3 pending").to.equal(3);
-							expect([emailA, emailBPut, emailD], "Client should sync up when placed online again and resource is accessed").to.deep.equals(updatedResults)
+							expect([emailAId, emailBPutId, emailDId], "Client should sync up when placed online again and resource is accessed").to.deep.equals(updatedResults)
 							roff.forcedOffline = false;
 							return roff.get(emailRepo).then(function(updatedResults) {
 								return pendingResourcesGet(roff, emailRepo).then(function(pending) {
 									expect(pending.length, "Should have nothing pending").to.equal(0);
-									expect([emailA, emailBPut, emailD], "Client should sync up when placed online again and resource is accessed").to.deep.equals(updatedResults)
+									expect([emailAId, emailBPutId, emailDId], "Client should sync up when placed online again and resource is accessed").to.deep.equals(updatedResults)
 									pendingStatusCount(roff, 0);
 									return Promise.all([
-										roff.delete(emailRepo+"/"+emailA.id),
-										roff.delete(emailRepo+"/"+emailB.id),
-										roff.delete(emailRepo+"/"+emailC.id),
-										roff.delete(emailRepo+"/"+emailD.id)   // clean up
+										roff.delete(emailRepo+"/"+emailA.ID, {primaryKeyName:"ID"}),
+										roff.delete(emailRepo+"/"+emailB.ID, {primaryKeyName:"ID"}),
+										roff.delete(emailRepo+"/"+emailC.ID, {primaryKeyName:"ID"}),
+										roff.delete(emailRepo+"/"+emailD.ID, {primaryKeyName:"ID"})   // clean up
 									]);
 								});
 							});
@@ -1329,38 +1361,39 @@ describe ("restoff", function() {
 	});
 
 	it("72: D1, D2: should reconcile when client updated a server deleted record\
-				   and reconcile when server updated a client deleted record", function() {
+				   and reconcile when server updated a client deleted record\
+				   and support primary key name in options", function() {
 
 		var emailA = {
-			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
+			"ID": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
 			"first_name": "Update One Client",
 			"last_name": "Delete On Server",
 			"changed_value": "Was A"
 		};
 
 		var emailAUpdated = {
-			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
+			"ID": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
 			"first_name": "Update One Client",
 			"last_name": "Delete On Server",
 			"changed_value": "Now A2"
 		};
 
 		var emailB = {
-			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
+			"ID": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
 			"first_name": "Update On Server",
 			"last_name": "Delete On Client",
 			"changed_value": "Was X"
 		};
 
 		var emailBUpdated = {
-			"id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
+			"ID": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
 			"first_name": "Update On Server",
 			"last_name": "Delete On Client",
 			"changed_value": "Now X2"
 		};
 
 		var emailC = {
-			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68516",
+			"ID": "aedfa7a4-d748-11e5-b5d2-0a1d41d68516",
 			"first_name": "Happy3",
 			"last_name": "Leave Alone"
 		};
@@ -1373,18 +1406,18 @@ describe ("restoff", function() {
 
 		return Promise.all([
 			roff.clear(emailRepo, true),
-			roff.post(emailRepo, emailA),
-			roff.post(emailRepo, emailB),
-			roff.post(emailRepo, emailC)
+			roff.post(emailRepo, emailA, {primaryKeyName:"ID"}),
+			roff.post(emailRepo, emailB, {primaryKeyName:"ID"}),
+			roff.post(emailRepo, emailC, {primaryKeyName:"ID"})
 		]).then(function(results) {
 			return roff.get(emailRepo).then(function(results) {
 				expect(deepEqualOrderUnimportant([emailB, emailA, emailC], results, "id"), "initial setup should be correct").to.be.true;
 				roff.forcedOffline = true;
 				return Promise.all([
-					roff2.delete(emailRepo+"/"+emailA.id), // "Other client" delete on server
-					roff2.post(emailRepo, emailBUpdated),  // "Other client" update on server
-					roff.delete(emailRepo+"/"+emailB.id),  // delete on client
-					roff.post(emailRepo, emailAUpdated)    // updated on client
+					roff2.delete(emailRepo+"/"+emailA.id, {primaryKeyName:"ID"}), // "Other client" delete on server
+					roff2.post(emailRepo, emailBUpdated, {primaryKeyName:"ID"}),  // "Other client" update on server
+					roff.delete(emailRepo+"/"+emailB.id, {primaryKeyName:"ID"}),  // delete on client
+					roff.post(emailRepo, emailAUpdated, {primaryKeyName:"ID"})    // updated on client
 				]).then(function() {
 					return Promise.all([
 						roff2.get(emailRepo),
@@ -1400,7 +1433,7 @@ describe ("restoff", function() {
 							expect([emailC], "should only have the one unchanged record as the other two are deleted").to.deep.equals(results);
 							pendingStatusCount(roff, 0);
 							pendingStatusCount(roff2, 0);							
-							return roff.delete(emailRepo+"/"+emailC.id);
+							return roff.delete(emailRepo+"/"+emailC.id, {primaryKeyName:"ID"});
 						});
 					});
 				});
@@ -1619,7 +1652,8 @@ describe ("restoff", function() {
 		});
 	});
 
-	it("74: should handle merging a delete on the sever while we still have pending changes.", function() {
+	it("74: should handle merging a delete on the sever while we still have pending changes.\
+	        and should support optional primary key names ", function() {
 
 		var emailA = {
 			"id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68300",
@@ -1658,7 +1692,7 @@ describe ("restoff", function() {
 			roff2.clear(repoName, true),
 			roff.delete(repoName+"/"+emailB.id),
 			roff.post(repoName, emailA)
-		]).then(function(result) {
+		]).then(function() {
 			return Promise.all([
 				roff.clear(repoName, true),
 				roff2.clear(repoName, true),
@@ -1845,14 +1879,21 @@ describe ("restoff", function() {
 		expect(resource.length, repoName + " repo length").to.not.equal(0);
 	}
 
-	function dbRepoShouldBeEqual(roff, repoName, resource, len) {
+	function dbRepoShouldBeEqual(roff, repoName, resource, len, pkName) {
+		if (undefined === pkName) {
+			pkName = "id";
+		}
+
 		expect(roff.dbService.dbRepo.length(repoName), repoName + " repo and db length").to.equal(len);
 		if (undefined !== resource)  {
-			expect(dbResourceCompare(roff, repoName, resource, true), "db repo the same").to.be.true;
+			expect(dbResourceCompare(roff, repoName, resource, true, pkName), "db repo the same").to.be.true;
 		}
 	}
 
-	function dbRepoExactlyEqual(roff, repoName, similarExpected) {
+	function dbRepoExactlyEqual(roff, repoName, similarExpected, pkName) {
+		if (undefined === pkName) {
+			pkName = "id";
+		}
 
 		var promise = new Promise(function(resolve, reject) {		
 			// Verify client persisted database for repository is exactly equal
@@ -1864,13 +1905,13 @@ describe ("restoff", function() {
 
 			return roffDisabled.get(repoName).then(function(result) {
 				// roff.persistenceDisabled = false; // to read db results
-				resolve(dbResourceCompare(roff, repoName, result, similarExpected));
+				resolve(dbResourceCompare(roff, repoName, result, similarExpected, pkName));
 			});
 		});
 		return promise;
 	}
 
-	function dbResourceCompare(roff, repoName, resources, similarExpected) {
+	function dbResourceCompare(roff, repoName, resources, similarExpected, pkName) {
 		var result = true;
 		if (!(resources instanceof Array)) { // Make code easy: Always make it an array
 			resources = [resources];
@@ -1892,8 +1933,8 @@ describe ("restoff", function() {
 
 		resources.forEach(function(resource, position) {
 			// var primaryKey = roff._primaryKeyFor(resource);
-			var primaryKey = resource[roff.primaryKeyName];
-			var dbResource = roff.dbService.dbRepo.find(repoName, roff.primaryKeyName, primaryKey);
+			var primaryKey = resource[pkName];
+			var dbResource = roff.dbService.dbRepo.find(repoName, pkName, primaryKey);
 
 			if (false === deepEqual(resource, dbResource)) {
 				if (similarExpected) {

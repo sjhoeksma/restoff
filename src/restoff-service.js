@@ -24,7 +24,7 @@ RestOffService.prototype = Object.create(Object.prototype, {
 	}
 });
 
-RestOffService.prototype._pkNameGet = function(repoName, options) {
+RestOffService.prototype.pkNameGet = function(repoName, options) {
 	var pkName = this.primaryKeyName; // start global
 	var repoOptions = this.repoOptionsGet(repoName);
 	if (undefined !== repoOptions) { // overwrite with repo level
@@ -60,18 +60,17 @@ RestOffService.prototype.repoOptionsSet = function(options) {
 RestOffService.prototype.write = function(repoName, resources, options) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
-		var pkName = that._pkNameGet(repoName, options);
+		var pkName = that.pkNameGet(repoName, options);
 		resources = (resources instanceof Array) ? resources : [resources]; // make logic easier
-		// TODO: Need to fix this to do something better than do a reject.
-		//       Can we assume that resources contain the same type of resources? If so, just
-		//       look at the first one resources[0] and if it has a valid PK assume the rest do.
 		resources.forEach(function(resource) {
 			var primaryKey = resource[pkName];
 			if (undefined === primaryKey) {
 				reject("Primary key '" + pkName + "' required for resource or the resource has an invalid primary key.");
+				// TODO: Need to pre-validate all records and then notify when one has an issue?
+				// TODO: Currently, we reject in the middle of an update which is 'bad'
 				return;
 			} else {
-				that.dbRepo.write(repoName, pkName, primaryKey, resource);
+				that.dbRepo.write(repoName, pkName, resource);
 			}
 		});
 		resolve(resources);

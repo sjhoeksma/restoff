@@ -62,10 +62,8 @@ LowdbRepo.prototype.read = function(repoName, query) {
 		.value();
 };
 
-LowdbRepo.prototype.write = function(repoName, keyName, primaryKey, resource) {
-	// TODO: There is no consolodiation at this time
-	//       So, right now, we overwrite whatever is there without
-	//       verifying anything has changed.
+LowdbRepo.prototype.write = function(repoName, keyName, resource) {
+	var primaryKey = resource[keyName];
 	if (undefined === this.find(repoName, keyName, primaryKey)) {
 		this._low(repoName).push(resource);
 	} else {
