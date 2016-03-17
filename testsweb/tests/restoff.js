@@ -571,6 +571,26 @@ describe ("restoff", function() {
 		});
 	});
 
+	it("20: get should, support a repoName option", function(){
+
+		// NOTE: Current test backed doesn't support stuff like users11?first_name=Fantastic.
+		//		 So, this test does it all on the client side.
+		var roff = restlib.restoff({
+			"rootUri" : "http://localhost/",
+			"clientOnly" : true
+		});
+
+		var uri = roff.uriFromClient("user", "GET", undefined, undefined);
+		expect (uri.repoName, "should get reponame from uri").to.equal("user");
+
+		var uri = roff.uriFromClient("user", "GET", undefined, {repoName: "notUser"});
+		expect (uri.repoName, "should get repoName from options").to.equal("notUser");
+
+	});
+
+
+
+
 	// dbActions Differ From RESTful Action
 
 	// Get - Postins

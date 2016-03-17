@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.2.2
+// version: 0.2.3
 // author: ProductOps <restoff@productops.com>
 // license: MIT
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.2.2'; // version set through gulp build
+restlib["version-library"] = '0.2.3'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -387,7 +387,13 @@ RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) 
 	if (("" === uriResult.primaryKey) && (undefined !== resources) && (null !== resources) && (undefined !== resources[pkName])) {
 		uriResult.primaryKey = resources[pkName];
 	}
-	uriResult.repoName = result;	
+
+	if (options && options.repoName) {
+		uriResult.repoName = options.repoName;
+	} else {
+		uriResult.repoName = result;
+	}
+
 	if (("http:" === uriResult.repoName) || ("" === uriResult.repoName)) {
 		// Note: We really can't figure out the rootUri from the uri provided when no rootUri was
 		//       configured. This is because the rootUri could contain anything plus resource names
