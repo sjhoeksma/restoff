@@ -10,6 +10,7 @@
   "README": "Adding or removing from source requires you to restart gulp.",
   "source": [
     "src/util/header.js",
+    "src/roff-utils.js",
     "src/lowdb-repo.js",
     "src/restoff-service.js",
     "src/restoff.js",

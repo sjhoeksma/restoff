@@ -98,11 +98,15 @@ RestOffService.prototype.delete = function(repoName, query) {
 	});
 };
 
+RestOffService.prototype.findNp = function(repoName, query) {
+	return this.dbRepo.read(repoName, query);
+};
+
 RestOffService.prototype.find = function(repoName, query) {
 	var that = this;
 	return new Promise(function(resolve) {
 		resolve(that.dbRepo.read(repoName, query));
-	});	
+	});
 };
 
 restlib.restoffService = restoffService;

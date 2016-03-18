@@ -16,6 +16,7 @@ if (typeof module !== 'undefined' && module.exports) {
 	root.restlib = restlib;
 }
 
+
 function lowdbRepo(config) {
 	var defaultConfig = {
 		dbName: "restoff.json"
@@ -199,14 +200,19 @@ RestOffService.prototype.delete = function(repoName, query) {
 	});
 };
 
+RestOffService.prototype.findNp = function(repoName, query) {
+	return this.dbRepo.read(repoName, query);
+};
+
 RestOffService.prototype.find = function(repoName, query) {
 	var that = this;
 	return new Promise(function(resolve) {
 		resolve(that.dbRepo.read(repoName, query));
-	});	
+	});
 };
 
 restlib.restoffService = restoffService;
+
 function restoff(config) {
 	var defaultConfig = {
 		rootUri: "",
@@ -224,7 +230,6 @@ function restoff(config) {
 	that._autoParams = {};
 	that._autoHeaders = {};
 	that._dbService = restoffService(that._options.dbService);
-
 	return that;
 }
 
@@ -266,7 +271,7 @@ RestOff.prototype = Object.create(Object.prototype, {
 
 RestOff.prototype._pkNameGet = function(uri) {
 	return this.dbService.pkNameGet(uri.repoName, uri.options);
-}
+};
 
 RestOff.prototype._logMessage = function(message) {
 	console.log(message);
@@ -300,8 +305,8 @@ RestOff.prototype._requestGet = function(uri) {
 	// thinking it is complete. Why readyStateRestOff? Because readyState
 	// has no setter (request.readyState = 4 throws an exception).
 	if (uri.options.forcedOffline || uri.options.clientOnly) {
-		request.__defineGetter__('readyStateRestOff', function(){return request.__proto__.DONE;});
-		request.send = function() { this.onreadystatechange(); }
+		request.__defineGetter__('readyStateRestOff', function(){return 4;}); // Done = 4
+		request.send = function() { this.onreadystatechange(); };
 	} else {
 		request.__defineGetter__('readyStateRestOff', function(){ return this.readyState; });
 	}
@@ -363,14 +368,13 @@ RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) 
 		});
 	}
 
-	var uriPrimaryKey = result.split("/"); 
+	var uriPrimaryKey = result.split("/");
 	if (uriPrimaryKey.length > 1) {
 		result = uriPrimaryKey[0];
 		uriResult.primaryKey = uriPrimaryKey[1]; // TODO Support nested resources
 	}
 
 	var pkName = this._pkNameGet(uriResult);
-
 	if (undefined !== resources) {
 		if ("id" !== pkName && "guid" !== pkName) { // lowdb requires keyname of id. Can't find documentation that let's us set it. Will do more research later
 			if (resources instanceof Array) {
@@ -449,6 +453,21 @@ RestOff.prototype.clear = function(repoName, force) {
 	});
 };
 
+RestOff.prototype._queryBuildFromUri = function(uri) {
+	var query = uri.searchOptions;
+	if ("" !== uri.primaryKey) {
+		var pkName = this._pkNameGet(uri);
+		query[pkName] = uri.primaryKey;
+	}
+	return query;
+}
+
+RestOff.prototype._repoGetNp = function(uri) {
+	// TODO: Write tests for persistenceDisabled and the usage of queryBuildFromUri call below
+	return uri.options.persistenceDisabled ? [] :
+		this.dbService.findNp(uri.repoName, this._queryBuildFromUri(uri));
+};
+
 RestOff.prototype._repoGet = function(uri) {
 	var that = this;
 	return new Promise(function(resolve) {
@@ -493,13 +512,13 @@ RestOff.prototype._repoAdd = function(uri, resourceRaw) {
 };
 
 RestOff.prototype._deepEquals = function(x, y) {
-	if ((typeof x == "object" && x != null) && (typeof y == "object" && y != null)) {
+	if ((typeof x == "object" && x !== null) && (typeof y == "object" && y !== null)) {
 		if (Object.keys(x).length != Object.keys(y).length) {
 			return false;
 		}
 
 		for (var prop in x) {
-			if (y.hasOwnProperty(prop)) {  
+			if (y.hasOwnProperty(prop)) {
 				if (! this._deepEquals(x[prop], y[prop])) {
 					return false;
 				}
@@ -549,7 +568,7 @@ RestOff.prototype._joinedHash = function(pKeyName, serverResources, clientResour
 
 RestOff.prototype._applyAndClearPending = function(pendingAction) {
 	var that = this;
-	return new Promise(function(resolve, reject) {	
+	return new Promise(function(resolve, reject) {
 		return that._restCall(pendingAction.uri, pendingAction.restMethod, undefined, pendingAction.resources).then(function() {
 			return that._pendingDelete(pendingAction.id).then(function() {
 				resolve(undefined); // return this because we want to process it.
@@ -599,8 +618,7 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 							var newId = that.options.generateId();
 							pendingAction.primaryKeyOriginal = pendingAction.primaryKey;
 							pendingAction.primaryKey = newId;
-							var pkName = that._pkNameGet(uri);
-							pendingAction.resources[pkName] = newId;
+							pendingAction.resources[that._pkNameGet(uri)] = newId;
 							if ("PUT" === pendingAction.restMethod) { // will need to convert a PUT to a POST but can keep the existing post the same
 								pendingAction.restMethod = "POST";
 								pendingAction.uri = pendingAction.uri.replace(pendingAction.primaryKeyOriginal, "");
@@ -608,7 +626,7 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 
 							// Second: Let's apply the new change on the server
 							return that._applyAndClearPending(pendingAction, resolve, reject).then(function() {
-								
+
 								// Thrid: We will need to add this "new record" to the existing repository
 								newUpdatedResources.push(pendingAction.resources);
 								// Fourth: but we keep the original record in the repo becuase it will be overwritten by the resolve
@@ -622,7 +640,7 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 								resolve();
 							});
 
-							// 
+							//
 						} else { // edited on client and already in repo so no need to add to newUpdatedResources. Clean out Pending.
 							return that._applyAndClearPending(pendingAction, resolve, reject).then(function() {
 								resolve();
@@ -650,8 +668,7 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 							});
 						} else { // not on server, but had an original so must have been on server at one time. So, a delete.
 							var searchOptions = {};
-							var pkName = that._pkNameGet(uri);
-							searchOptions[pkName] = primaryKey;
+							searchOptions[that._pkNameGet(uri)] = primaryKey;
 							return that.dbService.delete(uri.repoName, searchOptions).then(function() {
 								return that._pendingDelete(pendingAction.id).then(function() {
 									resolve();
@@ -663,8 +680,7 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 						}
 					} else {          // False, True, False : Delete on server                                   | Remove from repoClient directly
 						var searchOptions2 = {};
-						var pkName = that._pkNameGet(uri);
-						searchOptions2[pkName] = primaryKey;
+						searchOptions2[that._pkNameGet(uri)] = primaryKey;
 						return that.dbService.delete(uri.repoName, searchOptions2).then(function() {
 							resolve();
 						});
@@ -681,6 +697,50 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 		});
 	});
 };
+
+RestOff.prototype._repoAddResourceNp = function(uri) {
+	if (!uri.options.persistenceDisabled) {
+		if (("" === uri.primaryKey) && ("GET" === uri.restMethod)) {  // Complete get, doing a merge because we don't have soft_delete
+			var serverResources = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // makes logic easier
+			var pending = that._pendingRecordsNp(uri.repoName);
+			if (pending.length > 0 ) { // we got reconciliation work to do!!!
+				var repoResources = this._repoGetNp(uri);
+				var newUpdatedResources = [];
+				var pkName = that._pkNameGet(uri);
+				var joinedHash = that._joinedHash(pkName, serverResources, repoResources);
+				var pendingHash = that._hashify("primaryKey", pending);
+
+
+
+				var actions = that._forEachHashEntry(uri, joinedHash, serverResources, repoResources, pendingHash, newUpdatedResources);
+				return Promise.all(actions).then(function() {
+					return that.dbService.write(uri.repoName, newUpdatedResources).then(function() {
+						// that.delete removes any dangling pending changes like a post and then delete of the same resource while offline.
+						return that.delete(that.pendingRepoName + "?repoName=" + uri.repoName, {rootUri:that.pendingUri, clientOnly:true}).then(function() {
+							return that._repoGet(uri).then(function(repoResources) {
+								resolve(repoResources);
+							});
+						});
+					});
+
+				});
+			} else {
+				return that.clear(uri.repoName).then(function() {
+					return that.dbService.write(uri.repoName, serverResources).then(function(){
+						resolve(serverResources);
+					});
+				});
+			}
+		} else {
+			var resourceArray = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // make logic easier
+			return that.dbService.write(uri.repoName, resourceArray, uri.options).then(function(){
+				resolve(uri.resources);
+			});
+		}
+	} // else don't persist
+	return uri.resources;
+};
+
 
 // NOTE: Will alter the order of the records returned. So, if a sort
 // order was applied it will pobably not be valid after the merge.
@@ -727,10 +787,10 @@ RestOff.prototype._repoAddResource = function(uri) {
 				var resourceArray = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // make logic easier
 				return that.dbService.write(uri.repoName, resourceArray, uri.options).then(function(){
 					resolve(uri.resources);
-				})
+				});
 			}
 		} // else don't persist
-		resolve(uri.resources);	
+		resolve(uri.resources);
 	});
 };
 
@@ -794,6 +854,31 @@ RestOff.prototype._guidGenerate = function() {
     s4() + '-' + s4() + s4() + s4();
 };
 
+RestOff.prototype._pendingAddNp = function(uri) {
+	var result = {
+		"id" : that._guidGenerate(),
+		"restMethod" : uri.restMethod,
+		"resources" : uri.resources,
+		"clientTime" : new Date(),
+		"uri" : uri.uriFinal,
+		"repoName" : uri.repoName,
+		"primaryKey" : uri.primaryKey
+	};
+
+	if (!uri.options.persistenceDisabled) { // TODO: Write a test for this
+		var query = {};
+		var pkName = that._pkNameGet(uri);
+		query[pkName] = uri.primaryKey;
+		var original = this.dbService.findNp(uri.repoName, query);
+		if (undefined !== original[0]) {
+			result.original = JSON.parse(JSON.stringify(original[0])); // need to clone original record
+		}
+		return this.postNp(that.pendingUri + that.pendingRepoName, result, {rootUri:that.pendingUri,clientOnly:true});
+	} else {
+		resolve(result);
+	}
+};
+
 // TODO: Add database calling type
 RestOff.prototype._pendingAdd = function(uri) {
 	var that = this;
@@ -821,7 +906,7 @@ RestOff.prototype._pendingAdd = function(uri) {
 					resolve(result);
 				}).catch(function(error) {
 					reject(error);
-				}); 
+				});
 			});
 		} else {
 			resolve(result);
@@ -875,7 +960,7 @@ RestOff.prototype._dbDelete = function(uri, resolve, reject) {
 			} else {
 				this._isOnline = null;
 				reject(this._createError(uri));
-			}		
+			}
 		break;
 		default:
 			console.log ("WARNING: Unsupported HTTP response " + request.status + " for uri '" + uri.uriFinal + "'.");
@@ -892,7 +977,6 @@ RestOff.prototype._dbGet = function(uri) {
 				return that._repoAdd(uri, request.response).then(function(result) {
 					resolve(result);
 				});
-			break;
 			case 0: case 404:
 				var clientOnly = uri.options.clientOnly;
 				if (uri.options.forcedOffline || clientOnly) {
@@ -912,6 +996,13 @@ RestOff.prototype._dbGet = function(uri) {
 				reject();
 		}
 	});
+};
+
+RestOff.prototype._pendingRepoAddNp = function(uri, clientOnly, resolve) {
+	if (!clientOnly) { // TODO: Test for this case
+		this._pendingAddNp(uri);
+	}
+	return this._repoAddResourceNp(uri);
 };
 
 RestOff.prototype._pendingRepoAdd = function(uri, clientOnly, resolve) {
@@ -937,7 +1028,6 @@ RestOff.prototype._dbPost = function(uri, resolve, reject) {
 			return this._repoAddResource(uri).then(function(result) {  // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
 				resolve(result);
 			});
-		break;
 		case 0: case 404:
 			var clientOnly = uri.options.clientOnly;
 			if (uri.options.forcedOffline || clientOnly) {
@@ -1004,7 +1094,6 @@ RestOff.prototype._restCall = function(uriClient, restMethod, options, resource)
 						}).catch(function(error) {
 							reject(error);
 						});
-					break;
 					case "POST":
 						that._dbPost(uri, resolve, reject);
 					break;
@@ -1012,7 +1101,7 @@ RestOff.prototype._restCall = function(uriClient, restMethod, options, resource)
 						that._dbPut(uri, resolve, reject);
 					break;
 					case "DELETE":
-						that._dbDelete(uri, resolve, reject);				
+						that._dbDelete(uri, resolve, reject);
 					break;
 					// default: Not required
 				}
@@ -1025,6 +1114,44 @@ RestOff.prototype._restCall = function(uriClient, restMethod, options, resource)
 			request.send();
 		}
 	});
+};
+
+RestOff.prototype._RestCallRepo = function(uriClient, restMethod, options, resource) {
+	var clientOnly = options ? !!options.clientOnly : false;
+	if (!(this.forcedOffline || clientOnly)) {
+		throw new Error(restMethod.toLowerCase() + "Np only available when forcedOffline or clientOnly is true.");
+	} else {
+		var uri = this.uriFromClient(uriClient, restMethod, resource, options);
+		switch(uri.restMethod) {
+			case "GET":
+				return this._repoGetNp(uri);
+			// case "POST":
+			// 	that._dbPost(uri, resolve, reject);
+			// break;
+			// case "PUT":
+			// 	that._dbPut(uri, resolve, reject);
+			// break;
+			// case "DELETE":
+			// 	that._dbDelete(uri, resolve, reject);
+			// break;
+		}
+	}
+};
+
+RestOff.prototype.deleteNp = function(uri, options) {
+	return this._RestCallRepo(uri, "DELETE", options);
+};
+
+RestOff.prototype.getNp = function(uri, options) {
+	return this._RestCallRepo(uri, "GET", options);
+};
+
+RestOff.prototype.postNp = function(uri, resource, options) {
+	return this._RestCallRepo(uri, "POST", options, resource);
+};
+
+RestOff.prototype.putNp = function(uri, resource, options) {
+	return this._RestCallRepo(uri, "PUT", options, resource);
 };
 
 RestOff.prototype.delete = function(uri, options) {
@@ -1044,6 +1171,7 @@ RestOff.prototype.put = function(uri, resource, options) {
 };
 
 restlib.restoff = restoff;
+
 if (typeof angular !== "undefined") {
     angular.module("restoff", [])
         .provider("restoff", [function() {
