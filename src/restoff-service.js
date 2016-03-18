@@ -57,56 +57,39 @@ RestOffService.prototype.repoOptionsSet = function(options) {
 	return this;
 };
 
-RestOffService.prototype.write = function(repoName, resources, options) {
-	var that = this;
-	return new Promise(function(resolve, reject) {
-		var pkName = that.pkNameGet(repoName, options);
-		resources = (resources instanceof Array) ? resources : [resources]; // make logic easier
-		resources.forEach(function(resource) {
-			var primaryKey = resource[pkName];
-			if (undefined === primaryKey) {
-				reject("Primary key '" + pkName + "' required for resource or the resource has an invalid primary key.");
-				// TODO: Need to pre-validate all records and then notify when one has an issue?
-				// TODO: Currently, we reject in the middle of an update which is 'bad'
-				return;
-			} else {
-				that.dbRepo.write(repoName, pkName, resource);
-			}
-		});
-		resolve(resources);
-	});
+
+RestOffService.prototype.clearNp = function(repoName) {
+	return this.dbRepo.clear(repoName);
 };
 
-RestOffService.prototype.clearAll = function() {
-	var that = this;
-	return new Promise(function(resolve) {
-		resolve(that.dbRepo.clearAll());
-	});
+RestOffService.prototype.clearAllNp = function() {
+	return this.dbRepo.clearAll();
 };
 
-RestOffService.prototype.clear = function(repoName) {
-	var that = this;
-	return new Promise(function(resolve) {
-		resolve(that.dbRepo.clear(repoName));
-	});
-};
-
-RestOffService.prototype.delete = function(repoName, query) {
-	var that = this;
-	return new Promise(function(resolve) {
-		resolve(that.dbRepo.delete(repoName, query));
-	});
+RestOffService.prototype.deleteNp = function(repoName, query) {
+	return this.dbRepo.delete(repoName, query);
 };
 
 RestOffService.prototype.findNp = function(repoName, query) {
 	return this.dbRepo.read(repoName, query);
 };
 
-RestOffService.prototype.find = function(repoName, query) {
-	var that = this;
-	return new Promise(function(resolve) {
-		resolve(that.dbRepo.read(repoName, query));
+RestOffService.prototype.writeNp = function(repoName, resources, options) {
+	var pkName = this.pkNameGet(repoName, options);
+	resources = (resources instanceof Array) ? resources : [resources]; // make logic easier
+	resources.forEach(function(resource) {
+		var primaryKey = resource[pkName];
+		if (undefined === primaryKey) {
+			// TODO: IMPORTANT FIX Need to do something better than throw an exception
+			throw new Exception("Primary key '" + pkName + "' missing for resource or the resource has an invalid primary key.");
+		}
 	});
+
+	var that = this;
+	resources.forEach(function(resource) {
+		that.dbRepo.write(repoName, pkName, resource);
+	});
+	return resources;
 };
 
 restlib.restoffService = restoffService;

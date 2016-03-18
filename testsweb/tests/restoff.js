@@ -55,6 +55,18 @@ function deepEqual(x, y) {
 	}
 }
 
+function pendingResourcesGetNp(roff, repoName) {
+	var pendingUri = "pending?repoName=" + repoName;
+	return roff.getNp(pendingUri, {rootUri:"http://localhost/",clientOnly:true});
+}
+
+function onlineStatusShouldEqual(roff, online, offline, unknown, forced) {
+	expect(roff.isStatusOnline, "isStatusOnline").to.equal(online);
+	expect(roff.isStatusOffline, "isStatusOffline").to.equal(offline);
+	expect(roff.isStatusUnknown, "isStatusUnknown").to.equal(unknown);
+	expect(roff.forcedOffline, "forcedOffline ").to.equal(forced);
+}
+
 describe ("restoff", function() {
 
 
@@ -1940,15 +1952,6 @@ describe ("restoff", function() {
 		var pendings = roff.dbService.dbRepo.read("pending");
 		expect(pendings.length, "pending post").to.equal(count);
 	}
-
-
-	function onlineStatusShouldEqual(roff, online, offline, unknown, forced) {
-		expect(roff.isStatusOnline, "isStatusOnline").to.equal(online);
-		expect(roff.isStatusOffline, "isStatusOffline").to.equal(offline);
-		expect(roff.isStatusUnknown, "isStatusUnknown").to.equal(unknown);
-		expect(roff.forcedOffline, "forcedOffline ").to.equal(forced);
-	}
-
 
 	function dbRepoShouldBeEmptyAndResourceNotEmpty(roff, repoName, resource) {
 		expect(roff.dbService.dbRepo.length(repoName), repoName + " db length").to.equal(0);
