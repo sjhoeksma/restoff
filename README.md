@@ -8,6 +8,9 @@ Rest Offline uses your existing RESTful APIs to synchronize client/server data a
 	* Supports multiple databases sources.
 	* No need to worry about database schema changes.
 	* focus on your RESTful API and not your backend databases
+* Make RESTful calls outside of promises (in forcedOffline mode).
+    * Simplifies source code.
+    * improves client responsiveness.
 * Reconciliation and Offline Modes
 	* Automatic reconciliation of offline changes.
 	* in ```clientOnly``` mode, Restoff automatically provides a complete RESTful offline service for your app.
