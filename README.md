@@ -15,7 +15,8 @@ Rest Offline uses your existing RESTful APIs to synchronize client/server data a
 * Supports resources in the following formats:
 	* Json
 * Works in following frameworks
-    * [Angular][angular-home-link]
+    * **Standalone** - Restoff can be used without a framework.
+    * **[Angular][angular-home-link]** - Restoff wrapped in an Angular 1 provider.
 * Limitations and Expectations:
 	* Every resource must have one unique ```primaryKey``` field.
 	* Best to follow [RESTful best known practices][rest-best-practices]
