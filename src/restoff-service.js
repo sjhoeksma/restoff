@@ -80,8 +80,9 @@ RestOffService.prototype.writeNp = function(repoName, resources, options) {
 	resources.forEach(function(resource) {
 		var primaryKey = resource[pkName];
 		if (undefined === primaryKey) {
-			// TODO: IMPORTANT FIX Need to do something better than throw an exception
-			throw new Exception("Primary key '" + pkName + "' missing for resource or the resource has an invalid primary key.");
+			// TODO: Provide a call back for logging so user can log/notify/etc.
+			// TODO: Allow Program to continue execution?
+			throw new Error("Primary key '" + pkName + "' missing for resource or the resource has an invalid primary key."); // TODO: Write Test for this
 		}
 	});
 

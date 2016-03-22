@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.2.5
+// version: 0.2.6
 // author: ProductOps <restoff@productops.com>
 // license: MIT
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.2.5'; // version set through gulp build
+restlib["version-library"] = '0.2.6'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -182,8 +182,9 @@ RestOffService.prototype.writeNp = function(repoName, resources, options) {
 	resources.forEach(function(resource) {
 		var primaryKey = resource[pkName];
 		if (undefined === primaryKey) {
-			// TODO: IMPORTANT FIX Need to do something better than throw an exception
-			throw new Exception("Primary key '" + pkName + "' missing for resource or the resource has an invalid primary key.");
+			// TODO: Provide a call back for logging so user can log/notify/etc.
+			// TODO: Allow Program to continue execution?
+			throw new Error("Primary key '" + pkName + "' missing for resource or the resource has an invalid primary key."); // TODO: Write Test for this
 		}
 	});
 
@@ -424,7 +425,7 @@ RestOff.prototype.clearAllNp = function(force) {
 	force = undefined === force ? false : force;
 	var pendLength = this._pendingLengthNp();
 	if ((pendLength > 0) && (false === force)) {
-		throw new Exception("Submit pending changes before clearing database or call clearAll(true) to force.");
+		throw new Error("Submit pending changes before clearing database or call clearAll(true) to force."); // TODO: Write Test for this
 	} else {
 		this.dbService.clearAllNp();
 		this._pendingDeleteNp();
@@ -451,7 +452,7 @@ RestOff.prototype.clearNp = function(repoName, force) {
 	force = undefined === force ? false : force;
 	var pendLength = this._pendingLengthNp(repoName);
 	if ((pendLength > 0) && (false === force)) {
-		throw new Exception("Submit pending changes before clearing database or call clear(repoName, true) to force.");
+		throw new Error("Submit pending changes before clearing database or call clear(repoName, true) to force.");  // TODO: Write Test for this
 	} else {
 		this.dbService.clearNp(repoName);
 		this._pendingClearNp(repoName);

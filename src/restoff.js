@@ -226,7 +226,7 @@ RestOff.prototype.clearAllNp = function(force) {
 	force = undefined === force ? false : force;
 	var pendLength = this._pendingLengthNp();
 	if ((pendLength > 0) && (false === force)) {
-		throw new Exception("Submit pending changes before clearing database or call clearAll(true) to force.");
+		throw new Error("Submit pending changes before clearing database or call clearAll(true) to force."); // TODO: Write Test for this
 	} else {
 		this.dbService.clearAllNp();
 		this._pendingDeleteNp();
@@ -253,7 +253,7 @@ RestOff.prototype.clearNp = function(repoName, force) {
 	force = undefined === force ? false : force;
 	var pendLength = this._pendingLengthNp(repoName);
 	if ((pendLength > 0) && (false === force)) {
-		throw new Exception("Submit pending changes before clearing database or call clear(repoName, true) to force.");
+		throw new Error("Submit pending changes before clearing database or call clear(repoName, true) to force.");  // TODO: Write Test for this
 	} else {
 		this.dbService.clearNp(repoName);
 		this._pendingClearNp(repoName);
