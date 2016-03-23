@@ -825,8 +825,7 @@ describe ("restoff", function() {
 			forcedOffline : true,
 			dbService : {
 				primaryKeyName : "ID"
-			},
-
+			}
 		});
 		return roff.clear(userRepo, true).then(function() {
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
