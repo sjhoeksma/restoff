@@ -68,7 +68,7 @@ RestOff.prototype._pendingRecordsNp = function(repoName) {
 };
 
 RestOff.prototype._pendingPostNp = function(resource) {
-	return this.postNp(this.pendingUri + this.pendingRepoName, resource, {rootUri:this.pendingUri,clientOnly:true})
+	return this.postNp(this.pendingUri + this.pendingRepoName, resource, {rootUri:this.pendingUri,clientOnly:true,primaryKeyName:"id"});
 };
 
 

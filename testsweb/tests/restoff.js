@@ -806,33 +806,45 @@ describe ("restoff", function() {
 	});
 
 	it("34: post should, when offline,\
-		post a new sesource on the client and,\
+		post a new resource on the client and,\
 		add the request to pending,\
 		and clearAll should fail when force is false\
-		and clear repo should fail when force is false", function() {
+		and clear repo should fail when force is false\
+		and pending should always have 'id' as the primaryKeyName", function() {
+
+		var newuser01 = {
+			"ID": "aedfa7a4-d748-11e5-b5d2-0a1d41d68577",
+			"first_name": "Happy3",
+			"last_name": "User3"
+		};
+
 
 		var userRepo = "users200";
 		var roff = restlib.restoff({
 			"rootUri" : ROOT_URI,
-			forcedOffline : true
+			forcedOffline : true,
+			dbService : {
+				primaryKeyName : "ID"
+			},
+
 		});
-		return roff.clear(userRepo, true).then(function(result) {
+		return roff.clear(userRepo, true).then(function() {
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 
 			return roff.post(userRepo, newuser01).then(function(result) {
 				onlineStatusShouldEqual(roff, false, true, false, true);
 				dbRepoShouldBeEqual(roff, userRepo, result, 1);
 				pendingStatusCorrect(roff, result, "POST", 0, ROOT_URI + userRepo, userRepo);
-				return roff.clear(userRepo).then(function(result) {
+				return roff.clear(userRepo).then(function() {
 						expect(true,"Catch promise should have been called").to.equal(false);
 					}).catch(function(error) {
 					expect(error, "correct error message").to.equal("Submit pending changes before clearing database or call clear(repoName, true) to force.");
-					return roff.clearAll().then(function(result) {
+					return roff.clearAll().then(function() {
 						expect(true,"Catch promise should have been called").to.equal(false);
 					}).catch(function(error) {
 						expect(error, "correct error message").to.equal("Submit pending changes before clearing database or call clearAll(true) to force.");
 						dbRepoShouldBeEqual(roff, userRepo, result, 1);
-						return roff.clearAll(true).then(function(result) {
+						return roff.clearAll(true).then(function() {
 							dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 							pendingStatusCount(roff,0,"clear all");
 							return roff.post(userRepo, newuser01).then(function(result) {
@@ -840,7 +852,7 @@ describe ("restoff", function() {
 								return roff.post("user201", newuser01).then(function(result) { // get another pending so we can test clearing of just one repo
 									pendingStatusCount(roff, 2, "post");
 									dbRepoShouldBeEqual(roff, "user201", result, 1);
-									return roff.clear("user201", true).then(function(result) {
+									return roff.clear("user201", true).then(function() {
 										pendingStatusCount(roff, 1, "clear"); // should clear only one pending
 									});
 								});
