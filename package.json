@@ -1,7 +1,7 @@
 {
   "name": "restoff",
   "namesub": "library",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "Rest Offline uses your existing RESTful APIs to synchronize client/server data allowing your application to run even when it goes offline.",
   "main": "./dist/restoff.js",
   "scripts": {
