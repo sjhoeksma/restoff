@@ -79,7 +79,7 @@ function synchronize(roff, userId) {
 	roff.get("books?ownedby="+userId);
 	roff.get("addresses?userid="+userId);
 	...
-	roff.forcedOffline(); // Let's go offline or unplug from the internet
+	roff.forcedOffline = true; // Let's go offline or unplug from the internet
 
 	roff.get("users/" + userId).then(function(user) {
 		// Yep! We can work offline.
