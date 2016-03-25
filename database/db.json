@@ -63,26 +63,7 @@
   "offlineOnly": [],
   "forcedOffline": [],
   "persistenceDisabled": [],
-  "emailAddresses01": [
-    {
-      "ID": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511",
-      "first_name": "Happy3",
-      "last_name": "Leave Alone",
-      "id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68511"
-    },
-    {
-      "ID": "4a30a4fb-b71e-4ef2-b430-d46f9af3f813",
-      "first_name": "Existing",
-      "last_name": "Will Delete This One",
-      "id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f813"
-    },
-    {
-      "ID": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812",
-      "first_name": "Existing",
-      "last_name": "Put New Value",
-      "id": "4a30a4fb-b71e-4ef2-b430-d46f9af3f812"
-    }
-  ],
+  "emailAddresses01": [],
   "users01": [
     {
       "id": "aedfa7a4-d748-11e5-b5d2-0a1d41d68577",

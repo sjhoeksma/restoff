@@ -1426,7 +1426,7 @@ describe ("restoff", function() {
 			roff.delete(emailRepo + "/" + emailD.ID, {primaryKeyName:"ID"}),
 		]).then(function() {
 			return roff.get(emailRepo).then(function(results) {
-				expect([emailAId, emailBId, emailCId], "initial setup should be correct").to.deep.equals(results);
+				expect(deepEqualOrderUnimportant([emailAId, emailBId, emailCId], results, "ID"), "initial setup should be correct").to.equal(true);
 				roff.forcedOffline = true;
 				return Promise.all([
 					roff.put(emailRepo+"/"+emailBPut.ID, emailBPut, {primaryKeyName:"ID"}),
