@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.2.9
+// version: 0.2.10
 // author: ProductOps <restoff@productops.com>
 // license: MIT
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.2.9'; // version set through gulp build
+restlib["version-library"] = '0.2.10'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -231,14 +231,24 @@ RestOffService.prototype.writeNp = function(repoName, resources, options) {
 
 restlib.restoffService = restoffService;
 
-function restoffUri(restOff) {
+function restoffUri(restOff, options) {
+    var defaultOptions = {
+        filter: []
+    };
+
     var that = Object.create(RestoffUri.prototype);
+    that._options = Object.assign(defaultOptions, options);
     that._restOff = restOff;
     return that;
 }
 
 function RestoffUri() {}
 RestoffUri.prototype = Object.create(Object.prototype, {
+    filter: {
+        get: function() {
+            return this._options.filter;
+        }
+    }
 });
 
 RestoffUri.prototype._uriGenerate = function(uri) {
@@ -280,6 +290,10 @@ RestoffUri.prototype.uriFromClient = function(uri, restMethod, resources, option
     }
     uriResult.uriFinal = this._uriGenerate(uriResult);
     var result = uri.replace(uriResult.options.rootUri, "");
+
+    this.filter.forEach(function(item) { // remove unwanted parts from the uri.
+        result = result.replace(item, "");
+    });
 
     var search = result.split("?");
     if (search.length > 1) {
@@ -411,25 +425,28 @@ RestoffPending.prototype.pendingAdd = function(uri) {
 
 restlib.restoffPending = restoffPending;
 
-function restoff(config) {
-	var defaultConfig = {
+function restoff(options) {
+	var defaultOptions = {
 		rootUri: "",
 		clientOnly: false,
 		forcedOffline: false,
 		persistenceDisabled: false,
 		pending: {},
+		uriOptions: {
+			filter: []
+		},
 		pendingUri: "http://localhost/",
 		pendingRepoName: "pending"
 	};
 
 	var that = Object.create(RestOff.prototype);
-	that._options = Object.assign(defaultConfig, config);
-	that._options.generateId = (config && config.generateId) ? config.generateId : uuidGenerate;
+	that._options = Object.assign(defaultOptions, options);
+	that._options.generateId = (options && options.generateId) ? options.generateId : uuidGenerate;
 	that._isOnline = null;
 	that._autoParams = {};
 	that._autoHeaders = {};
 	that._dbService = restoffService(that._options.dbService);
-	that._restoffUri = restoffUri(that);
+	that._restoffUri = restoffUri(that, that._options.uriOptions);
 	that._pending = restoffPending(that, that._options.pending);
 	return that;
 }
@@ -454,6 +471,9 @@ RestOff.prototype = Object.create(Object.prototype, {
 	persistenceDisabled: {
 		get: function() { return this._options.persistenceDisabled; },
 		set: function(value) { this._options.persistenceDisabled = value; }
+	},
+	restoffUri: {
+		get: function() { return this._restoffUri; },
 	},
 	rootUri: {
 		get: function() { return this._options.rootUri; },

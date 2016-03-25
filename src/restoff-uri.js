@@ -1,11 +1,21 @@
-function restoffUri(restOff) {
+function restoffUri(restOff, options) {
+    var defaultOptions = {
+        filter: []
+    };
+
     var that = Object.create(RestoffUri.prototype);
+    that._options = Object.assign(defaultOptions, options);
     that._restOff = restOff;
     return that;
 }
 
 function RestoffUri() {}
 RestoffUri.prototype = Object.create(Object.prototype, {
+    filter: {
+        get: function() {
+            return this._options.filter;
+        }
+    }
 });
 
 RestoffUri.prototype._uriGenerate = function(uri) {
@@ -47,6 +57,10 @@ RestoffUri.prototype.uriFromClient = function(uri, restMethod, resources, option
     }
     uriResult.uriFinal = this._uriGenerate(uriResult);
     var result = uri.replace(uriResult.options.rootUri, "");
+
+    this.filter.forEach(function(item) { // remove unwanted parts from the uri.
+        result = result.replace(item, "");
+    });
 
     var search = result.split("?");
     if (search.length > 1) {

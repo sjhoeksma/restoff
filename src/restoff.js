@@ -1,22 +1,25 @@
-function restoff(config) {
-	var defaultConfig = {
+function restoff(options) {
+	var defaultOptions = {
 		rootUri: "",
 		clientOnly: false,
 		forcedOffline: false,
 		persistenceDisabled: false,
 		pending: {},
+		uriOptions: {
+			filter: []
+		},
 		pendingUri: "http://localhost/",
 		pendingRepoName: "pending"
 	};
 
 	var that = Object.create(RestOff.prototype);
-	that._options = Object.assign(defaultConfig, config);
-	that._options.generateId = (config && config.generateId) ? config.generateId : uuidGenerate;
+	that._options = Object.assign(defaultOptions, options);
+	that._options.generateId = (options && options.generateId) ? options.generateId : uuidGenerate;
 	that._isOnline = null;
 	that._autoParams = {};
 	that._autoHeaders = {};
 	that._dbService = restoffService(that._options.dbService);
-	that._restoffUri = restoffUri(that);
+	that._restoffUri = restoffUri(that, that._options.uriOptions);
 	that._pending = restoffPending(that, that._options.pending);
 	return that;
 }
@@ -41,6 +44,9 @@ RestOff.prototype = Object.create(Object.prototype, {
 	persistenceDisabled: {
 		get: function() { return this._options.persistenceDisabled; },
 		set: function(value) { this._options.persistenceDisabled = value; }
+	},
+	restoffUri: {
+		get: function() { return this._restoffUri; },
 	},
 	rootUri: {
 		get: function() { return this._options.rootUri; },
