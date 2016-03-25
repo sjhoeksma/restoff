@@ -8,7 +8,7 @@ Rest Offline uses your existing RESTful APIs to synchronize client/server data a
 	* Supports multiple databases sources.
 	* No need to worry about database schema changes.
 	* focus on your RESTful API and not your backend databases
-* Make RESTful calls outside of promises (in forcedOffline mode).
+* Supports synchronous RESTful calls (in forcedOffline mode).
     * Simplifies source code.
     * improves client responsiveness.
 * Reconciliation and Offline Modes
@@ -343,9 +343,10 @@ roff.clear(true).then(function() {
 
 
 
-### delete(uri, [options])
+### delete(uri, [options]), deleteSync(uri, [options])
 
-```delete(uri)``` deletes a resource from a remote server and in the local repository.
+```delete(uri, [options])``` asynchronously deletes a resource from a remote server and in the local repository.
+```deleteSync(uri, [options])``` synchronously deletes a resource from a remote server and in the local repository (only works in forcedOffline mode).
 
 Note:
 
@@ -361,11 +362,16 @@ return roff.delete("http://test.development.com:4050/users/553fdf")
 .then(function(result){
 	// user was deleted
 });
+
+roff.forcedOffline = true;
+var result = roff.deleteSync("http://test.development.com:4050/users/553fdf");
 ```
 
-### get(uri, [options])
+### get(uri, [options]), getSync(uri, [options])
 
-```get(uri)``` retrieves a json resource from a remote server using the local repository when offline.
+```get(uri, [options])``` asynchronously retrieves a json resource from a remote server. Uses the local repository when offline.
+```getSync(uri, [options])``` synchronously retrieves a json resource from the local repository (only works in forcedOffline mode).
+
 
 Example usage:
 
@@ -376,11 +382,17 @@ return roff.get("http://test.development.com:4050/testsweb/testdata/users")
 	// use the result here
 });
 
+roff.forcedOffline = true;
+var result = roff.getSync("http://test.development.com:4050/testsweb/testdata/users");
+
+
 ```
 
-### post(uri, resource, [options])
+### post(uri, resource, [options]), postSync(uri, resource, [options])
 
-```post(uri)``` posts a resource to a remote server and in the local repository adding the resource if it doesn't exist or overwriting the existing resource
+```post(uri, resource, [options])``` asynchronously posts a resource to a remote server and in the local repository adding the resource if it doesn't exist or overwriting the existing resource.
+```postSync(uri, resource, [options])``` synchronously posts a resource in the local repository adding the resource if it doesn't exist or overwriting the existing resource (only works in forcedOffline mode).
+
 
 * When online, inserts and updates will happen immediately.
 * TODO: May want to do a POST then a GET to catch any changes by a model on the server before the data is posted???
@@ -401,11 +413,15 @@ return roff.post("http://test.development.com:4050/users", newUser)
 	// use the result here
 });
 
+roff.forcedOffline = true;
+var result = roff.postSync("http://test.development.com:4050/users", newUser)
+
 ```
 
-### put(uri, resource, [options])
+### put(uri, resource, [options]), putSync(uri, resource, [options])
 
-```put(uri, resource)``` puts a known resource on a remote server and in the local repository updating the resource id provided in the uri.
+```put(uri, resource, [options])``` asynchronously puts a known resource on a remote server and in the local repository updating the resource id provided in the uri.
+```put(uri, resource, [options])``` synchronously puts a known resource in the local repository updating the resource id provided in the uri (only works in forcedOffline mode).
 
 Example usage:
 
@@ -423,6 +439,10 @@ return roff.post("users/ffa454", existingUser)
 .then(function(result){
 	// use the result here
 });
+
+roff.forcedOffline = true;
+var result = roff.postSync("users/ffa454", existingUser)
+
 ```
 
 ### uriFromClient(uri)
