@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.2.8
+// version: 0.2.9
 // author: ProductOps <restoff@productops.com>
 // license: MIT
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.2.8'; // version set through gulp build
+restlib["version-library"] = '0.2.9'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -15,7 +15,6 @@ if (typeof module !== 'undefined' && module.exports) {
 } else {
 	root.restlib = restlib;
 }
-
 
 function lowdbRepo(config) {
 	var defaultConfig = {
@@ -99,6 +98,41 @@ LowdbRepo.prototype.write = function(repoName, keyName, resource) {
 LowdbRepo.prototype.delete = function(repoName, query) {
 	this._low(repoName).remove(query);
 };
+
+function logMessage(message) {
+    console.log(message);
+}
+
+function deepEquals(x, y) {
+    if ((typeof x == "object" && x !== null) && (typeof y == "object" && y !== null)) {
+        if (Object.keys(x).length != Object.keys(y).length) {
+            return false;
+        }
+
+        for (var prop in x) {
+            if (y.hasOwnProperty(prop)) {
+                if (! deepEquals(x[prop], y[prop])) {
+                    return false;
+                }
+            }
+            else {
+                return false;
+            }
+        }
+        return true;
+    } else return x === y;
+}
+
+// TODO: Maybe use a library. See http://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript
+function uuidGenerate() {
+    function s4() {
+        return Math.floor((1 + Math.random()) * 0x10000)
+            .toString(16)
+            .substring(1);
+    }
+    return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+        s4() + '-' + s4() + s4() + s4();
+}
 
 function restoffService(config) {
 	var defaultConfig = {
@@ -197,23 +231,206 @@ RestOffService.prototype.writeNp = function(repoName, resources, options) {
 
 restlib.restoffService = restoffService;
 
+function restoffUri(restOff) {
+    var that = Object.create(RestoffUri.prototype);
+    that._restOff = restOff;
+    return that;
+}
+
+function RestoffUri() {}
+RestoffUri.prototype = Object.create(Object.prototype, {
+});
+
+RestoffUri.prototype._uriGenerate = function(uri) {
+    var result = uri.uri;
+    if (result.indexOf("http") === -1) { // missing domain/protocol/etc.
+        result = uri.options.rootUri + result;
+    }
+    var autoParams = this._restOff._autoParams;
+    var keys = Object.keys(autoParams);
+    if (keys.length > 0) {
+        var first = true;
+        if (result.indexOf("?") !== -1) {
+            first = false;
+        } else {
+            result += "?";
+        }
+        keys.forEach(
+            function(key) {
+                result += (first ? "" : "&") + key + "=" + autoParams[key];
+                first = false;
+            }
+        );
+    }
+    return result;
+};
+
+RestoffUri.prototype.uriFromClient = function(uri, restMethod, resources, options) {
+    var uriResult = {
+        uri: uri,
+        primaryKey : "",
+        restMethod : restMethod,
+        resources : resources,
+        options : Object.assign({}, this._restOff._options, options),
+        searchOptions : {}
+    };
+
+    if (!uriResult.options.rootUri.endsWith("/")) {
+        uriResult.options.rootUri = uriResult.options.rootUri + "/";
+    }
+    uriResult.uriFinal = this._uriGenerate(uriResult);
+    var result = uri.replace(uriResult.options.rootUri, "");
+
+    var search = result.split("?");
+    if (search.length > 1) {
+        result = search[0];
+        uriResult.search = search[1];
+        uriResult.search.split("&").forEach(function(item) {
+            var itemParts = item.split("=");
+            if (2 === itemParts.length) {
+                uriResult.searchOptions[itemParts[0]] = itemParts[1];
+            } else {
+                logMessage("WARNING: Invalid search query in uri " + uriResult.uriFinal + "'."); // TODO: Write Test for this.
+            }
+        });
+    }
+
+    var uriPrimaryKey = result.split("/");
+    if (uriPrimaryKey.length > 1) {
+        result = uriPrimaryKey[0];
+        uriResult.primaryKey = uriPrimaryKey[1]; // TODO Support nested resources
+    }
+
+    var pkName = this._restOff._pkNameGet(uriResult);
+    if (undefined !== resources) {
+        if ("id" !== pkName && "guid" !== pkName) { // lowdb requires keyname of id. Can't find documentation that let's us set it. Will do more research later
+            if (resources instanceof Array) {
+                resources.forEach(function (item) {
+                    item.id = item[pkName];
+                });
+            } else {
+                resources.id = resources[pkName];
+            }
+        }
+    }
+
+    // TODO: Check if resource's primary key != uri primary key and warn (some cases when this could happen)
+    if (("" === uriResult.primaryKey) && (undefined !== resources) && (null !== resources) && (undefined !== resources[pkName])) {
+        uriResult.primaryKey = resources[pkName];
+    }
+
+    if (options && options.repoName) {
+        uriResult.repoName = options.repoName;
+    } else {
+        uriResult.repoName = result;
+    }
+
+    if (("http:" === uriResult.repoName) || ("" === uriResult.repoName)) {
+        // Note: We really can't figure out the rootUri from the uri provided when no rootUri was
+        //       configured. This is because the rootUri could contain anything plus resource names
+        // 	     and we don't know where the anything part stops and the resources start. So, we get
+        //       this warning.
+        logMessage("WARNING: repoName invalid. Had a uri of '" + uri + "' and a rootUri of '" + uriResult.options.rootUri + "'' which may be incorrect?");
+    }
+    return uriResult;
+};
+restlib.restoffUri = restoffUri;
+
+function restoffPending(restOff, options) {
+    var defaultOptions = {
+        pendingUri: "http://localhost/",
+        pendingRepoName: "pending"
+    };
+
+    var that = Object.create(RestoffPending.prototype);
+    that._options = Object.assign(defaultOptions, options);
+    that._restOff = restOff;
+    return that;
+}
+
+function RestoffPending() {}
+RestoffPending.prototype = Object.create(Object.prototype, {
+    pendingRepoName: {
+        get: function() { return this._options.pendingRepoName; }
+    },
+    pendingUri: {
+        get: function() { return this._options.pendingUri; }
+    }
+});
+
+RestoffPending.prototype.uriFromClient = function(uri, restMethod, resources, options) {
+
+};
+
+RestoffPending.prototype.pendingGet = function(repoName) {
+    var pendingUri = this.pendingRepoName + (repoName ? "?repoName=" + repoName : "");
+    return this._restOff.getSync(pendingUri, {rootUri:this.pendingUri,clientOnly:true});
+};
+
+RestoffPending.prototype.pendingPost = function(resource) {
+    return this._restOff.postSync(this.pendingUri + this.pendingRepoName, resource, {rootUri:this.pendingUri,clientOnly:true,primaryKeyName:"id"});
+};
+
+
+RestoffPending.prototype.pendingCount = function(repoName) {
+    var pending = this.pendingGet(repoName);
+    return pending ? pending.length : 0;
+};
+
+RestoffPending.prototype.pendingDelete = function(itemId) {
+    var uri = this.pendingRepoName + (itemId ? "/"+itemId : "");
+    return this._restOff.deleteSync(uri, {rootUri:this.pendingUri, clientOnly:true});
+};
+
+RestoffPending.prototype.pendingClear = function(repoName) {
+    var uri = this.pendingRepoName + "?repoName=" + repoName;
+    return this._restOff.deleteSync(uri, {rootUri:this.pendingUri, clientOnly:true});
+};
+
+RestoffPending.prototype.pendingAdd = function(uri) {
+    var result = {
+        "id" : uuidGenerate(),
+        "restMethod" : uri.restMethod,
+        "resources" : uri.resources,
+        "clientTime" : new Date(),
+        "uri" : uri.uriFinal,
+        "repoName" : uri.repoName,
+        "primaryKey" : uri.primaryKey
+    };
+
+    if (!uri.options.persistenceDisabled) { // TODO: Write a test for this
+        var original = this._restOff.dbService.findNp(uri.repoName, {id:uri.primaryKey}); // TODO: Remove direct access to dbService and use restoff.getSync call
+        if (undefined !== original[0]) {
+            result.original = JSON.parse(JSON.stringify(original[0])); // need to clone original record
+        }
+        return this.pendingPost(result);
+    } else {
+        return result;
+    }
+};
+
+restlib.restoffPending = restoffPending;
+
 function restoff(config) {
 	var defaultConfig = {
 		rootUri: "",
 		clientOnly: false,
 		forcedOffline: false,
 		persistenceDisabled: false,
+		pending: {},
 		pendingUri: "http://localhost/",
 		pendingRepoName: "pending"
 	};
 
 	var that = Object.create(RestOff.prototype);
 	that._options = Object.assign(defaultConfig, config);
-	that._options.generateId = (config && config.generateId) ? config.generateId : that._guidGenerate;
+	that._options.generateId = (config && config.generateId) ? config.generateId : uuidGenerate;
 	that._isOnline = null;
 	that._autoParams = {};
 	that._autoHeaders = {};
 	that._dbService = restoffService(that._options.dbService);
+	that._restoffUri = restoffUri(that);
+	that._pending = restoffPending(that, that._options.pending);
 	return that;
 }
 
@@ -234,12 +451,6 @@ RestOff.prototype = Object.create(Object.prototype, {
 		get: function() { return this._options.clientOnly; },
 		set: function(value) { this._options.clientOnly = value; }
 	},
-	pendingRepoName: {
-		get: function() { return this._options.pendingRepoName; }
-	},
-	pendingUri: {
-		get: function() { return this._options.pendingUri; }
-	},
 	persistenceDisabled: {
 		get: function() { return this._options.persistenceDisabled; },
 		set: function(value) { this._options.persistenceDisabled = value; }
@@ -257,54 +468,24 @@ RestOff.prototype._pkNameGet = function(uri) {
 	return this.dbService.pkNameGet(uri.repoName, uri.options);
 };
 
-RestOff.prototype._logMessage = function(message) {
-	console.log(message);
+RestOff.prototype._pendingRepoAddNp = function(uri) {
+	if (!uri.options.clientOnly) { // TODO: Add test for this
+		this._pending.pendingAdd(uri);
+	}
+	return this._repoAddResourceNp(uri);
 };
 
-RestOff.prototype._pendingRecordsNp = function(repoName) {
-	var pendingUri = this.pendingRepoName + (repoName ? "?repoName=" + repoName : "");
-	return this.getSync(pendingUri, {rootUri:this.pendingUri,clientOnly:true}); // Eat our own dog food
-};
-
-RestOff.prototype._pendingPostNp = function(resource) {
-	return this.postSync(this.pendingUri + this.pendingRepoName, resource, {rootUri:this.pendingUri,clientOnly:true,primaryKeyName:"id"});
-};
-
-
-RestOff.prototype._pendingLengthNp = function(repoName) {
-	var pending = this._pendingRecordsNp(repoName);
-	return pending ? pending.length : 0;
-};
-
-RestOff.prototype._pendingDeleteNp = function(itemId) {
-	var uri = this.pendingRepoName + (itemId ? "/"+itemId : "");
-	return this.deleteSync(uri, {rootUri:this.pendingUri, clientOnly:true});
-};
-
-RestOff.prototype._pendingClearNp = function(repoName) {
-	var uri = this.pendingRepoName + "?repoName=" + repoName;
-	return this.deleteSync(uri, {rootUri:this.pendingUri, clientOnly:true});
-};
-
-RestOff.prototype._pendingAddNp = function(uri) {
-	var result = {
-		"id" : this._guidGenerate(),
-		"restMethod" : uri.restMethod,
-		"resources" : uri.resources,
-		"clientTime" : new Date(),
-		"uri" : uri.uriFinal,
-		"repoName" : uri.repoName,
-		"primaryKey" : uri.primaryKey
-	};
-
-	if (!uri.options.persistenceDisabled) { // TODO: Write a test for this
-		var original = this.dbService.findNp(uri.repoName, this._queryAddPk(uri, {}));
-		if (undefined !== original[0]) {
-			result.original = JSON.parse(JSON.stringify(original[0])); // need to clone original record
-		}
-		return this._pendingPostNp(result);
+RestOff.prototype._pendingRepoAdd = function(uri, clientOnly, resolve) {
+	if (!clientOnly) {
+		var that = this;
+		this._pending.pendingAdd(uri);
+		return that._repoAddResource(uri).then(function(result) {
+			resolve(result);
+		});
 	} else {
-		return result;
+		return this._repoAddResource(uri).then(function(result) {
+			resolve(result);
+		});
 	}
 };
 
@@ -326,109 +507,18 @@ RestOff.prototype._requestGet = function(uri) {
 	return request;
 };
 
-RestOff.prototype._uriGenerate = function(uri) {
-	var result = uri.uri;
-	if (result.indexOf("http") === -1) { // missing domain/protocol/etc.
-		result = uri.options.rootUri + result;
-	}
-	var autoParams = this._autoParams;
-	var keys = Object.keys(autoParams);
-	if (keys.length > 0) {
-		var first = true;
-		if (result.indexOf("?") !== -1) {
-			first = false;
-		} else {
-			result += "?";
-		}
-		keys.forEach(
-			function(key) {
-				result += (first ? "" : "&") + key + "=" + autoParams[key];
-				first = false;
-			}
-		);
-	}
-	return result;
-};
-
 RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) {
-	var uriResult = {
-		uri: uri,
-		primaryKey : "",
-		restMethod : restMethod,
-		resources : resources,
-		options : Object.assign({}, this._options, options),
-		searchOptions : {}
-	};
-
-	if (!uriResult.options.rootUri.endsWith("/")) {
-		uriResult.options.rootUri = uriResult.options.rootUri + "/";
-	}
-	uriResult.uriFinal = this._uriGenerate(uriResult);
-	var result = uri.replace(uriResult.options.rootUri, "");
-
-	var search = result.split("?");
-	if (search.length > 1) {
-		var that = this;
-		result = search[0];
-		uriResult.search = search[1];
-		uriResult.search.split("&").forEach(function(item) {
-			var itemParts = item.split("=");
-			if (2 === itemParts.length) {
-				uriResult.searchOptions[itemParts[0]] = itemParts[1];
-			} else {
-				that._logMessage("WARNING: Invalid search query in uri " + uriResult.uriFinal + "'."); // TODO: Write Test for this.
-			}
-		});
-	}
-
-	var uriPrimaryKey = result.split("/");
-	if (uriPrimaryKey.length > 1) {
-		result = uriPrimaryKey[0];
-		uriResult.primaryKey = uriPrimaryKey[1]; // TODO Support nested resources
-	}
-
-	var pkName = this._pkNameGet(uriResult);
-	if (undefined !== resources) {
-		if ("id" !== pkName && "guid" !== pkName) { // lowdb requires keyname of id. Can't find documentation that let's us set it. Will do more research later
-			if (resources instanceof Array) {
-				resources.forEach(function (item) {
-					item.id = item[pkName];
-				});
-			} else {
-				resources.id = resources[pkName];
-			}
-		}
-	}
-
-	// TODO: Check if resource's primary key != uri primary key and warn (some cases when this could happen)
-	if (("" === uriResult.primaryKey) && (undefined !== resources) && (null !== resources) && (undefined !== resources[pkName])) {
-		uriResult.primaryKey = resources[pkName];
-	}
-
-	if (options && options.repoName) {
-		uriResult.repoName = options.repoName;
-	} else {
-		uriResult.repoName = result;
-	}
-
-	if (("http:" === uriResult.repoName) || ("" === uriResult.repoName)) {
-		// Note: We really can't figure out the rootUri from the uri provided when no rootUri was
-		//       configured. This is because the rootUri could contain anything plus resource names
-		// 	     and we don't know where the anything part stops and the resources start. So, we get
-		//       this warning.
-		this._logMessage("WARNING: repoName invalid. Had a uri of '" + uri + "' and a rootUri of '" + uriResult.options.rootUri + "'' which may be incorrect?");
-	}
-	return uriResult;
+	return this._restoffUri.uriFromClient(uri, restMethod, resources, options);
 };
 
 RestOff.prototype.clearAllNp = function(force) {
 	force = undefined === force ? false : force;
-	var pendLength = this._pendingLengthNp();
+	var pendLength = this._pending.pendingCount();
 	if ((pendLength > 0) && (false === force)) {
 		throw new Error("Submit pending changes before clearing database or call clearAll(true) to force."); // TODO: Write Test for this
 	} else {
 		this.dbService.clearAllNp();
-		this._pendingDeleteNp();
+		this.pendingDelete();
 	}
 };
 
@@ -438,24 +528,24 @@ RestOff.prototype.clearAll = function(force) {
 
 	return new Promise(function(resolve, reject) {
 		force = undefined === force ? false : force;
-		var pendLength = that._pendingLengthNp();
+		var pendLength = that._pending.pendingCount();
 		if ((pendLength > 0) && (false === force)) {
 			reject("Submit pending changes before clearing database or call clearAll(true) to force.");
 		} else {
 			that.dbService.clearAllNp();
-			resolve(that._pendingDeleteNp());
+			resolve(that._pending.pendingDelete());
 		}
 	});
 };
 
 RestOff.prototype.clearNp = function(repoName, force) {
 	force = undefined === force ? false : force;
-	var pendLength = this._pendingLengthNp(repoName);
+	var pendLength = this._pending.pendingCount(repoName);
 	if ((pendLength > 0) && (false === force)) {
 		throw new Error("Submit pending changes before clearing database or call clear(repoName, true) to force.");  // TODO: Write Test for this
 	} else {
 		this.dbService.clearNp(repoName);
-		this._pendingClearNp(repoName);
+		this._pending.pendingClear(repoName);
 	}
 };
 
@@ -465,12 +555,12 @@ RestOff.prototype.clear = function(repoName, force) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
 		force = undefined === force ? false : force;
-		var pendLength = that._pendingLengthNp(repoName);
+		var pendLength = that._pending.pendingCount(repoName);
 		if ((pendLength > 0) && (false === force)) {
 			reject("Submit pending changes before clearing database or call clear(repoName, true) to force.");
 		} else {
 			that.dbService.clearNp(repoName);
-			resolve(that._pendingClearNp(repoName));
+			resolve(that._pending.pendingClear(repoName));
 		}
 	});
 };
@@ -525,25 +615,6 @@ RestOff.prototype._repoAdd = function(uri, resourceRaw) {
 	});
 };
 
-RestOff.prototype._deepEquals = function(x, y) {
-	if ((typeof x == "object" && x !== null) && (typeof y == "object" && y !== null)) {
-		if (Object.keys(x).length != Object.keys(y).length) {
-			return false;
-		}
-
-		for (var prop in x) {
-			if (y.hasOwnProperty(prop)) {
-				if (! this._deepEquals(x[prop], y[prop])) {
-					return false;
-				}
-			}
-			else {
-				return false;
-			}
-		}
-	return true;
-	} else return x === y;
-};
 
 RestOff.prototype._hashify = function(pKeyName, resources) {
 	var repositoryHash = {};
@@ -584,7 +655,7 @@ RestOff.prototype._applyAndClearPending = function(pendingAction) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
 		return that._restCall(pendingAction.uri, pendingAction.restMethod, undefined, pendingAction.resources).then(function() {
-			resolve(that._pendingDeleteNp(pendingAction.id));
+			resolve(that._pending.pendingDelete(pendingAction.id));
 		}).catch(function(error) {
 			console.log ("WARNING! 001 Error %O occured.", error);
 			reject(error);
@@ -622,7 +693,7 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 				if (inRepo) {
 					if (inPending) {  // True, True, True   : Client changes. Possible changes on server too. PUT/POST Only   | Reconcile. Clear out pending.
 						var pendingOriginal = pendingAction ? pendingAction.original : undefined;
-						var serverSideEdit = !that._deepEquals(serverResource, pendingOriginal);
+						var serverSideEdit = !deepEquals(serverResource, pendingOriginal);
 						if (serverSideEdit) { // edited on server and client: BRENT reconciliation
 							// First: Let's fix the original record
 							var newId = that.options.generateId();
@@ -678,7 +749,7 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 							});
 						} else { // not on server, but had an original so must have been on server at one time. So, a delete.
 							that.dbService.deleteSync(uri.repoName, that._queryAddPk(uri, {}));
-							resolve(that._pendingDeleteNp(pendingAction.id));
+							resolve(that._pending.pendingDelete(pendingAction.id));
 						}
 					} else {          // False, True, False : Delete on server                                   | Remove from repoClient directly
 						resolve(that.dbService.deleteSync(uri.repoName, that._queryAddPk(uri, {})));
@@ -717,7 +788,7 @@ RestOff.prototype._repoAddResource = function(uri) {
 		if (!uri.options.persistenceDisabled) {
 			if (("" === uri.primaryKey) && ("GET" === uri.restMethod)) {  // Complete get, doing a merge because we don't have soft_delete
 				var serverResources = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // makes logic easier
-				var pending = that._pendingRecordsNp(uri.repoName);
+				var pending = that._pending.pendingGet(uri.repoName);
 				if (pending.length > 0 ) { // we got reconciliation work to do!!!
 					return that._repoGet(uri).then(function(repoResources) {
 						var newUpdatedResources = [];
@@ -728,7 +799,7 @@ RestOff.prototype._repoAddResource = function(uri) {
 						var actions = that._forEachHashEntry(uri, joinedHash, serverResources, repoResources, pendingHash, newUpdatedResources);
 						return Promise.all(actions).then(function() {
 							that.dbService.writeNp(uri.repoName, newUpdatedResources);
-							that._pendingClearNp(uri.repoName); // that.delete removes any dangling pending changes like a post and then delete of the same resource while offline.
+							that._pending.pendingClear(uri.repoName); // that.delete removes any dangling pending changes like a post and then delete of the same resource while offline.
 							return that._repoGet(uri).then(function(repoResources) {
 								resolve(repoResources);
 							});
@@ -791,17 +862,6 @@ RestOff.prototype.autoHeaderParamGet = function(name) {
 	return this._autoHeaders[name];
 };
 
-// TODO: Maybe use a library. See http://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript
-RestOff.prototype._guidGenerate = function() {
-  function s4() {
-    return Math.floor((1 + Math.random()) * 0x10000)
-      .toString(16)
-      .substring(1);
-  }
-  return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
-    s4() + '-' + s4() + s4() + s4();
-};
-
 RestOff.prototype._requestHeaderSet = function(request) {
 	var autoHeaders = this._autoHeaders;
 	Object.keys(autoHeaders).forEach(
@@ -824,7 +884,7 @@ RestOff.prototype._uriAddRequest = function(uri, request) {
 
 RestOff.prototype._dbDeleteNp = function(uri) {
 	if (!uri.options.clientOnly) {
-		this._pendingAddNp(uri);
+		this._pending.pendingAdd(uri);
 	}
 	return this._repoDeleteResourceNp(uri);
 };
@@ -845,7 +905,7 @@ RestOff.prototype._dbDelete = function(uri, resolve, reject) {
 			if (uri.options.forcedOffline || clientOnly) {
 				if (!clientOnly) {
 					this._isOnline = false;
-					this._pendingAddNp(uri);
+					this._pending.pendingAdd(uri);
 					resolve(this._repoDeleteResourceNp(uri));
 				} else {
 					resolve(this._repoDeleteResourceNp(uri));
@@ -889,27 +949,6 @@ RestOff.prototype._dbGet = function(uri) {
 				reject();
 		}
 	});
-};
-
-RestOff.prototype._pendingRepoAddNp = function(uri) {
-	if (!uri.options.clientOnly) { // TODO: Add test for this
-		this._pendingAddNp(uri);
-	}
-	return this._repoAddResourceNp(uri);
-};
-
-RestOff.prototype._pendingRepoAdd = function(uri, clientOnly, resolve) {
-	if (!clientOnly) {
-		var that = this;
-		this._pendingAddNp(uri);
-		return that._repoAddResource(uri).then(function(result) {
-			resolve(result);
-		});
-	} else {
-		return this._repoAddResource(uri).then(function(result) {
-			resolve(result);
-		});
-	}
 };
 
 RestOff.prototype._dbPost = function(uri, resolve, reject) {
@@ -1071,7 +1110,10 @@ RestOff.prototype.post = function(uri, resource, options) {
 	return this._restCall(uri, "POST", options, resource);
 };
 
+
+
 RestOff.prototype.put = function(uri, resource, options) {
+
 	return this._restCall(uri, "PUT", options, resource);
 };
 

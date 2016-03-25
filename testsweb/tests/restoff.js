@@ -96,10 +96,6 @@ describe ("restoff", function() {
 		roff.rootUri = ROOT_URI;
 		expect(roff.rootUri, "rootUri").to.equal(ROOT_URI);
 
-		//expect(roff.primaryKeyName, "primaryKeyName").to.equal("id");
-		//roff.primaryKeyName = "id3";
-		//expect(roff.primaryKeyName, "primaryKeyName").to.equal("id3");
-
 		expect(roff.clientOnly, "clientOnly").to.equal(false);
 		roff.clientOnly = true;
 		expect(roff.clientOnly, "clientOnly").to.equal(true);
@@ -107,9 +103,6 @@ describe ("restoff", function() {
 		expect(roff.forcedOffline, "forcedOffline").to.equal(false);
 		roff.forcedOffline = true;
 		expect(roff.forcedOffline, "forcedOffline").to.equal(true);
-
-		expect(roff.pendingUri, "pendingUri").to.equal("http://localhost/");
-		expect(roff.pendingRepoName, "pendingRepoName").to.equal("pending");
 
 		var roff2 = restlib.restoff({
 			rootUri : ROOT_URI,
@@ -125,11 +118,8 @@ describe ("restoff", function() {
 
 		expect(roff2.dbService.dbName, "dbService.dbName").to.equal("TestDb");
 		expect(roff2.rootUri, "rootUri").to.equal(ROOT_URI);
-		//expect(roff2.primaryKeyName, "primaryKeyName").to.equal("id2");
 		expect(roff2.clientOnly, "clientOnly").to.equal(true);
 		expect(roff2.forcedOffline, "forcedOffline").to.equal(true);
-		expect(roff2.pendingUri, "pendingUri").to.equal("http://notlocalhost/pending/");
-		expect(roff2.pendingRepoName, "pendingRepoName").to.equal("pending2");
 	});
 
 	it("04: get should, when online, get multiple resources\

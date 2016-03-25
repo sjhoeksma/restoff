@@ -345,8 +345,8 @@ roff.clear(true).then(function() {
 
 ### delete(uri, [options]), deleteSync(uri, [options])
 
-```delete(uri, [options])``` asynchronously deletes a resource from a remote server and in the local repository.
-```deleteSync(uri, [options])``` synchronously deletes a resource from a remote server and in the local repository (only works in forcedOffline mode).
+* ```delete(uri, [options])``` asynchronously deletes a resource from a remote server and in the local repository.
+* ```deleteSync(uri, [options])``` synchronously deletes a resource from a remote server and in the local repository (only works in forcedOffline mode).
 
 Note:
 
@@ -369,8 +369,8 @@ var result = roff.deleteSync("http://test.development.com:4050/users/553fdf");
 
 ### get(uri, [options]), getSync(uri, [options])
 
-```get(uri, [options])``` asynchronously retrieves a json resource from a remote server. Uses the local repository when offline.
-```getSync(uri, [options])``` synchronously retrieves a json resource from the local repository (only works in forcedOffline mode).
+* ```get(uri, [options])``` asynchronously retrieves a json resource from a remote server. Uses the local repository when offline.
+* ```getSync(uri, [options])``` synchronously retrieves a json resource from the local repository (only works in forcedOffline mode).
 
 
 Example usage:
@@ -390,8 +390,8 @@ var result = roff.getSync("http://test.development.com:4050/testsweb/testdata/us
 
 ### post(uri, resource, [options]), postSync(uri, resource, [options])
 
-```post(uri, resource, [options])``` asynchronously posts a resource to a remote server and in the local repository adding the resource if it doesn't exist or overwriting the existing resource.
-```postSync(uri, resource, [options])``` synchronously posts a resource in the local repository adding the resource if it doesn't exist or overwriting the existing resource (only works in forcedOffline mode).
+* ```post(uri, resource, [options])``` asynchronously posts a resource to a remote server and in the local repository adding the resource if it doesn't exist or overwriting the existing resource.
+* ```postSync(uri, resource, [options])``` synchronously posts a resource in the local repository adding the resource if it doesn't exist or overwriting the existing resource (only works in forcedOffline mode).
 
 
 * When online, inserts and updates will happen immediately.
@@ -420,8 +420,8 @@ var result = roff.postSync("http://test.development.com:4050/users", newUser)
 
 ### put(uri, resource, [options]), putSync(uri, resource, [options])
 
-```put(uri, resource, [options])``` asynchronously puts a known resource on a remote server and in the local repository updating the resource id provided in the uri.
-```put(uri, resource, [options])``` synchronously puts a known resource in the local repository updating the resource id provided in the uri (only works in forcedOffline mode).
+* ```put(uri, resource, [options])``` asynchronously puts a known resource on a remote server and in the local repository updating the resource id provided in the uri.
+* ```put(uri, resource, [options])``` synchronously puts a known resource in the local repository updating the resource id provided in the uri (only works in forcedOffline mode).
 
 Example usage:
 

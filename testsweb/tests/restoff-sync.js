@@ -1,6 +1,6 @@
 
 
-describe ("restoffNoPromise", function() {
+describe ("restoffSynchronous", function() {
 
 	it("01: getSync, deleteSync, putSync, postSync should not work in forcedOffline mode or clientOnly is true.", function() {
 		var roff = restlib.restoff({ "rootUri" : ROOT_URI });

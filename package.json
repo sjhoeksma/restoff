@@ -1,7 +1,7 @@
 {
   "name": "restoff",
   "namesub": "library",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "Rest Offline uses your existing RESTful APIs to synchronize client/server data allowing your application to run even when it goes offline.",
   "main": "./dist/restoff.js",
   "scripts": {
@@ -10,9 +10,11 @@
   "README": "Adding or removing from source requires you to restart gulp.",
   "source": [
     "src/util/header.js",
-    "src/roff-utils.js",
     "src/lowdb-repo.js",
+    "src/restoff-utils.js",
     "src/restoff-service.js",
+    "src/restoff-uri.js",
+    "src/restoff-pending.js",
     "src/restoff.js",
     "src/restoff-angular.js",
     "src/util/footer.js"
