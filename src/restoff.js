@@ -64,11 +64,11 @@ RestOff.prototype._logMessage = function(message) {
 
 RestOff.prototype._pendingRecordsNp = function(repoName) {
 	var pendingUri = this.pendingRepoName + (repoName ? "?repoName=" + repoName : "");
-	return this.getNp(pendingUri, {rootUri:this.pendingUri,clientOnly:true}); // Eat our own dog food
+	return this.getSync(pendingUri, {rootUri:this.pendingUri,clientOnly:true}); // Eat our own dog food
 };
 
 RestOff.prototype._pendingPostNp = function(resource) {
-	return this.postNp(this.pendingUri + this.pendingRepoName, resource, {rootUri:this.pendingUri,clientOnly:true,primaryKeyName:"id"});
+	return this.postSync(this.pendingUri + this.pendingRepoName, resource, {rootUri:this.pendingUri,clientOnly:true,primaryKeyName:"id"});
 };
 
 
@@ -79,12 +79,12 @@ RestOff.prototype._pendingLengthNp = function(repoName) {
 
 RestOff.prototype._pendingDeleteNp = function(itemId) {
 	var uri = this.pendingRepoName + (itemId ? "/"+itemId : "");
-	return this.deleteNp(uri, {rootUri:this.pendingUri, clientOnly:true});
+	return this.deleteSync(uri, {rootUri:this.pendingUri, clientOnly:true});
 };
 
 RestOff.prototype._pendingClearNp = function(repoName) {
 	var uri = this.pendingRepoName + "?repoName=" + repoName;
-	return this.deleteNp(uri, {rootUri:this.pendingUri, clientOnly:true});
+	return this.deleteSync(uri, {rootUri:this.pendingUri, clientOnly:true});
 };
 
 RestOff.prototype._pendingAddNp = function(uri) {
@@ -478,11 +478,11 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 								resolve();
 							});
 						} else { // not on server, but had an original so must have been on server at one time. So, a delete.
-							that.dbService.deleteNp(uri.repoName, that._queryAddPk(uri, {}));
+							that.dbService.deleteSync(uri.repoName, that._queryAddPk(uri, {}));
 							resolve(that._pendingDeleteNp(pendingAction.id));
 						}
 					} else {          // False, True, False : Delete on server                                   | Remove from repoClient directly
-						resolve(that.dbService.deleteNp(uri.repoName, that._queryAddPk(uri, {})));
+						resolve(that.dbService.deleteSync(uri.repoName, that._queryAddPk(uri, {})));
 					}
 				} // else {  // Can't get to this case. We loop through the joined hash. A resource that is added and
 				             // then deleted while offline will not be in the joined hash BUT the pending will still be there.
@@ -552,7 +552,7 @@ RestOff.prototype._repoAddResource = function(uri) {
 
 RestOff.prototype._repoDeleteResourceNp = function(uri) {
 	if (!uri.options.persistenceDisabled) {
-		this.dbService.deleteNp(uri.repoName, this._queryAddPk(uri, uri.searchOptions));
+		this.dbService.deleteSync(uri.repoName, this._queryAddPk(uri, uri.searchOptions));
 	}
 	return uri.primaryKey;
 };
@@ -826,7 +826,7 @@ RestOff.prototype._restCall = function(uriClient, restMethod, options, resource)
 RestOff.prototype.restCallNp = function(uriClient, restMethod, options, resource) {
 	var clientOnly = options ? !!options.clientOnly : false;
 	if (!(this.forcedOffline || clientOnly)) {
-		throw new Error(restMethod.toLowerCase() + "Np only available when forcedOffline or clientOnly is true.");
+		throw new Error(restMethod.toLowerCase() + "Sync only available when forcedOffline or clientOnly is true.");
 	} else {
 		var uri = this.uriFromClient(uriClient, restMethod, resource, options);
 		switch(uri.restMethod) {
@@ -844,19 +844,19 @@ RestOff.prototype.restCallNp = function(uriClient, restMethod, options, resource
 	}
 };
 
-RestOff.prototype.deleteNp = function(uri, options) {
+RestOff.prototype.deleteSync = function(uri, options) {
 	return this.restCallNp(uri, "DELETE", options);
 };
 
-RestOff.prototype.getNp = function(uri, options) {
+RestOff.prototype.getSync = function(uri, options) {
 	return this.restCallNp(uri, "GET", options);
 };
 
-RestOff.prototype.postNp = function(uri, resource, options) {
+RestOff.prototype.postSync = function(uri, resource, options) {
 	return this.restCallNp(uri, "POST", options, resource);
 };
 
-RestOff.prototype.putNp = function(uri, resource, options) {
+RestOff.prototype.putSync = function(uri, resource, options) {
 	return this.restCallNp(uri, "PUT", options, resource);
 };
 

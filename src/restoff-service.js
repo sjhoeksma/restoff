@@ -66,7 +66,7 @@ RestOffService.prototype.clearAllNp = function() {
 	return this.dbRepo.clearAll();
 };
 
-RestOffService.prototype.deleteNp = function(repoName, query) {
+RestOffService.prototype.deleteSync = function(repoName, query) {
 	return this.dbRepo.delete(repoName, query);
 };
 

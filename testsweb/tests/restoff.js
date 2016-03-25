@@ -57,7 +57,7 @@ function deepEqual(x, y) {
 
 function pendingResourcesGetNp(roff, repoName) {
 	var pendingUri = "pending?repoName=" + repoName;
-	return roff.getNp(pendingUri, {rootUri:"http://localhost/",clientOnly:true});
+	return roff.getSync(pendingUri, {rootUri:"http://localhost/",clientOnly:true});
 }
 
 function onlineStatusShouldEqual(roff, online, offline, unknown, forced) {
