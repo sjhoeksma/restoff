@@ -122,7 +122,7 @@ var roff = restoff({
 
 // uri becomes http://api.example.com/users
 // repository name is users
-roff.get("users").then(function(result){ 
+roff.get("users").then(function(result){
 	// use the result here
 }
 
@@ -229,7 +229,7 @@ var rest = restoff({
 });
 ```
 
-Note: Placed features will provide a more robust reconciliation process allowing the developer to provide their own custom reconciliation process. Currently, Restoff always applies Brent Reconciliation. 
+Note: Placed features will provide a more robust reconciliation process allowing the developer to provide their own custom reconciliation process. Currently, Restoff always applies Brent Reconciliation.
 
 ### pendingUri and pendingRepoName
 
@@ -457,26 +457,6 @@ var actualUri = roff.uriFromClient("http://test.development.com:4050/emailaddres
 expect(actualUri)).to.equal("http://test.development.com:4050/emailaddresses?access_token=rj5aabcea");
 ```
 
-### isStatusOnline, isStatusOffline and isStatusUnknown Properties
-
-Set by the **last** RESTful call.
-
-* ```isStatusOnline``` - Client is currently online.
-* ```isStatusOffline``` - Client is currently offline.
-* ```isStatusUnknown``` - No call has been made to the server so we don't know the status yet or a call was made and we are unable to determine the status.
-
-* Note: Calls made with ```clientOffline``` set to ```true``` do not affect the above status. 
-* Note: Setting ```forcedOffline``` to true affects the above status.
-
-Example usage:
-
-```javascript
-var roff = restoff();
-if (roff.isOnline) {
-	console.log ("We are online!");
-}
-```
-
 # FAQ
 
 * What is the difference between ```offlineOnly``` and ```forcedOffline```?
@@ -554,7 +534,7 @@ $ git status
 3)
 
 ```
-$ npm publish ./ 
+$ npm publish ./
 $ git tag -a 0.1.4 -m "v0.1.4"  // 0.1.4 is an example
 $ git push origin --tags
 ```
