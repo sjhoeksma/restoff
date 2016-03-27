@@ -15,6 +15,7 @@ Rest Offline uses your existing RESTful APIs to synchronize client/server data a
 	* Automatic reconciliation of offline changes.
 	* in ```clientOnly``` mode, Restoff automatically provides a complete RESTful offline service for your app.
 	* Reconciliation works without soft deletes or last modified date columns in your database
+		* Note: reconciliation is much faster with soft delete and laast modified date columns available.
 * Supports resources in the following formats:
 	* Json
 * Works in following frameworks
