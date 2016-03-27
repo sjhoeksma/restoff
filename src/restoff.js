@@ -15,7 +15,6 @@ function restoff(options) {
 	var that = Object.create(RestOff.prototype);
 	that._options = Object.assign(defaultOptions, options);
 	that._options.generateId = (options && options.generateId) ? options.generateId : uuidGenerate;
-	that._isOnline = null;
 	that._autoParams = {};
 	that._autoHeaders = {};
 	that._dbService = restoffService(that._options.dbService);
@@ -27,15 +26,9 @@ function restoff(options) {
 function RestOff() {}
 RestOff.prototype = Object.create(Object.prototype, {
 	dbService: { get: function() { return this._dbService; }},
-	isStatusOnline: { get: function() { return this._isOnline === true; }},
-	isStatusOffline: { get: function() { return this._isOnline === false; }},
-	isStatusUnknown: { get: function() { return this._isOnline === null; }},
 	forcedOffline: {
 		get: function() { return this._options.forcedOffline; },
-		set: function(value) {
-			this._options.forcedOffline = value;
-			this._isOnline = null;
-		}
+		set: function(value) { this._options.forcedOffline = value; }
 	},
 	clientOnly: {
 		get: function() { return this._options.clientOnly; },
@@ -486,25 +479,21 @@ RestOff.prototype._dbDelete = function(uri, resolve, reject) {
 	var request = uri.request;
 	switch (request.status) {
 		case 200: case 202: case 204: // TODO: Write test for 202 and 204
-			this._isOnline = true;
 			resolve(this._repoDeleteResourceNp(uri));
 		break;
 		case 404:
-			this._isOnline = true;
 			resolve(this._repoDeleteResourceNp(uri)); // 404 but will remove from client anyway
 		break;
 		case 0:
 			var clientOnly = uri.options.clientOnly;
 			if (uri.options.forcedOffline || clientOnly) {
-				if (!clientOnly) {
-					this._isOnline = false;
+				if (!clientOnly) { // TODO: Provide a call back if !clientOnly and !forcedOffline when we get here.
 					this._pending.pendingAdd(uri);
 					resolve(this._repoDeleteResourceNp(uri));
 				} else {
 					resolve(this._repoDeleteResourceNp(uri));
 				}
 			} else {
-				this._isOnline = null;
 				reject(this._createError(uri));
 			}
 		break;
@@ -519,21 +508,17 @@ RestOff.prototype._dbGet = function(uri) {
 		var request = uri.request;
 		switch (request.status) {
 			case 200:
-				that._isOnline = true;
 				return that._repoAdd(uri, request.response).then(function(result) {
 					resolve(result);
 				});
 			case 0: case 404:
 				var clientOnly = uri.options.clientOnly;
 				if (uri.options.forcedOffline || clientOnly) {
-					if (!clientOnly) {
-						that._isOnline = false;
-					}
+					 // TODO: Provide a call back if !clientOnly and !forcedOffline when we get here.
 					return that._repoGet(uri).then(function(result) {
 						resolve(result);
 					});
 				} else {
-					that._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
 					reject(that._createError(uri));
 				}
 			break;
@@ -548,19 +533,15 @@ RestOff.prototype._dbPost = function(uri, resolve, reject) {
 	var request = uri.request;
 	switch (request.status) {
 		case 201:
-			this._isOnline = true;
 			return this._repoAddResource(uri).then(function(result) {  // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
 				resolve(result);
 			});
 		case 0: case 404:
 			var clientOnly = uri.options.clientOnly;
 			if (uri.options.forcedOffline || clientOnly) {
-				if (!clientOnly) { // TODO: Add test for this
-					this._isOnline = false;
-				}
+				 // TODO: Provide a call back if !clientOnly and !forcedOffline when we get here.
 				this._pendingRepoAdd(uri, clientOnly, resolve, reject);
 			} else {
-				this._isOnline = 0 !== request.status ? true : null;  // TODO: Write test for this line of code
 				reject(this._createError(uri));
 			}
 		break;
@@ -587,16 +568,12 @@ RestOff.prototype._dbPut = function(uri, resolve, reject) {
 	var request = uri.request;
 	switch (request.status) {
 		case 200:
-			this._isOnline = true;
 			resolve(this._repoAddResource(uri)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
 		break;
 		default:
-			this._isOnline = 0 !== request.status ? true : null;
 			var clientOnly = uri.options.clientOnly;
 			if (uri.options.forcedOffline || clientOnly) { // we are offline, but resource not found so 404 it.
-				if (!clientOnly) { // TODO: Add test for this
-					this._isOnline = false;
-				}
+				 // TODO: Provide a call back if !clientOnly and !forcedOffline when we get here.
 				var that = this;
 				return this._repoFind(uri).then(function(found) {
 					if (found) { // offline but found resource on client so add it
@@ -608,7 +585,6 @@ RestOff.prototype._dbPut = function(uri, resolve, reject) {
 					}
 				});
 			} else {
-				this._isOnline = 0 !== request.status ? true : null; // TODO: Write test for this line of code
 				reject(this._createError(uri));
 			}
 	}

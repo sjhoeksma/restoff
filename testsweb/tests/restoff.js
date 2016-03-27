@@ -60,10 +60,7 @@ function pendingResourcesGetNp(roff, repoName) {
 	return roff.getSync(pendingUri, {rootUri:"http://localhost/",clientOnly:true});
 }
 
-function onlineStatusShouldEqual(roff, online, offline, unknown, forced) {
-	expect(roff.isStatusOnline, "isStatusOnline").to.equal(online);
-	expect(roff.isStatusOffline, "isStatusOffline").to.equal(offline);
-	expect(roff.isStatusUnknown, "isStatusUnknown").to.equal(unknown);
+function onlineStatusShouldEqual(roff, forced) {
 	expect(roff.forcedOffline, "forcedOffline ").to.equal(forced);
 }
 
@@ -85,7 +82,7 @@ describe ("restoff", function() {
 	it("02: should start out as being unknown\
 		    for online/offline status", function() {
 		var roff = restlib.restoff();
-		onlineStatusShouldEqual(roff, false, false, true, false);
+		onlineStatusShouldEqual(roff, false);
 	});
 
 	it("03: should handle config settings correctly", function() {
@@ -132,17 +129,17 @@ describe ("restoff", function() {
 		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 		return roff.clear(userRepo, true).then(function(result) {
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
-			onlineStatusShouldEqual(roff, false, false, true, false);
+			onlineStatusShouldEqual(roff, false);
 			return roff.get(userRepo).then(function(result) {
-				onlineStatusShouldEqual(roff, true, false, false, false);
+				onlineStatusShouldEqual(roff, false);
 				dbRepoShouldBeEqual(roff, userRepo, result, 3);
 				return dbRepoExactlyEqual(roff, userRepo, true).then(function(result) {
 					expect(result, "db repo the same").to.equal(true);
 					roff.forcedOffline = true;
-					onlineStatusShouldEqual(roff, false, false, true, true);
+					onlineStatusShouldEqual(roff, true);
 					return roff.get(userRepo).then(function(result){
 						dbRepoShouldBeEqual(roff, userRepo, result, 3);
-						onlineStatusShouldEqual(roff, false, true, false, true);
+						onlineStatusShouldEqual(roff, true);
 					});
 				});
 			});
@@ -190,7 +187,7 @@ describe ("restoff", function() {
 					uri: "http://idontexisthopefully.com/endpoint"
 				};
 				expect(error, "Error result").to.deep.equals(errorExpected);
-				onlineStatusShouldEqual(roff, false, false, true, false);
+				onlineStatusShouldEqual(roff, false);
 			});
 		});
 	});
@@ -213,7 +210,7 @@ describe ("restoff", function() {
 					uri: "http://test.development.com:3000/"+userRepo
 				};
 				expect(error, "Error result").to.deep.equals(errorExpected);
-				onlineStatusShouldEqual(roff, true, false, false, false);
+				onlineStatusShouldEqual(roff, false);
 				roff.forcedOffline = true;
 				return roff.get(userRepo).then(function(result) {
 					expect(roff.dbService.dbRepo.length(userRepo), "repository should exist").to.equal(0);
@@ -728,7 +725,7 @@ describe ("restoff", function() {
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 
 			return roff.post(userRepo, existingUser).then(function(result) { // reset test just in case
-				onlineStatusShouldEqual(roff, true, false, false, false);
+				onlineStatusShouldEqual(roff, false);
 				dbRepoShouldBeEqual(roff, userRepo, result, 1);
 				return roff.clear(userRepo, true).then(function(result) { // Clean up just in case
 					dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
@@ -767,7 +764,7 @@ describe ("restoff", function() {
 					uri: "http://idontexisthopefully.com/resource"
 				};
 				expect(error, "Error result").to.deep.equals(errorExpected);
-				onlineStatusShouldEqual(roff, false, false, true, false);
+				onlineStatusShouldEqual(roff, false);
 			});
 		});
 	});
@@ -790,7 +787,7 @@ describe ("restoff", function() {
 				};
 				expect(error, "Error result").to.deep.equals(errorExpected);
 				dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
-				onlineStatusShouldEqual(roff, true, false, false, false);
+				onlineStatusShouldEqual(roff, false);
 			});
 		});
 	});
@@ -821,7 +818,7 @@ describe ("restoff", function() {
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 
 			return roff.post(userRepo, newuser01).then(function(result) {
-				onlineStatusShouldEqual(roff, false, true, false, true);
+				onlineStatusShouldEqual(roff, true);
 				dbRepoShouldBeEqual(roff, userRepo, result, 1);
 				pendingStatusCorrect(roff, result, "POST", 0, ROOT_URI + userRepo, userRepo);
 				return roff.clear(userRepo).then(function() {
@@ -885,7 +882,7 @@ describe ("restoff", function() {
 				};
 				expect(error, "Error result").to.deep.equals(errorExpected);
 				dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
-				onlineStatusShouldEqual(roff, true, false, false, false);
+				onlineStatusShouldEqual(roff, false);
 			});
 		});
 	});
@@ -905,7 +902,7 @@ describe ("restoff", function() {
 					uri: "http://idontexisthopefully.com/users/aedfa7a4-d748-11e5-b5d2-0a1d41d68510"
 				};
 				expect(error, "Error result").to.deep.equals(errorExpected);
-				onlineStatusShouldEqual(roff, false, false, true, false);
+				onlineStatusShouldEqual(roff, false);
 			});
 		});
 	});
@@ -929,11 +926,11 @@ describe ("restoff", function() {
 				"first_name": "Happy3",
 				"last_name": "User3"
 			};
-			onlineStatusShouldEqual(roff, false, false, true, false);
+			onlineStatusShouldEqual(roff, false);
 
 			// Assure test data is in the database
 			return roff.put(userRepo + "/" + existingUser01.id, existingUser01).then(function(result) {
-				onlineStatusShouldEqual(roff, true, false, false, false);
+				onlineStatusShouldEqual(roff, false);
 				dbRepoShouldBeEqual(roff, userRepo, result, 1);
 				return dbRepoExactlyEqual(roff, userRepo, true).then(function(result) { // verify posted to server
 					expect(result, "db repo the same").to.equal(true);
@@ -977,7 +974,7 @@ describe ("restoff", function() {
 			return roff.get(userRepo).then(function(getResults) {
 				dbRepoShouldBeEqual(roff, userRepo, getResults, 3);
 				roff.forcedOffline = true;
-				onlineStatusShouldEqual(roff, false, false, true, true);
+				onlineStatusShouldEqual(roff, true);
 
 				return roff.put(userRepo+"/"+newUser.id, newUser).catch(function(error) {
 					var errorExpected = {
@@ -988,7 +985,7 @@ describe ("restoff", function() {
 					};
 
 					expect(error, "Error result").to.deep.equals(errorExpected);
-					onlineStatusShouldEqual(roff, false, true, false, true);
+					onlineStatusShouldEqual(roff, true);
 					return roff.put(userRepo+"/"+puttedUser.id, puttedUser).then(function(result) {
 						var repoResource = roff.dbService.dbRepo.find(userRepo, "id", puttedUser.id);
 						expect(deepEqual(repoResource, result), "put on client").to.equal(true);
@@ -1012,12 +1009,12 @@ describe ("restoff", function() {
 
 			return roff.delete(userRepo).then(function(result) {
 				dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
-				onlineStatusShouldEqual(roff, true, false, false, false);
+				onlineStatusShouldEqual(roff, false);
 				roff.persistenceDisabled = true;
 				return roff.delete(userRepo).then(function(result) {
 					roff.persistenceDisabled = false;
 					dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
-					onlineStatusShouldEqual(roff, true, false, false, false);
+					onlineStatusShouldEqual(roff, false);
 				});
 			}).catch(function(error) {
 				console.log(error);
@@ -1045,7 +1042,7 @@ describe ("restoff", function() {
 			return roff.post(userRepo, userToDelete).then(function(result) {
 				dbRepoShouldBeEqual(roff, userRepo, result, 1);
 				return roff.delete(userRepo + "/" + userToDelete.id).then(function(result) {
-					onlineStatusShouldEqual(roff, true, false, false, false);
+					onlineStatusShouldEqual(roff, false);
 					dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 				}).catch(function(error) {
 					console.log(error);
@@ -1079,7 +1076,7 @@ describe ("restoff", function() {
 					uri: "http://idontexisthopefully.com/users/001"
 				};
 				expect(error, "Error result").to.deep.equals(errorExpected);
-				onlineStatusShouldEqual(roff, false, false, true, false);
+				onlineStatusShouldEqual(roff, false);
 			});
 		});
 	});
@@ -1101,9 +1098,9 @@ describe ("restoff", function() {
 			return roff.post(userRepo, userToDelete).then(function(getResults) {
 				dbRepoShouldBeEqual(roff, userRepo, getResults, 1);
 				roff.forcedOffline = true;
-				onlineStatusShouldEqual(roff, false, false, true, true);
+				onlineStatusShouldEqual(roff, true);
 				return roff.delete(userRepo + "/" + userToDelete.id).then(function(getResults) {
-					onlineStatusShouldEqual(roff, false, true, false, true);
+					onlineStatusShouldEqual(roff, true);
 					dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 					pendingStatusCorrect(roff, undefined, "DELETE", 0, ROOT_URI + userRepo + "/" + userToDelete.id, userRepo);
 				});
@@ -1908,7 +1905,7 @@ describe ("restoff", function() {
 	// 			status: 0,
 	// 			uri: "http://jsonplaceholder.typicode.com/posts"
 	// 		};
-	// 		onlineStatusShouldEqual(roff, false, false, true, false);
+	// 		onlineStatusShouldEqual(roff, false);
 	// 		expect(error, "Offlinedata").to.deep.equals(errorExpected);
 	// 	});
 	// });

@@ -130,21 +130,17 @@ describe ("restoffSynchronous", function() {
 			roff.clear(repository, true),
 		]).then(function() {
 			roff.forcedOffline = true;
-			onlineStatusShouldEqual(roff, false, false, true, true); // (roff, online, offline, unknown, forced)
+			onlineStatusShouldEqual(roff, true);
 
 			expect(function() {
 				roff.putSync(repository+"/"+"notinrepopk", putRec);
 			},"should throw exception when put called on a resource that doesn't exist").to.throw();
 
-			onlineStatusShouldEqual(roff, false, false, true, true); // (roff, online, offline, unknown, forced)
-
 			var result = roff.postSync(repository, postRec);
 			expect(result, "should immediately return with correct posted value").to.deep.equals(postRec);
-			onlineStatusShouldEqual(roff, false, false, true, true); // (roff, online, offline, unknown, forced)
 
 			var result2 = roff.getSync(repository);
 			expect(result2, "expected the posted record").to.deep.equals([postRec]);
-			onlineStatusShouldEqual(roff, false, false, true, true); // (roff, online, offline, unknown, forced)
 
 
 			var result3 = roff.postSync(repository, postRec2);
@@ -153,11 +149,9 @@ describe ("restoffSynchronous", function() {
 			expect(result4, "expected the posted record").to.deep.equals([postRec, postRec2]);
 			var result5 = roff.putSync(repository+"/"+putRec.id, putRec);
 			expect(result5, "expected the putted record").to.deep.equals(putRec);
-			onlineStatusShouldEqual(roff, false, false, true, true); // (roff, online, offline, unknown, forced)
 
 			var result6 = roff.deleteSync(repository+"/"+postRec2.id);
 			expect(result6,"delete should return primary key").to.equal(postRec2.id);
-			onlineStatusShouldEqual(roff, false, false, true, true); // (roff, online, offline, unknown, forced)
 
 			var pending = pendingResourcesGetNp(roff, repository);
 			expect(pending.length, "should have pending records").to.equal(4);
