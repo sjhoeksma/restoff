@@ -88,9 +88,6 @@ function synchronize(roff, userId) {
 }
 ```
 
-* WARNING when using Restoff with lowdb! Creating two instances of restoff with the same database name results in two different databases being persisted. Be sure to use the same restoff instance throughout your application.
-
-
 ## Resoff Reconciliation in Detail
 
 | Row  | Action                       | 1) Server Only Change            | 2) Client Only Change            | 3) Changes in Both                 |
