@@ -138,7 +138,12 @@ function restoffService(config) {
 	var defaultConfig = {
 		primaryKeyName: "id",
 		dbName: "restoff.json",
-		repoOptions: []
+		repoOptions: [],
+		reconSettings: {
+			lastUpdatedFieldName: "",
+			softDeleteFieldName: "",
+			softDeleteValue: ""
+		}
 	};
 	var that = Object.create(RestOffService.prototype);
 	that._options = Object.assign(defaultConfig, config);
@@ -153,10 +158,23 @@ RestOffService.prototype = Object.create(Object.prototype, {
 		set: function(value) { this.options.dbName = value; }
 	},
 	dbRepo: { get: function() { return this._dbRepo; }},
+	lastUpdatedFieldName: {
+		get: function() { return this._options.reconSettings.lastUpdatedFieldName; }
+	},
 	options: { get: function() { return this._options; }},
 	primaryKeyName: {
 		get: function() { return this.options.primaryKeyName; },
 		set: function(value) { this.options.primaryKeyName = value; }
+	},
+	reconSettings: {
+		get: function() { return this._options.reconSettings; },
+		set: function(value) { this._options.reconSettings = value; }
+	},
+	softDeleteFieldName: {
+		get: function() { return this._options.reconSettings.softDeleteFieldName; }
+	},
+	softDeleteValue: {
+		get: function() { return this._options.reconSettings.softDeleteValue; }
 	}
 });
 
@@ -193,7 +211,6 @@ RestOffService.prototype.repoOptionsSet = function(options) {
 	return this;
 };
 
-
 RestOffService.prototype.clearNp = function(repoName) {
 	return this.dbRepo.clear(repoName);
 };
@@ -221,11 +238,24 @@ RestOffService.prototype.writeNp = function(repoName, resources, options) {
 			throw new Error("Primary key '" + pkName + "' missing for resource or the resource has an invalid primary key."); // TODO: Write Test for this
 		}
 	});
-
 	var that = this;
-	resources.forEach(function(resource) {
-		that.dbRepo.write(repoName, pkName, resource);
-	});
+	if (this.reconSettings.softDeleteFieldName !== "") {
+		var softDeleteFN = this.reconSettings.softDeleteFieldName;
+		var softDeleteFV = this.reconSettings.softDeleteValue;
+		resources.forEach(function(resource, pos) {
+			if (resource[softDeleteFN] !== softDeleteFV) {
+				that.dbRepo.write(repoName, pkName, resource);
+			} else { // deleted: don't add to repo and remove from resources
+				resources.splice(pos,1);
+			}
+		});
+
+	} else {
+		resources.forEach(function(resource) {
+			that.dbRepo.write(repoName, pkName, resource);
+		});
+	}
+
 	return resources;
 };
 
@@ -434,9 +464,7 @@ function restoff(options) {
 		pending: {},
 		uriOptions: {
 			filter: []
-		},
-		pendingUri: "http://localhost/",
-		pendingRepoName: "pending"
+		}
 	};
 
 	var that = Object.create(RestOff.prototype);
@@ -461,6 +489,9 @@ RestOff.prototype = Object.create(Object.prototype, {
 		get: function() { return this._options.clientOnly; },
 		set: function(value) { this._options.clientOnly = value; }
 	},
+	options: {
+		get: function() { return this._options; }
+	},
 	persistenceDisabled: {
 		get: function() { return this._options.persistenceDisabled; },
 		set: function(value) { this._options.persistenceDisabled = value; }
@@ -471,9 +502,6 @@ RestOff.prototype = Object.create(Object.prototype, {
 	rootUri: {
 		get: function() { return this._options.rootUri; },
 		set: function(value) { this._options.rootUri = value; }
-	},
-	options: {
-		get: function() { return this._options; }
 	}
 });
 
@@ -929,7 +957,7 @@ RestOff.prototype._dbDelete = function(uri, resolve, reject) {
 	}
 };
 
-RestOff.prototype._dbGet = function(uri) {
+RestOff.prototype._dbGet = function(uri, resolve, reject) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
 		var request = uri.request;
@@ -1106,10 +1134,7 @@ RestOff.prototype.post = function(uri, resource, options) {
 	return this._restCall(uri, "POST", options, resource);
 };
 
-
-
 RestOff.prototype.put = function(uri, resource, options) {
-
 	return this._restCall(uri, "PUT", options, resource);
 };
 

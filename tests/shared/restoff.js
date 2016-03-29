@@ -13,6 +13,31 @@ describe("restoffService", function() {
 		}
 	});
 
+	// TODO: Fix and update tests.
+	//it("03: should support configuring of soft delete and last udpated.", function() {
+	//	var roff = restlib.restoff({
+	//		"rootUri" : ROOT_URI
+	//	});
+    //
+	//	expect(roff.lastUpdatedFieldName, "lastUpdatedFieldName").to.equal("");
+	//	expect(roff.softDeleteFieldName, "softDeleteFieldName").to.equal("");
+	//	expect(roff.softDeleteValue, "softDeleteValue").to.equal("");
+    //
+	//	var rconSet = {
+	//		lastUpdatedFieldName: "LAST_UPDATED",
+	//		softDeleteFieldName: "ONLINE_OPERATION",
+	//		softDeleteValue: "DELETE"
+	//	};
+    //
+	//	roff.reconSettings = rconSet;
+    //
+	//	expect(roff.lastUpdatedFieldName, "lastUpdatedFieldName").to.equal("LAST_UPDATED");
+	//	expect(roff.softDeleteFieldName, "softDeleteFieldName").to.equal("ONLINE_OPERATION");
+	//	expect(roff.softDeleteValue, "softDeleteValue").to.equal("DELETE");
+	//	expect(roff.reconSettings, "reconSettings").to.equal(rconSet);
+	//});
+	//
+
 	// TODO: Update tests below to use new Np calls.
 
 	//it("03: post should, without a valid primary key,\
