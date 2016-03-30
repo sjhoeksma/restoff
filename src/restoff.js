@@ -269,12 +269,15 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 									that.options.onReconciliation(pendingAction);
 								}
 								resolve();
+							}).catch(function(error) { // TODO: Test
+								reject(error);
 							});
-
 							//
 						} else { // edited on client and already in repo so no need to add to newUpdatedResources. Clean out Pending.
 							return that._applyAndClearPending(pendingAction, uri).then(function() {
 								resolve();
+							}).catch(function(error) { // TODO: Test
+								reject(error);
 							});
 						}
 					} else {          // True, True, False  : No changes on client. Possible changes on server.  | Add to newUpdatedResources
@@ -285,6 +288,8 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 						// TODO: Log that this was done and/or have a callback because a pending client post/put was ignored becuase it was deleted on the server
 						return that._applyAndClearPending(pendingAction, uri).then(function() {
 							resolve();
+						}).catch(function(error) { // TODO: Test
+							reject(error);
 						});
 					} else {          // True, False, False : Post/Put on server                                 | Add to postUpdated
 						resolve(newUpdatedResources.push(serverResource));
@@ -296,6 +301,8 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 						if (undefined === pendingAction.original) { // not on server no origional, so must have been created on client.
 							return that._applyAndClearPending(pendingAction, uri).then(function(){
 								resolve();
+							}).catch(function(error) { // TODO: Test
+								reject(error);
 							});
 						} else { // not on server, but had an original so must have been on server at one time. So, a delete.
 							that.dbService.deleteSync(uri.repoName, that._queryAddPk(uri, {}));
@@ -352,6 +359,8 @@ RestOff.prototype._repoAddResource = function(uri) {
 						that.pendingService.pendingClear(uri.repoName); // that.delete removes any dangling pending changes like a post and then delete of the same resource while offline.
 						var repoResources = that._repoGetRaw(uri);
 						resolve(repoResources);
+					}).catch(function(error) {
+						reject(error);
 					});
 				} else {
 					that.clear(uri.repoName);
@@ -459,6 +468,9 @@ RestOff.prototype._dbDelete = function(uri, resolve, reject) {
 				reject(this._createError(uri));
 			}
 		break;
+		case 401: // Unauthorized TODO: Test
+			reject(this._createError(uri));
+		break;
 		default:
 			console.log ("WARNING: Delete Unsupported HTTP response " + request.status + " for uri '" + uri.uriFinal + "'.");
 			reject(that._createError(uri, "Delete Unsupported HTTP response " + request.status)); // TODO: Tests
@@ -484,6 +496,9 @@ RestOff.prototype._dbGet = function(uri) {
 					reject(that._createError(uri));
 				}
 			break;
+			case 401: // Unauthorized TODO: Test
+				reject(this._createError(uri));
+			break;
 			default:
 				console.log ("WARNING: Get Unsupported HTTP response " + request.status + " for uri '" + uri.uriFinal + "'.");
 				reject(that._createError(uri, "Get Unsupported HTTP response " + request.status)); // TODO: Tests
@@ -497,6 +512,8 @@ RestOff.prototype._dbPost = function(uri, resolve, reject) {
 		case 201:
 			return this._repoAddResource(uri).then(function(result) {  // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
 				resolve(result);
+			}).catch(function(error){
+				reject(error);
 			});
 		case 0: case 404:
 			var clientOnly = uri.options.clientOnly;
@@ -506,6 +523,9 @@ RestOff.prototype._dbPost = function(uri, resolve, reject) {
 			} else {
 				reject(this._createError(uri));
 			}
+		break;
+		case 401: // Unauthorized TODO: Test
+			reject(this._createError(uri));
 		break;
 		default:
 			console.log ("WARNING: Post Unsupported HTTP response " + request.status + " for uri '" + uri.uriFinal + "'.");
@@ -531,7 +551,11 @@ RestOff.prototype._dbPut = function(uri, resolve, reject) {
 	var request = uri.request;
 	switch (request.status) {
 		case 200:
-			resolve(this._repoAddResource(uri)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
+			return this._repoAddResource(uri).then(function(result) {  // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
+				resolve(result);
+			}).catch(function(error){
+				reject(error);
+			});
 		break;
 		case 0: case 404:
 			var clientOnly = uri.options.clientOnly;
@@ -550,6 +574,9 @@ RestOff.prototype._dbPut = function(uri, resolve, reject) {
 			} else {
 				reject(this._createError(uri));
 			}
+		break;
+		case 401: // Unauthorized TODO: Test
+			reject(this._createError(uri));
 		break;
 		default:
 			console.log ("WARNING: Put Unsupported HTTP response " + request.status + " for uri '" + uri.uriFinal + "'.");
