@@ -214,7 +214,6 @@ RestOff.prototype._applyAndClearPending = function(pendingAction, uri) {
 		return that._restCall(pendingAction.uri, pendingAction.restMethod, uri.options, pendingAction.resources).then(function() {
 			resolve(that.pendingService.pendingDelete(pendingAction.id));
 		}).catch(function(error) {
-			console.log ("WARNING! 001 Error %O occured.", error);
 			reject(error);
 		});
 	});
@@ -478,7 +477,6 @@ RestOff.prototype._dbDelete = function(uri, resolve, reject) {
 			reject(this._createError(uri));
 		break;
 		default:
-			console.log ("WARNING: Delete Unsupported HTTP response " + request.status + " for uri '" + uri.uriFinal + "'.");
 			reject(that._createError(uri, "Delete Unsupported HTTP response " + request.status)); // TODO: Tests
 	}
 };
@@ -508,7 +506,6 @@ RestOff.prototype._dbGet = function(uri) {
 				reject(this._createError(uri));
 			break;
 			default:
-				console.log ("WARNING: Get Unsupported HTTP response " + request.status + " for uri '" + uri.uriFinal + "'.");
 				reject(that._createError(uri, "Get Unsupported HTTP response " + request.status)); // TODO: Tests
 		}
 	});
@@ -536,7 +533,6 @@ RestOff.prototype._dbPost = function(uri, resolve, reject) {
 			reject(this._createError(uri));
 		break;
 		default:
-			console.log ("WARNING: Post Unsupported HTTP response " + request.status + " for uri '" + uri.uriFinal + "'.");
 			reject(this._createError(uri, "Post Unsupported HTTP response " + request.status)); // TODO: Tests
 	}
 };
@@ -586,7 +582,6 @@ RestOff.prototype._dbPut = function(uri, resolve, reject) {
 			reject(this._createError(uri));
 		break;
 		default:
-			console.log ("WARNING: Put Unsupported HTTP response " + request.status + " for uri '" + uri.uriFinal + "'.");
 			reject(this._createError(uri, "Put Unsupported HTTP response " + request.status)); // TODO: Tests
 	}
 };
