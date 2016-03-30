@@ -164,7 +164,7 @@ describe ("restoffSynchronous", function() {
 		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 		roff.forcedOffline = true;
 		expect(function() {
-			roff.restCallNp("users", "INVALID");
+			roff.restCallSync("users", "INVALID");
 		},"should throw exception").to.throw("Rest method 'INVALID' not currently supported or is invalid.");
 
 	});

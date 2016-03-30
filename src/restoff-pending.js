@@ -61,7 +61,7 @@ RestoffPending.prototype.pendingAdd = function(uri) {
     };
 
     if (!uri.options.persistenceDisabled) { // TODO: Write a test for this
-        var original = this._restOff.dbService.findNp(uri.repoName, {id:uri.primaryKey}); // TODO: Remove direct access to dbService and use restoff.getSync call
+        var original = this._restOff.dbService.findSync(uri.repoName, {id:uri.primaryKey}); // TODO: Remove direct access to dbService and use restoff.getSync call
         if (undefined !== original[0]) {
             result.original = JSON.parse(JSON.stringify(original[0])); // need to clone original record
         }

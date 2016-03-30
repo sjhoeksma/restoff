@@ -1284,44 +1284,45 @@ describe ("restoff", function() {
 			"last_name": "And New"
 		};
 
-
 		var userRepo = "users15";
 		var roff = restlib.restoff({
-			rootUri: ROOT_URI
+			rootUri: ROOT_URI,
+			dbService : {
+				primaryKeyName : "not_used_id",
+			}
 		});
-		return roff.clear(userRepo, true).then(function(result) {
-			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
-			return roff.post(userRepo, user01, {primaryKeyName:"ID"}).then(function(result) {
-				return roff.post(userRepo, user02, {primaryKeyName:"ID"}).then(function(result) {
-					return roff.post(userRepo, user03Delete, {primaryKeyName:"ID"}).then(function(result) {
-						return roff.delete(userRepo + "/" + user04New.ID, {primaryKeyName:"ID"}).then(function(result) { // Above 4 rest test
-							return dbRepoExactlyEqual(roff, userRepo, true).then(function(result) { // verify posted to server
-								expect(result, "db repo the same").to.equal(true);
-								roff.persistenceDisabled = true; // Make updates without making them locally
-								return roff.put(userRepo + "/" + user01Update.ID, user01Update, {primaryKeyName:"ID"}).then(function(result) {
-									return roff.post(userRepo, user02Post, {primaryKeyName:"ID"}).then(function(result) {
-										return roff.post(userRepo, user04New, {primaryKeyName:"ID"}).then(function(result) {
-											return roff.delete(userRepo + "/" + user03Delete.ID, {primaryKeyName:"ID"}).then(function(result) { // Above 4 rest test
-												roff.persistenceDisabled = false;
-												return dbRepoExactlyEqual(roff, userRepo, false).then(function(result) { // verify posted to server
-													expect(result, "db repo the same").to.equal(false);
-													return roff.get(userRepo).then(function(result) {
-														dbRepoShouldBeEqual(roff, userRepo, result, 3); // one was deleted one was added
-														return dbRepoExactlyEqual(roff, userRepo, true).then(function(result) { // verify posted to server
-															expect(result, "db repo the same").to.equal(true);
-															return roff.post(userRepo, user01, {primaryKeyName:"ID"}).then(function(result) { // Return to prior dbState
-																return roff.post(userRepo, user02, {primaryKeyName:"ID"}).then(function(result) {
-																	return roff.post(userRepo, user03Delete, {primaryKeyName:"ID"}).then(function(result) {
-																		pendingStatusCount(roff, 0);
-																		return roff.delete(userRepo + "/" + user04New.ID, {primaryKeyName:"ID"}).then(function(result) { // Above 4 restart test
-																		});
-																	});
-																});
-															});
-														});
-													});
-												});
-											});
+
+		return roff.clear(userRepo, true).then(function() {
+			dbRepoShouldBeEqual(roff, userRepo, undefined, 0); // verify initial state
+			return Promise.all([
+				roff.post(userRepo, user01, {primaryKeyName:"ID"}),
+				roff.post(userRepo, user02, {primaryKeyName:"ID"}),
+				roff.post(userRepo, user03Delete, {primaryKeyName:"ID"}),
+				roff.delete(userRepo + "/" + user04New.ID, {primaryKeyName:"ID"})
+			]).then(function(result) { // Above 4 rest test
+				return dbRepoExactlyEqual(roff, userRepo, true).then(function(dbEqualresult3) { // verify posted to server
+					expect(dbEqualresult3, "db repo the same").to.equal(true);
+					roff.persistenceDisabled = true; // Make updates without making them locally
+					return Promise.all([
+						roff.put(userRepo + "/" + user01Update.ID, user01Update, {primaryKeyName:"ID"}),
+						roff.post(userRepo, user02Post, {primaryKeyName:"ID"}),
+						roff.post(userRepo, user04New, {primaryKeyName:"ID"}),
+						roff.delete(userRepo + "/" + user03Delete.ID, {primaryKeyName:"ID"})
+					]).then(function() { // Above 4 rest test
+						roff.persistenceDisabled = false;
+						return dbRepoExactlyEqual(roff, userRepo, false).then(function(dbEqualResult) { // verify posted to server
+							expect(dbEqualResult, "db repo the same").to.equal(false);
+							return roff.get(userRepo, {primaryKeyName:"ID"}).then(function(getResult) {
+								dbRepoShouldBeEqual(roff, userRepo, getResult, 3); // one was deleted one was added
+								return dbRepoExactlyEqual(roff, userRepo, true).then(function(dbEqualResult2) { // verify posted to server
+									expect(dbEqualResult2, "db repo the same").to.equal(true);
+									return Promise.all([ // Return to prior dbState
+										roff.post(userRepo, user01, {primaryKeyName:"ID"}),
+										roff.post(userRepo, user02, {primaryKeyName:"ID"}),
+										roff.post(userRepo, user03Delete, {primaryKeyName:"ID"})
+									]).then(function() {
+										pendingStatusCount(roff, 0);
+										return roff.delete(userRepo + "/" + user04New.ID, {primaryKeyName:"ID"}).then(function() { // Above 4 restart test
 										});
 									});
 								});
@@ -1403,7 +1404,12 @@ describe ("restoff", function() {
 
 		var emailRepo = "emailAddresses01";
 
-		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
+		var roff = restlib.restoff({
+			"rootUri" : ROOT_URI,
+			dbService : {
+				primaryKeyName : "not_used_id",
+			}
+		});
 
 		return Promise.all([
 			roff.clear(emailRepo, true),
@@ -1412,7 +1418,7 @@ describe ("restoff", function() {
 			roff.post(emailRepo, emailC, {primaryKeyName:"ID"}),
 			roff.delete(emailRepo + "/" + emailD.ID, {primaryKeyName:"ID"}),
 		]).then(function() {
-			return roff.get(emailRepo).then(function(results) {
+			return roff.get(emailRepo, {primaryKeyName:"ID"}).then(function(results) {
 				expect(deepEqualOrderUnimportant([emailAId, emailBId, emailCId], results, "ID"), "initial setup should be correct").to.equal(true);
 				roff.forcedOffline = true;
 				return Promise.all([
@@ -1425,7 +1431,7 @@ describe ("restoff", function() {
 							expect(pending.length, "Should have 3 pending").to.equal(3);
 							expect([emailAId, emailBPutId, emailDId], "Client should sync up when placed online again and resource is accessed").to.deep.equals(updatedResults);
 							roff.forcedOffline = false;
-							return roff.get(emailRepo).then(function(updatedResults) {
+							return roff.get(emailRepo, {primaryKeyName:"ID"}).then(function(updatedResults) {
 								return pendingResourcesGet(roff, emailRepo).then(function(pending) {
 									expect(pending.length, "Should have nothing pending").to.equal(0);
 									expect([emailAId, emailBPutId, emailDId], "Client should sync up when placed online again and resource is accessed").to.deep.equals(updatedResults);
@@ -1442,7 +1448,6 @@ describe ("restoff", function() {
 					});
 				});
 			});
-
 		});
 	});
 

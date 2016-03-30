@@ -75,11 +75,11 @@ RestOffService.prototype.repoOptionsSet = function(options) {
 	return this;
 };
 
-RestOffService.prototype.clearNp = function(repoName) {
+RestOffService.prototype.clearSync = function(repoName) {
 	return this.dbRepo.clear(repoName);
 };
 
-RestOffService.prototype.clearAllNp = function() {
+RestOffService.prototype.clearAllSync = function() {
 	return this.dbRepo.clearAll();
 };
 
@@ -87,11 +87,11 @@ RestOffService.prototype.deleteSync = function(repoName, query) {
 	return this.dbRepo.delete(repoName, query);
 };
 
-RestOffService.prototype.findNp = function(repoName, query) {
+RestOffService.prototype.findSync = function(repoName, query) {
 	return this.dbRepo.read(repoName, query);
 };
 
-RestOffService.prototype.writeNp = function(repoName, resources, options) {
+RestOffService.prototype.writeSync = function(repoName, resources, options) {
 	var pkName = this.pkNameGet(repoName, options);
 	resources = (resources instanceof Array) ? resources : [resources]; // make logic easier
 	resources.forEach(function(resource) {
