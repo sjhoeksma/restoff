@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.2.18
+// version: 0.2.19
 // author: ProductOps <restoff@productops.com>
 // license: MIT
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.2.18'; // version set through gulp build
+restlib["version-library"] = '0.2.19'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -517,16 +517,20 @@ RestOff.prototype._pendingRepoAddSync = function(uri) {
 	return this._repoAddResourceSync(uri);
 };
 
-RestOff.prototype._pendingRepoAdd = function(uri, clientOnly, resolve) {
+RestOff.prototype._pendingRepoAdd = function(uri, clientOnly, resolve, reject) {
 	if (!clientOnly) {
 		var that = this;
 		this.pendingService.pendingAdd(uri);
 		return that._repoAddResource(uri).then(function(result) {
 			resolve(result);
+		}).catch(function(error) { // TODO: Test
+			reject(error);
 		});
 	} else {
 		return this._repoAddResource(uri).then(function(result) {
 			resolve(result);
+		}).catch(function(error) { // TODO: Test
+			reject(error);
 		});
 	}
 };
@@ -613,10 +617,12 @@ RestOff.prototype._repoFind = function(uri) {
 
 RestOff.prototype._repoAdd = function(uri, resourceRaw) {
 	var that = this;
-	return new Promise(function(resolve) {
+	return new Promise(function(resolve, reject) {
 		uri.resources = JSON.parse(resourceRaw); // TODO: Check for non-json result and throw error/convert/support images/etc.
 		return that._repoAddResource(uri).then(function(result) {
 			resolve(result);
+		}).catch(function(error) { // TODO: Test
+			reject(error);
 		});
 	});
 };
@@ -798,7 +804,7 @@ RestOff.prototype._repoAddResourceSync = function(uri) {
 //       against databases that have soft deletes and last updated dates
 RestOff.prototype._repoAddResource = function(uri) {
 	var that = this;
-	return new Promise(function(resolve) {
+	return new Promise(function(resolve, reject) {
 		if (!uri.options.persistenceDisabled) {
 			if ("GET" === uri.restMethod) {  // Complete get, doing a merge because we don't have soft_delete
 				var serverResources = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // makes logic easier
@@ -942,6 +948,8 @@ RestOff.prototype._dbGet = function(uri) {
 			case 200:
 				return that._repoAdd(uri, request.response).then(function(result) {
 					resolve(result);
+				}).catch(function(error){ // TODO: Test
+					reject(error);
 				});
 			case 0: case 404:
 				var clientOnly = uri.options.clientOnly;
@@ -1013,7 +1021,6 @@ RestOff.prototype._dbPut = function(uri, resolve, reject) {
 			}).catch(function(error){
 				reject(error);
 			});
-		break;
 		case 0: case 404:
 			var clientOnly = uri.options.clientOnly;
 			if (uri.options.forcedOffline || clientOnly) { // we are offline, but resource not found so 404 it.
