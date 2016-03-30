@@ -183,9 +183,7 @@ rest.put("users", { Name : "Happy User"}).then(function(result) {
 var rest = restoff({
 	rootUri: "http://api.example.com/",
 	onCallPending: function(pendingAction, uri) {
-		console.log("Pending will execute %O %O", pendingAction, uri)
-		callBackAction = pendingAction;
-		callBackUri = uri;
+		console.log("Pending will execute %O %O", pendingAction, uri);
 	}
 });
 ```

@@ -129,21 +129,18 @@ RestOff.prototype._queryBuildFromUri = function(uri) {
 	return this._queryAddPk(uri, uri.searchOptions);
 };
 
+// The original uri may have a query string that should be ignored when running
+// The sync logic (in _repoAddResource). We want to get the raw, non-query,
+// result from the repo instead.
+RestOff.prototype._repoGetRaw = function(uri) {
+	return uri.options.persistenceDisabled ? [] :
+		this.dbService.findSync(uri.repoName);
+};
+
 RestOff.prototype._repoGetSync = function(uri) {
 	// TODO: Write tests for persistenceDisabled and the usage of queryBuildFromUri call below
 	return uri.options.persistenceDisabled ? [] :
 		this.dbService.findSync(uri.repoName, this._queryBuildFromUri(uri));
-};
-
-RestOff.prototype._repoGet = function(uri) {
-	var that = this;
-	return new Promise(function(resolve) {
-		if (uri.options.persistenceDisabled) {
-			resolve([]);
-		} else {
-			resolve(that.dbService.findSync(uri.repoName, that._queryBuildFromUri(uri)));
-		}
-	});
 };
 
 RestOff.prototype._repoFindSync = function(uri) {
@@ -343,20 +340,18 @@ RestOff.prototype._repoAddResource = function(uri) {
 				var serverResources = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // makes logic easier
 				var pending = that.pendingService.pendingGet(uri.repoName);
 				if (pending.length > 0 ) { // we got reconciliation work to do!!!
-					return that._repoGet(uri).then(function(repoResources) {
-						var newUpdatedResources = [];
-						var pkName = that._pkNameGet(uri);
-						var joinedHash = that._joinedHash(pkName, serverResources, repoResources);
-						var pendingHash = that._hashify("primaryKey", pending);
+					var repoResources = that._repoGetRaw(uri);
+					var newUpdatedResources = [];
+					var pkName = that._pkNameGet(uri);
+					var joinedHash = that._joinedHash(pkName, serverResources, repoResources);
+					var pendingHash = that._hashify("primaryKey", pending);
 
-						var actions = that._forEachHashEntry(uri, joinedHash, serverResources, repoResources, pendingHash, newUpdatedResources);
-						return Promise.all(actions).then(function() {
-							that.dbService.writeSync(uri.repoName, newUpdatedResources, uri.options);
-							that.pendingService.pendingClear(uri.repoName); // that.delete removes any dangling pending changes like a post and then delete of the same resource while offline.
-							return that._repoGet(uri).then(function(repoResources) {
-								resolve(repoResources);
-							});
-						});
+					var actions = that._forEachHashEntry(uri, joinedHash, serverResources, repoResources, pendingHash, newUpdatedResources);
+					return Promise.all(actions).then(function() {
+						that.dbService.writeSync(uri.repoName, newUpdatedResources, uri.options);
+						that.pendingService.pendingClear(uri.repoName); // that.delete removes any dangling pending changes like a post and then delete of the same resource while offline.
+						var repoResources = that._repoGetRaw(uri);
+						resolve(repoResources);
 					});
 				} else {
 					that.clear(uri.repoName);
@@ -482,9 +477,8 @@ RestOff.prototype._dbGet = function(uri, resolve, reject) {
 				var clientOnly = uri.options.clientOnly;
 				if (uri.options.forcedOffline || clientOnly) {
 					 // TODO: Provide a call back if !clientOnly and !forcedOffline when we get here.
-					return that._repoGet(uri).then(function(result) {
-						resolve(result);
-					});
+					var result = that._repoGetSync(uri);
+					resolve(result);
 				} else {
 					reject(that._createError(uri));
 				}
