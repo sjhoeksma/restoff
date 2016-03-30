@@ -180,7 +180,8 @@ describe ("restoff", function() {
 				message: "Network Error",
 				messageDetail: "",
 				status: 0,
-				uri: "http://idontexisthopefully.com/endpoint"
+				uri: "http://idontexisthopefully.com/endpoint",
+				restMethod: "GET"
 			};
 			expect(error, "Error result").to.deep.equals(errorExpected);
 			onlineStatusShouldEqual(roff, false);
@@ -202,7 +203,8 @@ describe ("restoff", function() {
 				message: "Not Found",
 				messageDetail: "{}",
 				status: 404,
-				uri: "http://test.development.com:3000/"+userRepo
+				uri: "http://test.development.com:3000/"+userRepo,
+				restMethod: "GET"
 			};
 			expect(error, "Error result").to.deep.equals(errorExpected);
 			onlineStatusShouldEqual(roff, false);
@@ -748,7 +750,8 @@ describe ("restoff", function() {
 				message: "Network Error",
 				messageDetail: "",
 				status: 0,
-				uri: "http://idontexisthopefully.com/resource"
+				uri: "http://idontexisthopefully.com/resource",
+				restMethod: "POST"
 			};
 			expect(error, "Error result").to.deep.equals(errorExpected);
 			onlineStatusShouldEqual(roff, false);
@@ -769,7 +772,8 @@ describe ("restoff", function() {
 				message: "Not Found",
 				messageDetail: "{}",
 				status: 404,
-				uri: "http://test.development.com:3000/users44"
+				uri: "http://test.development.com:3000/users44",
+				restMethod: "POST"
 			};
 			expect(error, "Error result").to.deep.equals(errorExpected);
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
@@ -856,7 +860,8 @@ describe ("restoff", function() {
 				message: "Not Found",
 				messageDetail: "{}",
 				status: 404,
-				uri: "http://test.development.com:3000/users11/aedfa7a4-d748-11e5-b5d2-0a1d41d68510"
+				uri: "http://test.development.com:3000/users11/aedfa7a4-d748-11e5-b5d2-0a1d41d68510",
+				restMethod: "PUT"
 			};
 			expect(error, "Error result").to.deep.equals(errorExpected);
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
@@ -875,7 +880,8 @@ describe ("restoff", function() {
 				message: "Network Error",
 				messageDetail: "",
 				status: 0,
-				uri: "http://idontexisthopefully.com/users/aedfa7a4-d748-11e5-b5d2-0a1d41d68510"
+				uri: "http://idontexisthopefully.com/users/aedfa7a4-d748-11e5-b5d2-0a1d41d68510",
+				restMethod: "PUT"
 			};
 			expect(error, "Error result").to.deep.equals(errorExpected);
 			onlineStatusShouldEqual(roff, false);
@@ -1041,7 +1047,8 @@ describe ("restoff", function() {
 				message: "Network Error",
 				messageDetail: "",
 				status: 0,
-				uri: "http://idontexisthopefully.com/users/001"
+				uri: "http://idontexisthopefully.com/users/001",
+				restMethod: "DELETE"
 			};
 			expect(error, "Error result").to.deep.equals(errorExpected);
 			onlineStatusShouldEqual(roff, false);

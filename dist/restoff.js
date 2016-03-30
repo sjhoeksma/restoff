@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.2.20
+// version: 0.2.21
 // author: ProductOps <restoff@productops.com>
 // license: MIT
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.2.20'; // version set through gulp build
+restlib["version-library"] = '0.2.21'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -856,10 +856,11 @@ RestOff.prototype._createError = function(uri, customMessage) {
 	}
 
 	return {
-		"message" : message,
-		"messageDetail" : messageDetail,
-		"status": request.status,
-		"uri": uri.uriFinal
+		message: message,
+		messageDetail: messageDetail,
+		status: request.status,
+		uri: uri.uriFinal,
+		restMethod: uri.restMethod
 	};
 };
 

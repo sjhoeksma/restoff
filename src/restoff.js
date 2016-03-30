@@ -399,10 +399,11 @@ RestOff.prototype._createError = function(uri, customMessage) {
 	}
 
 	return {
-		"message" : message,
-		"messageDetail" : messageDetail,
-		"status": request.status,
-		"uri": uri.uriFinal
+		message: message,
+		messageDetail: messageDetail,
+		status: request.status,
+		uri: uri.uriFinal,
+		restMethod: uri.restMethod
 	};
 };
 
