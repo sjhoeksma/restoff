@@ -3,8 +3,8 @@ describe ("restoffSoftDelete", function() {
 	it("01: should not return records marked as deleted.", function() {
 		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 		var repository = "users23";
+		roff.clear(repository, true);
 		return Promise.all([
-			roff.clear(repository, true),
 			roff.get(repository)
 		]).then(function() {
 			return roff.get(repository).then(function(result) {

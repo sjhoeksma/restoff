@@ -5,8 +5,8 @@ describe ("restoffSynchronous", function() {
 	it("01: getSync, deleteSync, putSync, postSync should not work in forcedOffline mode or clientOnly is true.", function() {
 		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 		var repository = "users11";
+		roff.clear(repository, true);
 		return Promise.all([
-			roff.clear(repository, true),
 			roff.get(repository)
 		]).then(function() {
 			expect(function() {
@@ -38,7 +38,8 @@ describe ("restoffSynchronous", function() {
 			roff.forcedOffline = true;
 			expect(function() {
 					roff.getSync(repository);
-			},"should throw exception").to.not.throw("getSync only available when forcedOffline or clientOnly is true.");
+			},"should throw exception").to.not.
+			throw("getSync only available when forcedOffline or clientOnly is true.");
 			expect(function() {
 					roff.deleteSync(repository);
 			},"should throw exception").to.not.throw("deleteSync only available when forcedOffline or clientOnly is true.");
@@ -92,8 +93,8 @@ describe ("restoffSynchronous", function() {
 	    }
 	  ];
 
+		roff.clear(repository, true);
 		return Promise.all([
-			roff.clear(repository, true),
 			roff.get(repository)
 		]).then(function() {
 				roff.forcedOffline = true;
@@ -125,39 +126,33 @@ describe ("restoffSynchronous", function() {
 			"uri" : "http://localhost/pending/putted"
 		};
 
+		roff.clear(repository, true);
+		roff.forcedOffline = true;
+		onlineStatusShouldEqual(roff, true);
 
-		return Promise.all([
-			roff.clear(repository, true),
-		]).then(function() {
-			roff.forcedOffline = true;
-			onlineStatusShouldEqual(roff, true);
+		expect(function() {
+			roff.putSync(repository+"/"+"notinrepopk", putRec);
+		},"should throw exception when put called on a resource that doesn't exist").to.throw();
 
-			expect(function() {
-				roff.putSync(repository+"/"+"notinrepopk", putRec);
-			},"should throw exception when put called on a resource that doesn't exist").to.throw();
+		var result = roff.postSync(repository, postRec);
+		expect(result, "should immediately return with correct posted value").to.deep.equals(postRec);
 
-			var result = roff.postSync(repository, postRec);
-			expect(result, "should immediately return with correct posted value").to.deep.equals(postRec);
-
-			var result2 = roff.getSync(repository);
-			expect(result2, "expected the posted record").to.deep.equals([postRec]);
+		var result2 = roff.getSync(repository);
+		expect(result2, "expected the posted record").to.deep.equals([postRec]);
 
 
-			var result3 = roff.postSync(repository, postRec2);
-			expect(result3, "should immediately return with correct posted value").to.deep.equals(postRec2);
-			var result4 = roff.getSync(repository);
-			expect(result4, "expected the posted record").to.deep.equals([postRec, postRec2]);
-			var result5 = roff.putSync(repository+"/"+putRec.id, putRec);
-			expect(result5, "expected the putted record").to.deep.equals(putRec);
+		var result3 = roff.postSync(repository, postRec2);
+		expect(result3, "should immediately return with correct posted value").to.deep.equals(postRec2);
+		var result4 = roff.getSync(repository);
+		expect(result4, "expected the posted record").to.deep.equals([postRec, postRec2]);
+		var result5 = roff.putSync(repository+"/"+putRec.id, putRec);
+		expect(result5, "expected the putted record").to.deep.equals(putRec);
 
-			var result6 = roff.deleteSync(repository+"/"+postRec2.id);
-			expect(result6,"delete should return primary key").to.equal(postRec2.id);
+		var result6 = roff.deleteSync(repository+"/"+postRec2.id);
+		expect(result6,"delete should return primary key").to.equal(postRec2.id);
 
-			var pending = pendingResourcesGetNp(roff, repository);
-			expect(pending.length, "should have pending records").to.equal(4);
-
-		});
-
+		var pending = pendingResourcesGetNp(roff, repository);
+		expect(pending.length, "should have pending records").to.equal(4);
 	});
 
 	it("04: should thrown an exception when an invalid rest method is called", function() {

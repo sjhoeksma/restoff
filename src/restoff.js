@@ -97,44 +97,25 @@ RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) 
 };
 
 RestOff.prototype.clearAll = function(force) {
-	var that = this;
-
-	return new Promise(function(resolve, reject) {
-		force = undefined === force ? false : force;
-		var pendLength = that.pendingService.pendingCount();
-		if ((pendLength > 0) && (false === force)) {
-			reject("Submit pending changes before clearing database or call clearAll(true) to force.");
-		} else {
-			that.dbService.clearAllSync();
-			resolve(that.pendingService.pendingDelete());
-		}
-	});
-};
-
-RestOff.prototype.clearSync = function(repoName, force) {
 	force = undefined === force ? false : force;
-	var pendLength = this.pendingService.pendingCount(repoName);
+	var pendLength = this.pendingService.pendingCount();
 	if ((pendLength > 0) && (false === force)) {
-		throw new Error("Submit pending changes before clearing database or call clear(repoName, true) to force.");  // TODO: Write Test for this
+		throw new Error("Submit pending changes before clearing database or call clearAll(true) to force.");
 	} else {
-		this.dbService.clearSync(repoName);
-		this.pendingService.pendingClear(repoName);
+		this.dbService.clearAll();
+		this.pendingService.pendingDelete();
 	}
 };
 
-// TODO: Update all tests to use cleraSync and delete this.
 RestOff.prototype.clear = function(repoName, force) {
-	var that = this;
-	return new Promise(function(resolve, reject) {
-		force = undefined === force ? false : force;
-		var pendLength = that.pendingService.pendingCount(repoName);
-		if ((pendLength > 0) && (false === force)) {
-			reject("Submit pending changes before clearing database or call clear(repoName, true) to force.");
-		} else {
-			that.dbService.clearSync(repoName);
-			resolve(that.pendingService.pendingClear(repoName));
-		}
-	});
+	force = undefined === force ? false : force;
+	var pendLength = this.pendingService.pendingCount(repoName);
+	if ((pendLength > 0) && (false === force)) {
+		throw new Error("Submit pending changes before clearing database or call clear(repoName, true) to force.");
+	} else {
+		this.dbService.clear(repoName);
+		this.pendingService.pendingClear(repoName);
+	}
 };
 
 RestOff.prototype._queryAddPk = function(uri, query) {
@@ -163,7 +144,6 @@ RestOff.prototype._repoGet = function(uri) {
 			resolve(that.dbService.findSync(uri.repoName, that._queryBuildFromUri(uri)));
 		}
 	});
-
 };
 
 RestOff.prototype._repoFindSync = function(uri) {
@@ -288,7 +268,6 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 								if (that.options.onReconciliation) {
 									that.options.onReconciliation(pendingAction);
 								}
-
 								resolve();
 							});
 
@@ -377,7 +356,7 @@ RestOff.prototype._repoAddResource = function(uri) {
 						});
 					});
 				} else {
-					that.clearSync(uri.repoName);
+					that.clear(uri.repoName);
 					that.dbService.writeSync(uri.repoName, serverResources, uri.options);
 					resolve(serverResources);
 				}

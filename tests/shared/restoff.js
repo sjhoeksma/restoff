@@ -100,8 +100,7 @@ describe("restoffService", function() {
 	//	var address = {
 	//		id : "8af8f277-77c9-4c6d-8819-9f97a3545522"
 	//	};
-    //
-	//	return roffs.clearAll().then(function() {
+    //roffs.clearAll();
 	//		return roffs.write("users", user).then(function(result) {
 	//			expect([user], "result should equal user").to.deep.equals(result);
 	//			return roffs.write("addresses", address).then(function(result) {
@@ -113,20 +112,17 @@ describe("restoffService", function() {
 	//						return roffs.delete("users", {id:"8af8f277-77c9-4c6d-8819-9f97a3545598"}).then(function() {
 	//							return roffs.find("users").then(function(result) {
 	//								expect([user, user2], "result should have one less user").to.deep.equals(result);
-	//								return roffs.clear("users").then(function() {
+	//								roffs.clear("users");
 	//									return roffs.find("users").then(function(result) {
 	//										expect([], "result should have one less user").to.deep.equals(result); // nothing left in users
-	//										return roffs.clearAll().then(function() {
+	//                    roffs.clearAll();
 	//											return roffs.find("addresses").then(function(result) {
 	//												expect([], "result should have no addresses").to.deep.equals(result); // nothing left
 	//											});
-	//										});
 	//									});
 	//								});
-	//							});
 	//						});
 	//					});
-	//				});
 	//			});
 	//		});
 	//	});
@@ -161,23 +157,20 @@ describe("restoffService", function() {
 	//		id2 : "8af8f277-77c9-4c6d-8819-9f97a3545522"
 	//	};
     //
-	//	return roffs.clearAll().then(function() {
+	//	roffs.clearAll();
 	//		return roffs.write("users", user).then(function() {
 	//			return roffs.write("addresses", address).then(function() {
 	//				return roffs.write("users", users).then(function() {
 	//					return roffs.find("users").then(function() {
 	//						return roffs.delete("users", {id2:"8af8f277-77c9-4c6d-8819-9f97a3545598"}).then(function() {
 	//							return roffs.find("users").then(function() {
-	//								return roffs.clear("users").then(function() {
+	//								roffs.clear("users");
 	//									return roffs.find("users").then(function() {
-	//										return roffs.clearAll().then(function() {
-	//										});
+	//										roffs.clearAll();
 	//									});
-	//								});
 	//							});
 	//						});
 	//					});
-	//				});
 	//			});
 	//		});
 	//	});
@@ -195,7 +188,7 @@ describe("restoffService", function() {
 	//		line : "114 Happy Drive2"
 	//	};
     //
-	//	return roffs.clearAll().then(function() {
+	//	roffs.clearAll();
 	//		return roffs.write("addresses", address, {primaryKeyName:"guid"}).then(function(result) {
 	//			return roffs.write("addresses", addressUpdated, {primaryKeyName:"guid"}).then(function(result) {
 	//				return roffs.find("addresses").then(function(result) {
@@ -205,7 +198,6 @@ describe("restoffService", function() {
 	//							expect(result, "addresses should be empty").to.deep.equals([]);
 	//						});
 	//					});
-	//				});
 	//			});
 	//		});
 	//	});
@@ -272,7 +264,7 @@ describe("restoffService", function() {
 	//		line : "114 Happy Drive2"
 	//	};
     //
-	//	return roffs.clearAll().then(function() {
+	//	roffs.clearAll();
 	//		return roffs.write("addresses", address).then(function(result) {
 	//			return roffs.write("addresses", addressUpdated).then(function(result) {
 	//				return roffs.find("addresses").then(function(result) {
@@ -284,7 +276,6 @@ describe("restoffService", function() {
 	//					});
 	//				});
 	//			});
-	//		});
 	//	});
 	//});
     //
@@ -314,7 +305,7 @@ describe("restoffService", function() {
     //
 	//	var users = [user01, user02, user03];
     //
-	//	return roffs.clearAll().then(function() {
+	//	roffs.clearAll();
 	//		return roffs.write("users", users).then(function() {
 	//			return roffs.find("users", {sex:"Female"}).then(function(result) {
 	//				expect([user03], "should find correct records").to.deep.equals(result);
@@ -324,7 +315,6 @@ describe("restoffService", function() {
 	//					});
 	//				});
 	//			});
-	//		});
 	//	});
 	//});
 

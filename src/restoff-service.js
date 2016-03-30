@@ -55,7 +55,7 @@ RestOffService.prototype.pkNameGet = function(repoName, options) {
 };
 
 RestOffService.prototype.repoOptionsGet = function(repoName) {
-	var result = undefined;
+	var result;
 	this.options.repoOptions.forEach(function(item) {
 		if (item.repoName === repoName) {
 			result = item;
@@ -75,11 +75,11 @@ RestOffService.prototype.repoOptionsSet = function(options) {
 	return this;
 };
 
-RestOffService.prototype.clearSync = function(repoName) {
+RestOffService.prototype.clear = function(repoName) {
 	return this.dbRepo.clear(repoName);
 };
 
-RestOffService.prototype.clearAllSync = function() {
+RestOffService.prototype.clearAll = function() {
 	return this.dbRepo.clearAll();
 };
 

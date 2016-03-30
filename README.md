@@ -316,9 +316,8 @@ Example:
 var roff = restoff({
 	rootUri : "http://api.example.com/"
 });
-roff.clear("users", true).then(function() {
-	console.log("User repository, even if it had pending, was cleared ")
-});
+roff.clear("users", true);
+console.log("User repository, even if it had pending, was cleared ")
 ```
 
 ### clearAll([forced])
@@ -334,9 +333,8 @@ Example:
 var roff = restoff({
 	rootUri : "http://api.example.com/"
 });
-roff.clear(true).then(function() {
-	console.log("User repository, even if it had pending, was cleared ")
-});
+roff.clearAll(true);
+console.log("User repository, even if it had pending, was cleared ");
 ```
 
 
