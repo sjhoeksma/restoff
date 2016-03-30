@@ -1286,7 +1286,9 @@ describe ("restoff", function() {
 
 
 		var userRepo = "users15";
-		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
+		var roff = restlib.restoff({
+			rootUri: ROOT_URI
+		});
 		return roff.clear(userRepo, true).then(function(result) {
 			dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
 			return roff.post(userRepo, user01, {primaryKeyName:"ID"}).then(function(result) {
