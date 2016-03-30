@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.2.15
+// version: 0.2.17
 // author: ProductOps <restoff@productops.com>
 // license: MIT
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.2.15'; // version set through gulp build
+restlib["version-library"] = '0.2.17'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -917,11 +917,12 @@ RestOff.prototype._dbDelete = function(uri, resolve, reject) {
 			}
 		break;
 		default:
-			console.log ("WARNING: Unsupported HTTP response " + request.status + " for uri '" + uri.uriFinal + "'.");
+			console.log ("WARNING: Delete Unsupported HTTP response " + request.status + " for uri '" + uri.uriFinal + "'.");
+			reject(that._createError(uri, "Delete Unsupported HTTP response " + request.status)); // TODO: Tests
 	}
 };
 
-RestOff.prototype._dbGet = function(uri, resolve, reject) {
+RestOff.prototype._dbGet = function(uri) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
 		var request = uri.request;
@@ -941,8 +942,8 @@ RestOff.prototype._dbGet = function(uri, resolve, reject) {
 				}
 			break;
 			default:
-				console.log ("WARNING: Unsupported HTTP response " + request.status + ".");
-				reject();
+				console.log ("WARNING: Get Unsupported HTTP response " + request.status + " for uri '" + uri.uriFinal + "'.");
+				reject(that._createError(uri, "Get Unsupported HTTP response " + request.status)); // TODO: Tests
 		}
 	});
 };
@@ -964,7 +965,8 @@ RestOff.prototype._dbPost = function(uri, resolve, reject) {
 			}
 		break;
 		default:
-			console.log ("WARNING: Unsupported HTTP response.");
+			console.log ("WARNING: Post Unsupported HTTP response " + request.status + " for uri '" + uri.uriFinal + "'.");
+			reject(this._createError(uri, "Post Unsupported HTTP response " + request.status)); // TODO: Tests
 	}
 };
 
@@ -988,7 +990,7 @@ RestOff.prototype._dbPut = function(uri, resolve, reject) {
 		case 200:
 			resolve(this._repoAddResource(uri)); // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
 		break;
-		default:
+		case 0: case 404:
 			var clientOnly = uri.options.clientOnly;
 			if (uri.options.forcedOffline || clientOnly) { // we are offline, but resource not found so 404 it.
 				 // TODO: Provide a call back if !clientOnly and !forcedOffline when we get here.
@@ -1005,6 +1007,10 @@ RestOff.prototype._dbPut = function(uri, resolve, reject) {
 			} else {
 				reject(this._createError(uri));
 			}
+		break;
+		default:
+			console.log ("WARNING: Put Unsupported HTTP response " + request.status + " for uri '" + uri.uriFinal + "'.");
+			reject(this._createError(uri, "Put Unsupported HTTP response " + request.status)); // TODO: Tests
 	}
 };
 
