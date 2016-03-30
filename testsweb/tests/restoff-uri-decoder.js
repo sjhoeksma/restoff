@@ -60,6 +60,4 @@ describe ("restoffUriDecoder", function() {
 
     });
 
-
 });
-

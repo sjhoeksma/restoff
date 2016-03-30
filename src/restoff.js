@@ -199,7 +199,6 @@ RestOff.prototype._repoAdd = function(uri, resourceRaw) {
 	});
 };
 
-
 RestOff.prototype._hashify = function(pKeyName, resources) {
 	var repositoryHash = {};
 	resources.forEach(function(resource) {
@@ -370,7 +369,7 @@ RestOff.prototype._repoAddResource = function(uri) {
 	var that = this;
 	return new Promise(function(resolve) {
 		if (!uri.options.persistenceDisabled) {
-			if (("" === uri.primaryKey) && ("GET" === uri.restMethod)) {  // Complete get, doing a merge because we don't have soft_delete
+			if ("GET" === uri.restMethod) {  // Complete get, doing a merge because we don't have soft_delete
 				var serverResources = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // makes logic easier
 				var pending = that._pending.pendingGet(uri.repoName);
 				if (pending.length > 0 ) { // we got reconciliation work to do!!!
@@ -638,7 +637,7 @@ RestOff.prototype.restCallNp = function(uriClient, restMethod, options, resource
 			case "GET":
 				return this._repoGetNp(uri);
 			case "POST":
-				return this._pendingRepoAddNp(uri)
+				return this._pendingRepoAddNp(uri);
 			case "PUT":
 				return this._dbPutNp(uri);
 			case "DELETE":

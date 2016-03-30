@@ -334,8 +334,8 @@ describe ("restoff", function() {
 			return a subset of data from the persisted\
 			data store. Calling get again with a subset of\
 			data, when no changes have occured on the server,\
-			result in those get being added to the client\
-			repository.", function () {
+			result in that get being overwritting the existing\
+			repository when soft-delete and last_updated not available.", function () {
 
 		var userReturned =  {
 			"ID": "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa",
@@ -354,18 +354,16 @@ describe ("restoff", function() {
 			return roff.get(userRepo).then(function(users) {
 				dbRepoShouldBeEqual(roff, userRepo, users, 3);
 				return roff.get(userRepo + "/" + "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa", {primaryKeyName: "ID"}).then(function (userOnline) {
-					dbRepoShouldBeEqual(roff, userRepo, users, 3); // no changes to existing repository
-					expect(deepEqual(userReturned, userOnline), " users returned should be the same").to.equal(true);
+					dbRepoShouldBeEqual(roff, userRepo, userOnline, 1); // changes to existing repository
 					roff.forcedOffline = true;
 					return roff.get(userRepo + "/" + "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa").then(function (userWhileOffline) {
-						dbRepoShouldBeEqual(roff, userRepo, users, 3); // no changes to existing repository
+						dbRepoShouldBeEqual(roff, userRepo, userWhileOffline, 1); // no changes to existing repository
 						expect(deepEqual(usersReturned, userWhileOffline), " users returned should be the same").to.equal(true);
 					});
 				});
 			});
 		});
 	});
-
 
 	it("14: get, when clientOnly is true, should persist the data locally\
 			and there should be no pending changes for update/put/delete", function() {
