@@ -1366,10 +1366,18 @@ describe ("restoff", function() {
 
 		var emailRepo = "emailAddresses01";
 
+		var pendingCallBack = 0;
+		var callBackAction;
+		var callBackUri;
 		var roff = restlib.restoff({
 			"rootUri" : ROOT_URI,
 			dbService : {
 				primaryKeyName : "not_used_id",
+			},
+			onCallPending: function(pendingAction, uri) {
+				pendingCallBack++;
+				callBackAction = pendingAction;
+				callBackUri = uri;
 			}
 		});
 
@@ -1398,6 +1406,9 @@ describe ("restoff", function() {
 									expect(pending.length, "Should have nothing pending").to.equal(0);
 									expect([emailAId, emailBPutId, emailDId], "Client should sync up when placed online again and resource is accessed").to.deep.equals(updatedResults);
 									pendingStatusCount(roff, 0);
+									expect(pendingCallBack, "pending call back was called").to.equal(3);
+									expect(callBackAction, "Should pass callBackAction").to.be.an("object");
+									expect(callBackUri, "Should pass callBackUri").to.be.an("object");
 									return Promise.all([
 										roff.delete(emailRepo+"/"+emailA.ID, {primaryKeyName:"ID"}),
 										roff.delete(emailRepo+"/"+emailB.ID, {primaryKeyName:"ID"}),

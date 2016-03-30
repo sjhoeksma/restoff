@@ -205,6 +205,9 @@ RestOff.prototype._joinedHash = function(pKeyName, serverResources, clientResour
 RestOff.prototype._applyAndClearPending = function(pendingAction, uri) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
+		if (that._options.onCallPending) {
+			that._options.onCallPending(pendingAction, uri);
+		}
 		return that._restCall(pendingAction.uri, pendingAction.restMethod, uri.options, pendingAction.resources).then(function() {
 			resolve(that.pendingService.pendingDelete(pendingAction.id));
 		}).catch(function(error) {

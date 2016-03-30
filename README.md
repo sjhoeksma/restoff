@@ -173,6 +173,23 @@ rest.put("users", { Name : "Happy User"}).then(function(result) {
 });
 ```
 
+### onCallPending(pendingAction, uri) [Optional]
+
+```onCallPending``` is the function called by Restoff before a pending call is executed. Provided is all information about the pending action and the uri record.
+
+// TODO: Provide the json format for pendingAction and the uri record.
+
+```javascript
+var rest = restoff({
+	rootUri: "http://api.example.com/",
+	onCallPending: function(pendingAction, uri) {
+		console.log("Pending will execute %O %O", pendingAction, uri)
+		callBackAction = pendingAction;
+		callBackUri = uri;
+	}
+});
+```
+
 ### primaryKeyName [Required: Default id]
 
 ```primaryKeyName``` is the name of the primary key of the resource
@@ -214,6 +231,7 @@ var rest = restoff({
 	generateId: function() { return Math.floor((1 + Math.random()) * 0x10000); } // not a great unique key generator
 });
 ```
+
 ### onReconciliation(completedAction) [Optional]
 
 ```onReconciliation``` is the function called by Restoff after reconciliation of a given resource is complete.

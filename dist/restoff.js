@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.2.13
+// version: 0.2.14
 // author: ProductOps <restoff@productops.com>
 // license: MIT
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.2.13'; // version set through gulp build
+restlib["version-library"] = '0.2.14'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -662,6 +662,9 @@ RestOff.prototype._joinedHash = function(pKeyName, serverResources, clientResour
 RestOff.prototype._applyAndClearPending = function(pendingAction, uri) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
+		if (that._options.onCallPending) {
+			that._options.onCallPending(pendingAction, uri);
+		}
 		return that._restCall(pendingAction.uri, pendingAction.restMethod, uri.options, pendingAction.resources).then(function() {
 			resolve(that.pendingService.pendingDelete(pendingAction.id));
 		}).catch(function(error) {
