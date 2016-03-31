@@ -215,7 +215,7 @@ RestOff.prototype._applyAndClearPending = function(pendingAction, uri) {
 		//       server now that we are online. So, we pass true for useOriginalUri
 		//       so we don't re-generate it (which would also cause any
 		//       autoQueryParams to get appended twice.
-		return that._restCall(pendingAction.uri, pendingAction.restMethod, uri.options, pendingAction.resources, true).then(function() {
+		return that._restCall(pendingAction.uri, pendingAction.restMethod, uri.options, pendingAction.resources, true).then(function() { // TODO: Write a test for this being true.
 			resolve(that.pendingService.pendingDelete(pendingAction.id));
 		}).catch(function(error) {
 			reject(error);
@@ -519,7 +519,7 @@ RestOff.prototype._dbGet = function(uri) {
 RestOff.prototype._dbPost = function(uri, resolve, reject) {
 	var request = uri.request;
 	switch (request.status) {
-		case 201:
+		case 200: case 201: // TODO: Test for case 200
 			return this._repoAddResource(uri).then(function(result) {  // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
 				resolve(result);
 			}).catch(function(error){
