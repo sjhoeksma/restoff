@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.2.24
+// version: 0.2.25
 // author: ProductOps <restoff@productops.com>
 // license: MIT
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.2.24'; // version set through gulp build
+restlib["version-library"] = '0.2.25'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -235,7 +235,7 @@ RestOffService.prototype.writeSync = function(repoName, resources, options) {
 		if (undefined === primaryKey) {
 			// TODO: Provide a call back for logging so user can log/notify/etc.
 			// TODO: Allow Program to continue execution?
-			throw new Error("Primary key '" + pkName + "' missing for resource or the resource has an invalid primary key."); // TODO: Write Test for this
+			throw new Error("Expected resource in repository '" + repoName + "' to have a primary key named '" + pkName + "'. The resource we are checking against is " + JSON.stringify(resource) + ". The primary key name comes from the global configuration or you can set it for each RESTful call. Please see supporting documentation.");
 		}
 	});
 	var that = this;

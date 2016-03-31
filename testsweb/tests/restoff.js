@@ -654,6 +654,26 @@ describe ("restoff", function() {
 	});
 
 
+	it("21: should provide a useful error message for missing primary keys", function(){
+
+		// NOTE: Current test backed doesn't support stuff like users11?first_name=Fantastic.
+		//		 So, this test does it all on the client side.
+		var roff = restlib.restoff({
+			rootUri: ROOT_URI,
+			dbService: {
+				primaryKeyName : "ID",
+			},
+		});
+		var userRepo = "users01";
+
+		return roff.get(userRepo).catch(function(error) {
+			var error2 = "Expected resource in repository 'users01' to have a primary key named 'ID'. The resource we are checking against is {\"id\":\"aedfa7a4-d748-11e5-b5d2-0a1d41d68577\",\"first_name\":\"Happy2\",\"last_name\":\"User2\"}. The primary key name comes from the global configuration or you can set it for each RESTful call. Please see supporting documentation.";
+			expect(error.message, "correct error").to.equal(error2);
+		});
+
+	});
+
+
 	// dbActions Differ From RESTful Action
 
 	// Get - Postins

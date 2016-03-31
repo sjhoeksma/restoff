@@ -182,12 +182,32 @@ var rest = restoff({
 });
 ```
 
-### primaryKeyName [Required: Default id]
+### 	dbService.primaryKeyName or options {primaryKeyName:"name"} [Required: Default id]
 
-```primaryKeyName``` is the name of the primary key of the resource
+```primaryKeyName``` is the name of the primary key field for a given repository.
 
-* Restoff requires every resource to have a single primary key
-* Used by the persistence engine for post, put and delete
+* Restoff requires every repository to have a single primary key
+ 	* the primary key can't be based on a composite key
+* The default value is 'id'.
+
+You can globally set the ```primaryKeyName``` or on a per RESTful call basis:
+
+```javascript
+var roff = restlib.restoff({
+	rootUri: "api.example.com",
+	dbService: {
+		primaryKeyName : "ID",
+	},
+});
+
+roff.get("users").then(function(result) {
+	console.log("Primary key name used was ID.");
+});
+
+roff.get("users", {primaryKeyName:"USER_ID"}).then(function(result) {
+	console.log("Primary key name used was USER_ID.");
+});
+```
 
 ### forcedOffline [Optional]
 
@@ -199,7 +219,7 @@ Forces the application to run in offline mode.
 
 ```javascript
 var roff = restoff({
-	"rootUri" : "http://api.example.com/"
+	rootUri: "http://api.example.com/"
 });
 
 synchronize(roff, "user456");
