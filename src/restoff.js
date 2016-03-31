@@ -96,8 +96,8 @@ RestOff.prototype._requestGet = function(uri) {
 	return request;
 };
 
-RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options) {
-	return this._restoffUri.uriFromClient(uri, restMethod, resources, options);
+RestOff.prototype.uriFromClient = function(uri, restMethod, resources, options, useOriginalUri) {
+	return this._restoffUri.uriFromClient(uri, restMethod, resources, options, useOriginalUri);
 };
 
 RestOff.prototype.clearAll = function(force) {
@@ -211,7 +211,11 @@ RestOff.prototype._applyAndClearPending = function(pendingAction, uri) {
 		if (that._options.onCallPending) {
 			that._options.onCallPending(pendingAction, uri);
 		}
-		return that._restCall(pendingAction.uri, pendingAction.restMethod, uri.options, pendingAction.resources).then(function() {
+		// NOTE: We want to use the original uri when we "resbumit" the call to the
+		//       server now that we are online. So, we pass true for useOriginalUri
+		//       so we don't re-generate it (which would also cause any
+		//       autoQueryParams to get appended twice.
+		return that._restCall(pendingAction.uri, pendingAction.restMethod, uri.options, pendingAction.resources, true).then(function() {
 			resolve(that.pendingService.pendingDelete(pendingAction.id));
 		}).catch(function(error) {
 			reject(error);
@@ -587,10 +591,10 @@ RestOff.prototype._dbPut = function(uri, resolve, reject) {
 	}
 };
 
-RestOff.prototype._restCall = function(uriClient, restMethod, options, resource) {
+RestOff.prototype._restCall = function(uriClient, restMethod, options, resource, useOriginalUri) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
-		var uri = that.uriFromClient(uriClient, restMethod, resource, options);
+		var uri = that.uriFromClient(uriClient, restMethod, resource, options, useOriginalUri);
 		var request = that._requestGet(uri);
 		var body = JSON.stringify(resource);
 		request.open(uri.restMethod, uri.uriFinal, true); // true: asynchronous
@@ -627,12 +631,12 @@ RestOff.prototype._restCall = function(uriClient, restMethod, options, resource)
 	});
 };
 
-RestOff.prototype.restCallSync = function(uriClient, restMethod, options, resource) {
+RestOff.prototype.restCallSync = function(uriClient, restMethod, options, resource, useOriginalUri) {
 	var clientOnly = options ? !!options.clientOnly : false;
 	if (!(this.forcedOffline || clientOnly)) {
 		throw new Error(restMethod.toLowerCase() + "Sync only available when forcedOffline or clientOnly is true.");
 	} else {
-		var uri = this.uriFromClient(uriClient, restMethod, resource, options);
+		var uri = this.uriFromClient(uriClient, restMethod, resource, options, useOriginalUri);
 		switch(uri.restMethod) {
 			case "GET":
 				return this._repoGetSync(uri);
@@ -649,35 +653,35 @@ RestOff.prototype.restCallSync = function(uriClient, restMethod, options, resour
 };
 
 RestOff.prototype.deleteSync = function(uri, options) {
-	return this.restCallSync(uri, "DELETE", options);
+	return this.restCallSync(uri, "DELETE", options, undefined, false);
 };
 
 RestOff.prototype.getSync = function(uri, options) {
-	return this.restCallSync(uri, "GET", options);
+	return this.restCallSync(uri, "GET", options, undefined, false);
 };
 
 RestOff.prototype.postSync = function(uri, resource, options) {
-	return this.restCallSync(uri, "POST", options, resource);
+	return this.restCallSync(uri, "POST", options, resource, false);
 };
 
 RestOff.prototype.putSync = function(uri, resource, options) {
-	return this.restCallSync(uri, "PUT", options, resource);
+	return this.restCallSync(uri, "PUT", options, resource, false);
 };
 
 RestOff.prototype.delete = function(uri, options) {
-	return this._restCall(uri, "DELETE", options);
+	return this._restCall(uri, "DELETE", options, undefined, false);
 };
 
 RestOff.prototype.get = function(uri, options) {
-	return this._restCall(uri, "GET", options);
+	return this._restCall(uri, "GET", options, undefined, false);
 };
 
 RestOff.prototype.post = function(uri, resource, options) {
-	return this._restCall(uri, "POST", options, resource);
+	return this._restCall(uri, "POST", options, resource, false);
 };
 
 RestOff.prototype.put = function(uri, resource, options) {
-	return this._restCall(uri, "PUT", options, resource);
+	return this._restCall(uri, "PUT", options, resource, false);
 };
 
 restlib.restoff = restoff;

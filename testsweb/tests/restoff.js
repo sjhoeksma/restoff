@@ -637,6 +637,21 @@ describe ("restoff", function() {
 	});
 
 
+	it("20: auto param set should overwrite an existing paramter", function(){
+
+		// NOTE: Current test backed doesn't support stuff like users11?first_name=Fantastic.
+		//		 So, this test does it all on the client side.
+		var roff = restlib.restoff({
+			"rootUri" : "http://localhost/"
+		});
+
+		roff.autoQueryParamSet("auto_one", "hello");
+		var uri = roff.uriFromClient("user", "GET", undefined, undefined);
+		expect(uri.uriFinal, "valid uriFinal").to.equal("http://localhost/user?auto_one=hello");
+		roff.autoQueryParamSet("auto_one", "goodbye");
+		var uri2 = roff.uriFromClient("user", "GET", undefined, undefined);
+		expect(uri2.uriFinal, "valid uriFinal " + uri2.uriFinal).to.equal("http://localhost/user?auto_one=goodbye");
+	});
 
 
 	// dbActions Differ From RESTful Action

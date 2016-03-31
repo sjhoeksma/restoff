@@ -42,7 +42,7 @@ RestoffUri.prototype._uriGenerate = function(uri) {
     return result;
 };
 
-RestoffUri.prototype.uriFromClient = function(uri, restMethod, resources, options) {
+RestoffUri.prototype.uriFromClient = function(uri, restMethod, resources, options, useOriginalUri) {
     var uriResult = {
         uri: uri,
         primaryKey : "",
@@ -55,7 +55,7 @@ RestoffUri.prototype.uriFromClient = function(uri, restMethod, resources, option
     if (!uriResult.options.rootUri.endsWith("/")) {
         uriResult.options.rootUri = uriResult.options.rootUri + "/";
     }
-    uriResult.uriFinal = this._uriGenerate(uriResult);
+    uriResult.uriFinal = useOriginalUri ? uri : this._uriGenerate(uriResult);
     var result = uri.replace(uriResult.options.rootUri, "");
 
     this.filter.forEach(function(item) { // remove unwanted parts from the uri.

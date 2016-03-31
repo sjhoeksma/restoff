@@ -129,12 +129,6 @@ roff.get("users").then(function(result){
 roff.get("http://another.example.com/users").then(function(result){
 	// use the result here
 }
-
-// uri is http://another.example.com/support/users
-// repository name is support/users
-roff.get("http://another.example.com/support/users").then(function(result){
-	// use the result here
-}
 ```
 
 ### persistenceDisabled [Optional]
@@ -582,10 +576,6 @@ angular.module("fakeRoot", ["restoff"])
 
 Note that we "hard code" the configuration, but you could also get the configuration from another service.
 
-## TODOs
-
-* Figure out how to stop 404 (Not Found) message in log. Tried surrounding with try/catch and removing strict.
-
 ## Development Issues
 
 ### Live Reload Isn't Reloading
@@ -594,6 +584,11 @@ Note that we "hard code" the configuration, but you could also get the configura
 * Click on livereload icon in chrome browser: small circle in center should become solid.
 * Is more than one instance of gulp running?
 
+
+### Hide HTTP Network Messages During Testing
+* In chrome, right mouse click and inspect.
+* From the console tab, click on filter (icon next to Top)
+* Check "Hide network messages"
 
 [rest-best-practices]: https://codeplanet.io/principles-good-restful-api-design/
 [jsonplaceholder-link]: http://jsonplaceholder.typicode.com/
