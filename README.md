@@ -8,7 +8,7 @@ Rest Offline uses your existing RESTful APIs to synchronize client/server data a
 	* Supports multiple databases sources.
 	* No need to worry about database schema changes.
 	* focus on your RESTful API and not your backend databases
-* Supports synchronous RESTful calls (in forcedOffline mode).
+* Supports synchronous RESTful calls.
     * Simplifies source code.
     * improves client responsiveness.
 * Reconciliation and Offline Modes
@@ -381,7 +381,6 @@ Note:
 
 * A 404 (not found) is "ignored" and the resource is still removed from the local repository.
 * If delete(uri) is called on a non-existent repository, an empty repository is created.
-* TODO: When offline, delete will occur in the local repository and synchronize when the client/server is back online.
 
 Example usage:
 
@@ -401,7 +400,6 @@ var result = roff.deleteSync("http://test.development.com:4050/users/553fdf");
 * ```get(uri, [options])``` asynchronously retrieves a json resource from a remote server. Uses the local repository when offline.
 * ```getSync(uri, [options])``` synchronously retrieves a json resource from the local repository.
 
-
 Example usage:
 
 ```javascript
@@ -413,8 +411,6 @@ return roff.get("http://test.development.com:4050/testsweb/testdata/users")
 
 roff.forcedOffline = true;
 var result = roff.getSync("http://test.development.com:4050/testsweb/testdata/users");
-
-
 ```
 
 ### post(uri, resource, [options]), postSync(uri, resource, [options])
@@ -422,10 +418,7 @@ var result = roff.getSync("http://test.development.com:4050/testsweb/testdata/us
 * ```post(uri, resource, [options])``` asynchronously posts a resource to a remote server and in the local repository adding the resource if it doesn't exist or overwriting the existing resource.
 * ```postSync(uri, resource, [options])``` synchronously posts a resource in the local repository adding the resource if it doesn't exist or overwriting the existing resource.
 
-
 * When online, inserts and updates will happen immediately.
-* TODO: May want to do a POST then a GET to catch any changes by a model on the server before the data is posted???
-* TODO: When offline, inserts and updates will happen in the local repository and synchronzie when the client/server is back online.
 
 Example usage:
 
@@ -444,7 +437,6 @@ return roff.post("http://test.development.com:4050/users", newUser)
 
 roff.forcedOffline = true;
 var result = roff.postSync("http://test.development.com:4050/users", newUser)
-
 ```
 
 ### put(uri, resource, [options]), putSync(uri, resource, [options])
@@ -471,7 +463,6 @@ return roff.post("users/ffa454", existingUser)
 
 roff.forcedOffline = true;
 var result = roff.postSync("users/ffa454", existingUser)
-
 ```
 
 ### uriFromClient(uri)
