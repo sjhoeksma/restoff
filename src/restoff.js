@@ -632,23 +632,18 @@ RestOff.prototype._restCall = function(uriClient, restMethod, options, resource,
 };
 
 RestOff.prototype.restCallSync = function(uriClient, restMethod, options, resource, useOriginalUri) {
-	var clientOnly = options ? !!options.clientOnly : false;
-	if (!(this.forcedOffline || clientOnly)) {
-		throw new Error(restMethod.toLowerCase() + "Sync only available when forcedOffline or clientOnly is true.");
-	} else {
-		var uri = this.uriFromClient(uriClient, restMethod, resource, options, useOriginalUri);
-		switch(uri.restMethod) {
-			case "GET":
-				return this._repoGetSync(uri);
-			case "POST":
-				return this._pendingRepoAddSync(uri);
-			case "PUT":
-				return this._dbPutSync(uri);
-			case "DELETE":
-				return this._dbDeleteSync(uri);
-			default:
-				throw new Error("Rest method '" + restMethod + "' not currently supported or is invalid.");
-		}
+	var uri = this.uriFromClient(uriClient, restMethod, resource, options, useOriginalUri);
+	switch(uri.restMethod) {
+		case "GET":
+			return this._repoGetSync(uri);
+		case "POST":
+			return this._pendingRepoAddSync(uri);
+		case "PUT":
+			return this._dbPutSync(uri);
+		case "DELETE":
+			return this._dbDeleteSync(uri);
+		default:
+			throw new Error("Rest method '" + restMethod + "' not currently supported or is invalid.");
 	}
 };
 

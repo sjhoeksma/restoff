@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.2.25
+// version: 0.2.26
 // author: ProductOps <restoff@productops.com>
 // license: MIT
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.2.25'; // version set through gulp build
+restlib["version-library"] = '0.2.26'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -1089,23 +1089,18 @@ RestOff.prototype._restCall = function(uriClient, restMethod, options, resource,
 };
 
 RestOff.prototype.restCallSync = function(uriClient, restMethod, options, resource, useOriginalUri) {
-	var clientOnly = options ? !!options.clientOnly : false;
-	if (!(this.forcedOffline || clientOnly)) {
-		throw new Error(restMethod.toLowerCase() + "Sync only available when forcedOffline or clientOnly is true.");
-	} else {
-		var uri = this.uriFromClient(uriClient, restMethod, resource, options, useOriginalUri);
-		switch(uri.restMethod) {
-			case "GET":
-				return this._repoGetSync(uri);
-			case "POST":
-				return this._pendingRepoAddSync(uri);
-			case "PUT":
-				return this._dbPutSync(uri);
-			case "DELETE":
-				return this._dbDeleteSync(uri);
-			default:
-				throw new Error("Rest method '" + restMethod + "' not currently supported or is invalid.");
-		}
+	var uri = this.uriFromClient(uriClient, restMethod, resource, options, useOriginalUri);
+	switch(uri.restMethod) {
+		case "GET":
+			return this._repoGetSync(uri);
+		case "POST":
+			return this._pendingRepoAddSync(uri);
+		case "PUT":
+			return this._dbPutSync(uri);
+		case "DELETE":
+			return this._dbDeleteSync(uri);
+		default:
+			throw new Error("Rest method '" + restMethod + "' not currently supported or is invalid.");
 	}
 };
 

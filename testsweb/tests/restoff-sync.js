@@ -2,71 +2,72 @@
 
 describe ("restoffSynchronous", function() {
 
-	it("01: getSync, deleteSync, putSync, postSync should not work in forcedOffline mode or clientOnly is true.", function() {
-		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
-		var repository = "users11";
-		roff.clear(repository, true);
-		return Promise.all([
-			roff.get(repository)
-		]).then(function() {
-			expect(function() {
-					roff.getSync(repository);
-			},"should throw exception").to.throw("getSync only available when forcedOffline or clientOnly is true.");
-			expect(function() {
-					roff.deleteSync(repository);
-			},"should throw exception").to.throw("deleteSync only available when forcedOffline or clientOnly is true.");
-			expect(function() {
-					roff.postSync(repository);
-			},"should throw exception").to.throw("postSync only available when forcedOffline or clientOnly is true.");
-			expect(function() {
-					roff.putSync(repository);
-			},"should throw exception").to.throw("putSync only available when forcedOffline or clientOnly is true.");
-
-			expect(function() {
-					roff.getSync(repository, {clientOnly: false});
-			},"should throw exception").to.throw("getSync only available when forcedOffline or clientOnly is true.");
-			expect(function() {
-					roff.deleteSync(repository, {clientOnly: false});
-			},"should throw exception").to.throw("deleteSync only available when forcedOffline or clientOnly is true.");
-			expect(function() {
-					roff.postSync(repository, undefined, {clientOnly: false});
-			},"should throw exception").to.throw("postSync only available when forcedOffline or clientOnly is true.");
-			expect(function() {
-					roff.putSync(repository, undefined, {clientOnly: false});
-			},"should throw exception").to.throw("putSync only available when forcedOffline or clientOnly is true.");
-
-			roff.forcedOffline = true;
-			expect(function() {
-					roff.getSync(repository);
-			},"should throw exception").to.not.
-			throw("getSync only available when forcedOffline or clientOnly is true.");
-			expect(function() {
-					roff.deleteSync(repository);
-			},"should throw exception").to.not.throw("deleteSync only available when forcedOffline or clientOnly is true.");
-			expect(function() {
-					roff.postSync(repository);
-			},"should throw exception").to.not.throw("postSync only available when forcedOffline or clientOnly is true.");
-			expect(function() {
-					roff.putSync(repository);
-			},"should throw exception").to.not.throw("putSync only available when forcedOffline or clientOnly is true.");
-
-			roff.forcedOffline = false;
-
-			expect(function() {
-					roff.getSync(repository, {clientOnly: true});
-			},"should throw exception").to.not.throw("getSync only available when forcedOffline or clientOnly is true.");
-			expect(function() {
-					roff.deleteSync(repository, {clientOnly: true});
-			},"should throw exception").to.not.throw("deleteSync only available when forcedOffline or clientOnly is true.");
-			expect(function() {
-					roff.postSync(repository, undefined, {clientOnly: true});
-			},"should throw exception").to.not.throw("postSync only available when forcedOffline or clientOnly is true.");
-			expect(function() {
-					roff.putSync(repository, undefined, {clientOnly: true});
-			},"should throw exception").to.not.throw("putSync only available when forcedOffline or clientOnly is true.");
-
-		});
-	});
+  // This feature has been removed.
+	// it("01: getSync, deleteSync, putSync, postSync should not work in forcedOffline mode or clientOnly is true.", function() {
+	// 	var roff = restlib.restoff({ "rootUri" : ROOT_URI });
+	// 	var repository = "users11";
+	// 	roff.clear(repository, true);
+	// 	return Promise.all([
+	// 		roff.get(repository)
+	// 	]).then(function() {
+	// 		expect(function() {
+	// 				roff.getSync(repository);
+	// 		},"should throw exception").to.throw("getSync only available when forcedOffline or clientOnly is true.");
+	// 		expect(function() {
+	// 				roff.deleteSync(repository);
+	// 		},"should throw exception").to.throw("deleteSync only available when forcedOffline or clientOnly is true.");
+	// 		expect(function() {
+	// 				roff.postSync(repository);
+	// 		},"should throw exception").to.throw("postSync only available when forcedOffline or clientOnly is true.");
+	// 		expect(function() {
+	// 				roff.putSync(repository);
+	// 		},"should throw exception").to.throw("putSync only available when forcedOffline or clientOnly is true.");
+	//
+	// 		expect(function() {
+	// 				roff.getSync(repository, {clientOnly: false});
+	// 		},"should throw exception").to.throw("getSync only available when forcedOffline or clientOnly is true.");
+	// 		expect(function() {
+	// 				roff.deleteSync(repository, {clientOnly: false});
+	// 		},"should throw exception").to.throw("deleteSync only available when forcedOffline or clientOnly is true.");
+	// 		expect(function() {
+	// 				roff.postSync(repository, undefined, {clientOnly: false});
+	// 		},"should throw exception").to.throw("postSync only available when forcedOffline or clientOnly is true.");
+	// 		expect(function() {
+	// 				roff.putSync(repository, undefined, {clientOnly: false});
+	// 		},"should throw exception").to.throw("putSync only available when forcedOffline or clientOnly is true.");
+	//
+	// 		roff.forcedOffline = true;
+	// 		expect(function() {
+	// 				roff.getSync(repository);
+	// 		},"should throw exception").to.not.
+	// 		throw("getSync only available when forcedOffline or clientOnly is true.");
+	// 		expect(function() {
+	// 				roff.deleteSync(repository);
+	// 		},"should throw exception").to.not.throw("deleteSync only available when forcedOffline or clientOnly is true.");
+	// 		expect(function() {
+	// 				roff.postSync(repository);
+	// 		},"should throw exception").to.not.throw("postSync only available when forcedOffline or clientOnly is true.");
+	// 		expect(function() {
+	// 				roff.putSync(repository);
+	// 		},"should throw exception").to.not.throw("putSync only available when forcedOffline or clientOnly is true.");
+	//
+	// 		roff.forcedOffline = false;
+	//
+	// 		expect(function() {
+	// 				roff.getSync(repository, {clientOnly: true});
+	// 		},"should throw exception").to.not.throw("getSync only available when forcedOffline or clientOnly is true.");
+	// 		expect(function() {
+	// 				roff.deleteSync(repository, {clientOnly: true});
+	// 		},"should throw exception").to.not.throw("deleteSync only available when forcedOffline or clientOnly is true.");
+	// 		expect(function() {
+	// 				roff.postSync(repository, undefined, {clientOnly: true});
+	// 		},"should throw exception").to.not.throw("postSync only available when forcedOffline or clientOnly is true.");
+	// 		expect(function() {
+	// 				roff.putSync(repository, undefined, {clientOnly: true});
+	// 		},"should throw exception").to.not.throw("putSync only available when forcedOffline or clientOnly is true.");
+	//
+	// 	});
+	// });
 
 	it("02: getSync should return results when offlineOnly or options is clientOnly.", function() {
 		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
