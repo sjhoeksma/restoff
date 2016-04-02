@@ -1,10 +1,10 @@
 # REST Offline
 
-Rest Offline uses your existing RESTful APIs to synchronize client/server data allowing your application to run even when it goes offline.
+Synchronize client/server data using your existing RESTful APIs.
 
 * Now under MIT license.
 * Database agnostic and schema-less.
-	* Works against any database backend (SQL, Key/Value, Garph, etc.).
+	* Works against any database backend (SQL, NoSQL, Graph, etc.) and service (MySQL, SQL Server, Oracle, Postgress, Mongo, Redis, etc.).
 	* Supports multiple databases sources.
 	* No need to worry about database schema changes.
 	* focus on your RESTful API and not your backend databases
@@ -372,15 +372,15 @@ console.log("User repository, even if it had pending, was cleared ");
 
 
 
-### delete(uri, [options]), deleteSync(uri, [options])
+### delete(uri, [options]), deleteRepo(uri, [options])
 
 * ```delete(uri, [options])``` asynchronously deletes a resource from a remote server and in the local repository.
-* ```deleteSync(uri, [options])``` synchronously deletes a resource from a remote server and in the local repository.
+* ```deleteRepo(uri, [options])``` synchronously deletes a resource from in the local repository.
 
 Note:
 
-* A 404 (not found) is "ignored" and the resource is still removed from the local repository.
-* If delete(uri) is called on a non-existent repository, an empty repository is created.
+* A 404 (not found) is "ignored" and the resource is still considered removed from the local repository.
+* If ```delete``` is called on a non-existent repository, an empty repository is created.
 
 Example usage:
 
@@ -392,13 +392,13 @@ return roff.delete("http://test.development.com:4050/users/553fdf")
 });
 
 roff.forcedOffline = true;
-var result = roff.deleteSync("http://test.development.com:4050/users/553fdf");
+var result = roff.deleteRepo("http://test.development.com:4050/users/553fdf");
 ```
 
-### get(uri, [options]), getSync(uri, [options])
+### get(uri, [options]), getRepo(uri, [options])
 
-* ```get(uri, [options])``` asynchronously retrieves a json resource from a remote server. Uses the local repository when offline.
-* ```getSync(uri, [options])``` synchronously retrieves a json resource from the local repository.
+* ```get(uri, [options])``` asynchronously retrieves a resource from a remote server. Uses the local repository when offline.
+* ```getRepo(uri, [options])``` synchronously retrieves a resource from the local repository.
 
 Example usage:
 
@@ -410,15 +410,16 @@ return roff.get("http://test.development.com:4050/testsweb/testdata/users")
 });
 
 roff.forcedOffline = true;
-var result = roff.getSync("http://test.development.com:4050/testsweb/testdata/users");
+var result = roff.getRepo("http://test.development.com:4050/testsweb/testdata/users");
 ```
 
-### post(uri, resource, [options]), postSync(uri, resource, [options])
+### post(uri, resource, [options]), postRepo(uri, resource, [options])
 
 * ```post(uri, resource, [options])``` asynchronously posts a resource to a remote server and in the local repository adding the resource if it doesn't exist or overwriting the existing resource.
-* ```postSync(uri, resource, [options])``` synchronously posts a resource in the local repository adding the resource if it doesn't exist or overwriting the existing resource.
+* ```postRepo(uri, resource, [options])``` synchronously posts a resource in the local repository adding the resource if it doesn't exist or overwriting the existing resource.
 
-* When online, inserts and updates will happen immediately.
+* When online, ```post(...)``` calls will happen immediately.
+* With ```postRepo(...)```, updates will happen when a ```get(...)``` is executed on that resource.
 
 Example usage:
 
@@ -436,13 +437,13 @@ return roff.post("http://test.development.com:4050/users", newUser)
 });
 
 roff.forcedOffline = true;
-var result = roff.postSync("http://test.development.com:4050/users", newUser)
+var result = roff.postRepo("http://test.development.com:4050/users", newUser)
 ```
 
-### put(uri, resource, [options]), putSync(uri, resource, [options])
+### put(uri, resource, [options]), putRepo(uri, resource, [options])
 
 * ```put(uri, resource, [options])``` asynchronously puts a known resource on a remote server and in the local repository updating the resource id provided in the uri.
-* ```put(uri, resource, [options])``` synchronously puts a known resource in the local repository updating the resource id provided in the uri.
+* ```putRepo(uri, resource, [options])``` synchronously puts a known resource in the local repository updating the resource id provided in the uri.
 
 Example usage:
 
@@ -462,7 +463,7 @@ return roff.post("users/ffa454", existingUser)
 });
 
 roff.forcedOffline = true;
-var result = roff.postSync("users/ffa454", existingUser)
+var result = roff.postRepo("users/ffa454", existingUser)
 ```
 
 ### uriFromClient(uri)

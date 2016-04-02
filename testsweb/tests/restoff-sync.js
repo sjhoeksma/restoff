@@ -3,7 +3,7 @@
 describe ("restoffSynchronous", function() {
 
   // This feature has been removed.
-	// it("01: getSync, deleteSync, putSync, postSync should not work in forcedOffline mode or clientOnly is true.", function() {
+	// it("01: getRepo, deleteRepo, putRepo, postRepo should not work in forcedOffline mode or clientOnly is true.", function() {
 	// 	var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 	// 	var repository = "users11";
 	// 	roff.clear(repository, true);
@@ -11,65 +11,65 @@ describe ("restoffSynchronous", function() {
 	// 		roff.get(repository)
 	// 	]).then(function() {
 	// 		expect(function() {
-	// 				roff.getSync(repository);
-	// 		},"should throw exception").to.throw("getSync only available when forcedOffline or clientOnly is true.");
+	// 				roff.getRepo(repository);
+	// 		},"should throw exception").to.throw("getRepo only available when forcedOffline or clientOnly is true.");
 	// 		expect(function() {
-	// 				roff.deleteSync(repository);
-	// 		},"should throw exception").to.throw("deleteSync only available when forcedOffline or clientOnly is true.");
+	// 				roff.deleteRepo(repository);
+	// 		},"should throw exception").to.throw("deleteRepo only available when forcedOffline or clientOnly is true.");
 	// 		expect(function() {
-	// 				roff.postSync(repository);
-	// 		},"should throw exception").to.throw("postSync only available when forcedOffline or clientOnly is true.");
+	// 				roff.postRepo(repository);
+	// 		},"should throw exception").to.throw("postRepo only available when forcedOffline or clientOnly is true.");
 	// 		expect(function() {
-	// 				roff.putSync(repository);
-	// 		},"should throw exception").to.throw("putSync only available when forcedOffline or clientOnly is true.");
+	// 				roff.putRepo(repository);
+	// 		},"should throw exception").to.throw("putRepo only available when forcedOffline or clientOnly is true.");
 	//
 	// 		expect(function() {
-	// 				roff.getSync(repository, {clientOnly: false});
-	// 		},"should throw exception").to.throw("getSync only available when forcedOffline or clientOnly is true.");
+	// 				roff.getRepo(repository, {clientOnly: false});
+	// 		},"should throw exception").to.throw("getRepo only available when forcedOffline or clientOnly is true.");
 	// 		expect(function() {
-	// 				roff.deleteSync(repository, {clientOnly: false});
-	// 		},"should throw exception").to.throw("deleteSync only available when forcedOffline or clientOnly is true.");
+	// 				roff.deleteRepo(repository, {clientOnly: false});
+	// 		},"should throw exception").to.throw("deleteRepo only available when forcedOffline or clientOnly is true.");
 	// 		expect(function() {
-	// 				roff.postSync(repository, undefined, {clientOnly: false});
-	// 		},"should throw exception").to.throw("postSync only available when forcedOffline or clientOnly is true.");
+	// 				roff.postRepo(repository, undefined, {clientOnly: false});
+	// 		},"should throw exception").to.throw("postRepo only available when forcedOffline or clientOnly is true.");
 	// 		expect(function() {
-	// 				roff.putSync(repository, undefined, {clientOnly: false});
-	// 		},"should throw exception").to.throw("putSync only available when forcedOffline or clientOnly is true.");
+	// 				roff.putRepo(repository, undefined, {clientOnly: false});
+	// 		},"should throw exception").to.throw("putRepo only available when forcedOffline or clientOnly is true.");
 	//
 	// 		roff.forcedOffline = true;
 	// 		expect(function() {
-	// 				roff.getSync(repository);
+	// 				roff.getRepo(repository);
 	// 		},"should throw exception").to.not.
-	// 		throw("getSync only available when forcedOffline or clientOnly is true.");
+	// 		throw("getRepo only available when forcedOffline or clientOnly is true.");
 	// 		expect(function() {
-	// 				roff.deleteSync(repository);
-	// 		},"should throw exception").to.not.throw("deleteSync only available when forcedOffline or clientOnly is true.");
+	// 				roff.deleteRepo(repository);
+	// 		},"should throw exception").to.not.throw("deleteRepo only available when forcedOffline or clientOnly is true.");
 	// 		expect(function() {
-	// 				roff.postSync(repository);
-	// 		},"should throw exception").to.not.throw("postSync only available when forcedOffline or clientOnly is true.");
+	// 				roff.postRepo(repository);
+	// 		},"should throw exception").to.not.throw("postRepo only available when forcedOffline or clientOnly is true.");
 	// 		expect(function() {
-	// 				roff.putSync(repository);
-	// 		},"should throw exception").to.not.throw("putSync only available when forcedOffline or clientOnly is true.");
+	// 				roff.putRepo(repository);
+	// 		},"should throw exception").to.not.throw("putRepo only available when forcedOffline or clientOnly is true.");
 	//
 	// 		roff.forcedOffline = false;
 	//
 	// 		expect(function() {
-	// 				roff.getSync(repository, {clientOnly: true});
-	// 		},"should throw exception").to.not.throw("getSync only available when forcedOffline or clientOnly is true.");
+	// 				roff.getRepo(repository, {clientOnly: true});
+	// 		},"should throw exception").to.not.throw("getRepo only available when forcedOffline or clientOnly is true.");
 	// 		expect(function() {
-	// 				roff.deleteSync(repository, {clientOnly: true});
-	// 		},"should throw exception").to.not.throw("deleteSync only available when forcedOffline or clientOnly is true.");
+	// 				roff.deleteRepo(repository, {clientOnly: true});
+	// 		},"should throw exception").to.not.throw("deleteRepo only available when forcedOffline or clientOnly is true.");
 	// 		expect(function() {
-	// 				roff.postSync(repository, undefined, {clientOnly: true});
-	// 		},"should throw exception").to.not.throw("postSync only available when forcedOffline or clientOnly is true.");
+	// 				roff.postRepo(repository, undefined, {clientOnly: true});
+	// 		},"should throw exception").to.not.throw("postRepo only available when forcedOffline or clientOnly is true.");
 	// 		expect(function() {
-	// 				roff.putSync(repository, undefined, {clientOnly: true});
-	// 		},"should throw exception").to.not.throw("putSync only available when forcedOffline or clientOnly is true.");
+	// 				roff.putRepo(repository, undefined, {clientOnly: true});
+	// 		},"should throw exception").to.not.throw("putRepo only available when forcedOffline or clientOnly is true.");
 	//
 	// 	});
 	// });
 
-	it("02: getSync should return results when offlineOnly or options is clientOnly.", function() {
+	it("02: getRepo should return results when offlineOnly or options is clientOnly.", function() {
 		var roff = restlib.restoff({ "rootUri" : ROOT_URI });
 		var repository = "users11";
 
@@ -99,7 +99,7 @@ describe ("restoffSynchronous", function() {
 			roff.get(repository)
 		]).then(function() {
 				roff.forcedOffline = true;
-				var result = roff.getSync(repository);
+				var result = roff.getRepo(repository);
 				expect(deepEqualOrderUnimportant(users11, result, "id"), "should immediately return").to.equal(true);
 		});
 
@@ -132,24 +132,24 @@ describe ("restoffSynchronous", function() {
 		onlineStatusShouldEqual(roff, true);
 
 		expect(function() {
-			roff.putSync(repository+"/"+"notinrepopk", putRec);
+			roff.putRepo(repository+"/"+"notinrepopk", putRec);
 		},"should throw exception when put called on a resource that doesn't exist").to.throw();
 
-		var result = roff.postSync(repository, postRec);
+		var result = roff.postRepo(repository, postRec);
 		expect(result, "should immediately return with correct posted value").to.deep.equals(postRec);
 
-		var result2 = roff.getSync(repository);
+		var result2 = roff.getRepo(repository);
 		expect(result2, "expected the posted record").to.deep.equals([postRec]);
 
 
-		var result3 = roff.postSync(repository, postRec2);
+		var result3 = roff.postRepo(repository, postRec2);
 		expect(result3, "should immediately return with correct posted value").to.deep.equals(postRec2);
-		var result4 = roff.getSync(repository);
+		var result4 = roff.getRepo(repository);
 		expect(result4, "expected the posted record").to.deep.equals([postRec, postRec2]);
-		var result5 = roff.putSync(repository+"/"+putRec.id, putRec);
+		var result5 = roff.putRepo(repository+"/"+putRec.id, putRec);
 		expect(result5, "expected the putted record").to.deep.equals(putRec);
 
-		var result6 = roff.deleteSync(repository+"/"+postRec2.id);
+		var result6 = roff.deleteRepo(repository+"/"+postRec2.id);
 		expect(result6,"delete should return primary key").to.equal(postRec2.id);
 
 		var pending = pendingResourcesGetNp(roff, repository);

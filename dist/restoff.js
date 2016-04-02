@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.2.26
+// version: 0.2.27
 // author: ProductOps <restoff@productops.com>
 // license: MIT
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.2.26'; // version set through gulp build
+restlib["version-library"] = '0.2.27'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
@@ -219,7 +219,7 @@ RestOffService.prototype.clearAll = function() {
 	return this.dbRepo.clearAll();
 };
 
-RestOffService.prototype.deleteSync = function(repoName, query) {
+RestOffService.prototype.deleteRepo = function(repoName, query) {
 	return this.dbRepo.delete(repoName, query);
 };
 
@@ -408,11 +408,11 @@ RestoffPending.prototype.uriFromClient = function(uri, restMethod, resources, op
 
 RestoffPending.prototype.pendingGet = function(repoName) {
     var pendingUri = this.pendingRepoName + (repoName ? "?repoName=" + repoName : "");
-    return this._restOff.getSync(pendingUri, {rootUri:this.pendingUri,clientOnly:true});
+    return this._restOff.getRepo(pendingUri, {rootUri:this.pendingUri,clientOnly:true});
 };
 
 RestoffPending.prototype.pendingPost = function(resource) {
-    return this._restOff.postSync(this.pendingUri + this.pendingRepoName, resource, {rootUri:this.pendingUri,clientOnly:true,primaryKeyName:"id"});
+    return this._restOff.postRepo(this.pendingUri + this.pendingRepoName, resource, {rootUri:this.pendingUri,clientOnly:true,primaryKeyName:"id"});
 };
 
 
@@ -423,12 +423,12 @@ RestoffPending.prototype.pendingCount = function(repoName) {
 
 RestoffPending.prototype.pendingDelete = function(itemId) {
     var uri = this.pendingRepoName + (itemId ? "/"+itemId : "");
-    return this._restOff.deleteSync(uri, {rootUri:this.pendingUri, clientOnly:true});
+    return this._restOff.deleteRepo(uri, {rootUri:this.pendingUri, clientOnly:true});
 };
 
 RestoffPending.prototype.pendingClear = function(repoName) {
     var uri = this.pendingRepoName + "?repoName=" + repoName;
-    return this._restOff.deleteSync(uri, {rootUri:this.pendingUri, clientOnly:true});
+    return this._restOff.deleteRepo(uri, {rootUri:this.pendingUri, clientOnly:true});
 };
 
 RestoffPending.prototype.pendingAdd = function(uri) {
@@ -443,7 +443,7 @@ RestoffPending.prototype.pendingAdd = function(uri) {
     };
 
     if (!uri.options.persistenceDisabled) { // TODO: Write a test for this
-        var original = this._restOff.dbService.findSync(uri.repoName, {id:uri.primaryKey}); // TODO: Remove direct access to dbService and use restoff.getSync call
+        var original = this._restOff.dbService.findSync(uri.repoName, {id:uri.primaryKey}); // TODO: Remove direct access to dbService and use restoff.getRepo call
         if (undefined !== original[0]) {
             result.original = JSON.parse(JSON.stringify(original[0])); // need to clone original record
         }
@@ -598,7 +598,7 @@ RestOff.prototype._repoGetRaw = function(uri) {
 		this.dbService.findSync(uri.repoName);
 };
 
-RestOff.prototype._repoGetSync = function(uri) {
+RestOff.prototype._repogetRepo = function(uri) {
 	// TODO: Write tests for persistenceDisabled and the usage of queryBuildFromUri call below
 	return uri.options.persistenceDisabled ? [] :
 		this.dbService.findSync(uri.repoName, this._queryBuildFromUri(uri));
@@ -771,11 +771,11 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 								reject(error);
 							});
 						} else { // not on server, but had an original so must have been on server at one time. So, a delete.
-							that.dbService.deleteSync(uri.repoName, that._queryAddPk(uri, {}));
+							that.dbService.deleteRepo(uri.repoName, that._queryAddPk(uri, {}));
 							resolve(that.pendingService.pendingDelete(pendingAction.id));
 						}
 					} else {          // False, True, False : Delete on server                                   | Remove from repoClient directly
-						resolve(that.dbService.deleteSync(uri.repoName, that._queryAddPk(uri, {})));
+						resolve(that.dbService.deleteRepo(uri.repoName, that._queryAddPk(uri, {})));
 					}
 				} // else {  // Can't get to this case. We loop through the joined hash. A resource that is added and
 				             // then deleted while offline will not be in the joined hash BUT the pending will still be there.
@@ -845,7 +845,7 @@ RestOff.prototype._repoAddResource = function(uri) {
 
 RestOff.prototype._repoDeleteResourceSync = function(uri) {
 	if (!uri.options.persistenceDisabled) {
-		this.dbService.deleteSync(uri.repoName, this._queryAddPk(uri, uri.searchOptions));
+		this.dbService.deleteRepo(uri.repoName, this._queryAddPk(uri, uri.searchOptions));
 	}
 	return uri.primaryKey;
 };
@@ -906,7 +906,7 @@ RestOff.prototype._uriAddRequest = function(uri, request) {
 	return uri;
 };
 
-RestOff.prototype._dbDeleteSync = function(uri) {
+RestOff.prototype._dbdeleteRepo = function(uri) {
 	if (!uri.options.clientOnly) {
 		this.pendingService.pendingAdd(uri);
 	}
@@ -958,7 +958,7 @@ RestOff.prototype._dbGet = function(uri) {
 				var clientOnly = uri.options.clientOnly;
 				if (uri.options.forcedOffline || clientOnly) {
 					 // TODO: Provide a call back if !clientOnly and !forcedOffline when we get here.
-					var result = that._repoGetSync(uri);
+					var result = that._repogetRepo(uri);
 					resolve(result);
 				} else {
 					reject(that._createError(uri));
@@ -999,7 +999,7 @@ RestOff.prototype._dbPost = function(uri, resolve, reject) {
 	}
 };
 
-RestOff.prototype._dbPutSync = function(uri) {
+RestOff.prototype._dbputRepo = function(uri) {
 	var found = this._repoFindSync(uri);
 	if (found && (0 !== found.length)) { // offline but found resource on client so add it
 		return this._pendingRepoAddSync(uri);
@@ -1092,31 +1092,31 @@ RestOff.prototype.restCallSync = function(uriClient, restMethod, options, resour
 	var uri = this.uriFromClient(uriClient, restMethod, resource, options, useOriginalUri);
 	switch(uri.restMethod) {
 		case "GET":
-			return this._repoGetSync(uri);
+			return this._repogetRepo(uri);
 		case "POST":
 			return this._pendingRepoAddSync(uri);
 		case "PUT":
-			return this._dbPutSync(uri);
+			return this._dbputRepo(uri);
 		case "DELETE":
-			return this._dbDeleteSync(uri);
+			return this._dbdeleteRepo(uri);
 		default:
 			throw new Error("Rest method '" + restMethod + "' not currently supported or is invalid.");
 	}
 };
 
-RestOff.prototype.deleteSync = function(uri, options) {
+RestOff.prototype.deleteRepo = function(uri, options) {
 	return this.restCallSync(uri, "DELETE", options, undefined, false);
 };
 
-RestOff.prototype.getSync = function(uri, options) {
+RestOff.prototype.getRepo = function(uri, options) {
 	return this.restCallSync(uri, "GET", options, undefined, false);
 };
 
-RestOff.prototype.postSync = function(uri, resource, options) {
+RestOff.prototype.postRepo = function(uri, resource, options) {
 	return this.restCallSync(uri, "POST", options, resource, false);
 };
 
-RestOff.prototype.putSync = function(uri, resource, options) {
+RestOff.prototype.putRepo = function(uri, resource, options) {
 	return this.restCallSync(uri, "PUT", options, resource, false);
 };
 

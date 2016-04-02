@@ -26,11 +26,11 @@ RestoffPending.prototype.uriFromClient = function(uri, restMethod, resources, op
 
 RestoffPending.prototype.pendingGet = function(repoName) {
     var pendingUri = this.pendingRepoName + (repoName ? "?repoName=" + repoName : "");
-    return this._restOff.getSync(pendingUri, {rootUri:this.pendingUri,clientOnly:true});
+    return this._restOff.getRepo(pendingUri, {rootUri:this.pendingUri,clientOnly:true});
 };
 
 RestoffPending.prototype.pendingPost = function(resource) {
-    return this._restOff.postSync(this.pendingUri + this.pendingRepoName, resource, {rootUri:this.pendingUri,clientOnly:true,primaryKeyName:"id"});
+    return this._restOff.postRepo(this.pendingUri + this.pendingRepoName, resource, {rootUri:this.pendingUri,clientOnly:true,primaryKeyName:"id"});
 };
 
 
@@ -41,12 +41,12 @@ RestoffPending.prototype.pendingCount = function(repoName) {
 
 RestoffPending.prototype.pendingDelete = function(itemId) {
     var uri = this.pendingRepoName + (itemId ? "/"+itemId : "");
-    return this._restOff.deleteSync(uri, {rootUri:this.pendingUri, clientOnly:true});
+    return this._restOff.deleteRepo(uri, {rootUri:this.pendingUri, clientOnly:true});
 };
 
 RestoffPending.prototype.pendingClear = function(repoName) {
     var uri = this.pendingRepoName + "?repoName=" + repoName;
-    return this._restOff.deleteSync(uri, {rootUri:this.pendingUri, clientOnly:true});
+    return this._restOff.deleteRepo(uri, {rootUri:this.pendingUri, clientOnly:true});
 };
 
 RestoffPending.prototype.pendingAdd = function(uri) {
@@ -61,7 +61,7 @@ RestoffPending.prototype.pendingAdd = function(uri) {
     };
 
     if (!uri.options.persistenceDisabled) { // TODO: Write a test for this
-        var original = this._restOff.dbService.findSync(uri.repoName, {id:uri.primaryKey}); // TODO: Remove direct access to dbService and use restoff.getSync call
+        var original = this._restOff.dbService.findSync(uri.repoName, {id:uri.primaryKey}); // TODO: Remove direct access to dbService and use restoff.getRepo call
         if (undefined !== original[0]) {
             result.original = JSON.parse(JSON.stringify(original[0])); // need to clone original record
         }
