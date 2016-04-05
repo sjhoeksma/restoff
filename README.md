@@ -27,6 +27,7 @@ Synchronize client/server data using your existing RESTful APIs.
 * TODO
 	* Tests to verify order of pending changes
 	 	* edit record A, edit A again: 2nd edit also contains 1st edit
+	* Support rolling back a pending change
 * Next major features
 	* support non-standard get/put/post.
 		- Example: a request GET actually does a delete
@@ -532,7 +533,7 @@ $ gulp webtests
 
 Read documentation in gulpfile.js to see how to setup automated web testing.
 
-```   
+```
 $ gulp webserver
 ```
 
@@ -574,6 +575,25 @@ Add to your /etc/hosts file:
 127.0.0.1 test.development.com
 ```
 
+## Initial install
+```
+$ npm install
+ (NPM install stuff ommitted)
+$ mocha tests
+
+  3 passing (or something like this)
+```
+
+## Start the test suite
+```
+$ gulp
+  (gulp stuff happens, look for this line...)
+  Server started http://test.development.com:4050
+
+```
+... then open the test suite in your browser
+http://test.development.com:4050
+
 ## Restoff Angular
 
 Restoff is wraped in an [angular provider](http://www.learn-angular.org/#!/lessons/the-provider-recipe).
@@ -608,3 +628,5 @@ Note that we "hard code" the configuration, but you could also get the configura
 [rest-best-practices]: https://codeplanet.io/principles-good-restful-api-design/
 [jsonplaceholder-link]: http://jsonplaceholder.typicode.com/
 [angular-home-link]: https://angularjs.org/
+
+##
