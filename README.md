@@ -16,6 +16,8 @@ Synchronize client/server data using your existing RESTful APIs.
 	* in ```clientOnly``` mode, Restoff automatically provides a complete RESTful offline service for your app.
 	* Reconciliation works without soft deletes or last modified date columns in your database
 		* Note: reconciliation is much faster with soft delete and laast modified date columns available.
+	    * Conflicts are resolved by default by saving both versions. Setting concurrency to 'overwrite' changes
+	      this behavior to optimistic, last-one-wins strategy where merge conflicts are overwritten
 * Supports resources in the following formats:
 	* Json
 * Works in following frameworks
@@ -28,6 +30,8 @@ Synchronize client/server data using your existing RESTful APIs.
 	* Tests to verify order of pending changes
 	 	* edit record A, edit A again: 2nd edit also contains 1st edit
 	* Support rolling back a pending change
+	* Replace concurrency option with a plugin model
+	  * This also will allow support for custom merge conflict resolution
 * Next major features
 	* support non-standard get/put/post.
 		- Example: a request GET actually does a delete
@@ -262,6 +266,11 @@ var rest = restoff({
 ```
 
 Note: Placed features will provide a more robust reconciliation process allowing the developer to provide their own custom reconciliation process. Currently, Restoff always applies Brent Reconciliation.
+
+### concurrency [Optional]
+
+The ```concurrency``` option defaults to null and conflicts are resolved through Brent reconciliation (keep both versions)
+Setting ```concurrency = 'overwrite'``` will result in conflicts resolved by being overwritten by the local version
 
 ### pendingUri and pendingRepoName
 

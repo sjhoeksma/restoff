@@ -2,6 +2,7 @@ function restoff(options) {
 	var defaultOptions = {
 		rootUri: "",
 		clientOnly: false,
+		concurrency: 'optimistic',
 		forcedOffline: false,
 		persistenceDisabled: false,
 		pending: {},
@@ -31,6 +32,10 @@ RestOff.prototype = Object.create(Object.prototype, {
 	clientOnly: {
 		get: function() { return this._options.clientOnly; },
 		set: function(value) { this._options.clientOnly = value; }
+	},
+	concurrency: {
+		get: function() { return this._options.concurrency; },
+		set: function(value) { this._options.concurrency = value; }
 	},
 	options: {
 		get: function() { return this._options; }
@@ -253,7 +258,7 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 				if (inRepo) {
 					if (inPending) {  // True, True, True   : Client changes. Possible changes on server too. PUT/POST Only   | Reconcile. Clear out pending.
 						var pendingOriginal = pendingAction ? pendingAction.original : undefined;
-						var serverSideEdit = !deepEquals(serverResource, pendingOriginal);
+						var serverSideEdit = ('overwrite' === that.options.concurrency) ? false : !deepEquals(serverResource, pendingOriginal);
 						if (serverSideEdit) { // edited on server and client: BRENT reconciliation
 							// First: Let's fix the original record
 							var newId = that.options.generateId();
