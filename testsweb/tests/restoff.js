@@ -1441,12 +1441,12 @@ describe ("restoff", function() {
 					return pendingResourcesGet(roff, emailRepo).then(function(pending) {
 						return roff.get(emailRepo).then(function(updatedResults) {
 							expect(pending.length, "Should have 3 pending").to.equal(3);
-							expect([emailAId, emailBPutId, emailDId], "Client should sync up when placed online again and resource is accessed").to.deep.equals(updatedResults);
+							deepEqualOrderUnimportant([emailAId, emailBPutId, emailDId], updatedResults, "ID");
 							roff.forcedOffline = false;
 							return roff.get(emailRepo, {primaryKeyName:"ID"}).then(function(updatedResults) {
 								return pendingResourcesGet(roff, emailRepo).then(function(pending) {
 									expect(pending.length, "Should have nothing pending").to.equal(0);
-									expect([emailAId, emailBPutId, emailDId], "Client should sync up when placed online again and resource is accessed").to.deep.equals(updatedResults);
+									deepEqualOrderUnimportant([emailAId, emailBPutId, emailDId], updatedResults, "ID");
 									pendingStatusCount(roff, 0);
 									expect(pendingCallBack, "pending call back was called").to.equal(3);
 									expect(callBackAction, "Should pass callBackAction").to.be.an("object");
