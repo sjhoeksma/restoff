@@ -1,46 +1,47 @@
-# REST Offline
+# **RESToff**
 
 Synchronize client/server data using your existing RESTful APIs.
 
-* Now under MIT license.
+* Under MIT license.
 * Database agnostic and schema-less.
-	* Works against any database backend (SQL, NoSQL, Graph, etc.) and service (MySQL, SQL Server, Oracle, Postgress, Mongo, Redis, etc.).
+	* Works against different [database types][database-definition-link] (SQL, NoSQL, Graph, etc.) and service ([MySQL][mysql-home-link], [SQL Server][sql-server-home-link], [Oracle][oracle-home-link], [Postgress][postgress-home-link], [MongoDB][mongodb-home-link], [Redis][redis-home-link], etc.).
 	* Supports multiple databases sources.
-	* No need to worry about database schema changes.
-	* focus on your RESTful API and not your backend databases
-* Supports synchronous RESTful calls.
-    * Simplifies source code.
-    * improves client responsiveness.
-* Reconciliation and Offline Modes
+	* No need to propagate schema changes to a client.
+* Reconciliation
 	* Automatic reconciliation of offline changes.
-	* in ```clientOnly``` mode, Restoff automatically provides a complete RESTful offline service for your app.
-	* Reconciliation works without soft deletes or last modified date columns in your database
-		* Note: reconciliation is much faster with soft delete and laast modified date columns available.
-	    * Conflicts are resolved by default by saving both versions. Setting concurrency to 'overwrite' changes
-	      this behavior to optimistic, last-one-wins strategy where merge conflicts are overwritten
+	* In ```clientOnly``` mode, **RESToff** automatically provides a complete RESTful offline service for your app.
+	* Reconciliation works without soft deletes or last modified date columns.
+		* Note: reconciliation is much faster with soft delete and last modified date columns available.
+			* Conflicts are resolved by default by saving both versions. Setting concurrency to 'overwrite' changes
+				this behavior to optimistic, last-one-wins strategy where merge conflicts are overwritten
+* Supports synchronous RESTful calls.
+	* Simplifies source code and improves client responsiveness.
 * Supports resources in the following formats:
 	* Json
 * Works in following frameworks
-    * **Standalone** - Restoff can be used without a framework.
-    * **[Angular][angular-home-link]** - Restoff wrapped in an Angular 1 provider.
+    * **Standalone** - **RESToff** can be used without a framework.
+    * **[Angular][angular-home-link]** - **RESToff** wrapped in an Angular 1 provider.
 * Limitations and Expectations:
 	* Every resource must have one unique ```primaryKey``` field.
 	* Best to follow [RESTful best known practices][rest-best-practices]
 * TODO
 	* Tests to verify order of pending changes
 	 	* edit record A, edit A again: 2nd edit also contains 1st edit
+* Next features
 	* Support rolling back a pending change
 	* Replace concurrency option with a plugin model
-	  * This also will allow support for custom merge conflict resolution
-* Next major features
+		* This also will allow support for custom merge conflict resolution
 	* support non-standard get/put/post.
-		- Example: a request GET actually does a delete
-	* support put/post updates where resource is changed on the server
-		- requires better mockable restapi backend for testing)
-	* support nested resources (example: /users/45/addresses)
-	* support non-standard restful api: ability to map a user
+		- Example: a request GET actually does a delete.
+	* support put/post updates where resource is changed on the server.
+		- requires better mockable REST api backend for testing.
+	* support nested resources (example: /users/45/addresses).
+	* support non-standard restful api: ability to map a user.
 
 ## RestOff Usage
+
+
+
 
 Examples:
 
@@ -113,7 +114,7 @@ function synchronize(roff, userId) {
 	* This does not work with hierarchical data. The intent is to allow a user to take advantage of the existing User Interface of an Application to deal with the merge conflict.
 	* TODO: We will be providing a call back that lets the developer provide a custom merge conflict screen.
 
-## Restoff Options
+## **RESToff** Options
 
 ### rootUri [Required]
 
@@ -143,7 +144,7 @@ roff.get("http://another.example.com/users").then(function(result){
 
 When true, storage of RESTful results on the client are disabled.
 
-* Effectivly bypass the core feature of Restoff causing it to act like a standard http library.
+* Effectivly bypass the core feature of **RESToff** causing it to act like a standard http library.
 * Useful for debugging.
 
 Example configuration:
@@ -177,7 +178,7 @@ rest.put("users", { Name : "Happy User"}).then(function(result) {
 
 ### onCallPending(pendingAction, uri) [Optional]
 
-```onCallPending``` is the function called by Restoff before a pending call is executed. Provided is all information about the pending action and the uri record.
+```onCallPending``` is the function called by **RESToff** before a pending call is executed. Provided is all information about the pending action and the uri record.
 
 // TODO: Provide the json format for pendingAction and the uri record.
 
@@ -194,7 +195,7 @@ var rest = restoff({
 
 ```primaryKeyName``` is the name of the primary key field for a given repository.
 
-* Restoff requires every repository to have a single primary key
+* **RESToff** requires every repository to have a single primary key
  	* the primary key can't be based on a composite key
 * The default value is 'id'.
 
@@ -238,12 +239,12 @@ if (!roff.isOnline) {
 ```
 NOTE: There is a slight difference between ```clientOnly``` mode and ```forcedoffline``` mode.
 
-* In ```forcedOffline``` mode, Restoff will store any put/post/delete actions in the ```pending``` repository.
+* In ```forcedOffline``` mode, **RESToff** will store any put/post/delete actions in the ```pending``` repository.
 * In ```clientOnly``` mode, Retsoff will **not** store any put/post/delete actions in the ```pending``` repository.
 
 ### generateId [Optional]
 
-```generateId``` is the function called by Restoff to generate a primary key. Bey default, restOff uses ```RestOff.prototype._guidGenerate()``` but you can define your own.
+```generateId``` is the function called by **RESToff** to generate a primary key. Bey default, restOff uses ```RestOff.prototype._guidGenerate()``` but you can define your own.
 
 ```javascript
 var rest = restoff({
@@ -254,7 +255,7 @@ var rest = restoff({
 
 ### onReconciliation(completedAction) [Optional]
 
-```onReconciliation``` is the function called by Restoff after reconciliation of a given resource is complete.
+```onReconciliation``` is the function called by **RESToff** after reconciliation of a given resource is complete.
 
 ```javascript
 var rest = restoff({
@@ -265,7 +266,7 @@ var rest = restoff({
 });
 ```
 
-Note: Placed features will provide a more robust reconciliation process allowing the developer to provide their own custom reconciliation process. Currently, Restoff always applies Brent Reconciliation.
+Note: Placed features will provide a more robust reconciliation process allowing the developer to provide their own custom reconciliation process. Currently, **RESToff** always applies Brent Reconciliation.
 
 ### concurrency [Optional]
 
@@ -274,13 +275,13 @@ Setting ```concurrency = 'overwrite'``` will result in conflicts resolved by bei
 
 ### pendingUri and pendingRepoName
 
-When offline, Restoff places any put/post/delete RESTful operations in a ```pending``` repository. Restoff uses it's own persistence engine meaning it calls itself using get/post/delete.
+When offline, **RESToff** places any put/post/delete RESTful operations in a ```pending``` repository. **RESToff** uses it's own persistence engine meaning it calls itself using get/post/delete.
 
 Use ```pendingUri``` and ```pendingRepoName``` to configure the URI and repository name of the ```pending``` repository.
 
 * Note: In ```clientOnly``` mode, no changes are recorded in the ```pending``` repository.
 
-## Restoff Methods
+## **RESToff** Methods
 
 ### autoQueryParamSet(name, value)
 
@@ -603,9 +604,9 @@ $ gulp
 ... then open the test suite in your browser
 http://test.development.com:4050
 
-## Restoff Angular
+## **RESToff** Angular
 
-Restoff is wraped in an [angular provider](http://www.learn-angular.org/#!/lessons/the-provider-recipe).
+**RESToff** is wraped in an [angular provider](http://www.learn-angular.org/#!/lessons/the-provider-recipe).
 
 Example Usage:
 
@@ -638,4 +639,11 @@ Note that we "hard code" the configuration, but you could also get the configura
 [jsonplaceholder-link]: http://jsonplaceholder.typicode.com/
 [angular-home-link]: https://angularjs.org/
 
-##
+[database-definition-link]:https://en.wikipedia.org/wiki/Database
+
+[mysql-home-link]: https://www.mysql.com/
+[sql-server-home-link]: https://www.microsoft.com/en-us/server-cloud/products/sql-server/features.aspx
+[oracle-home-link]: https://www.oracle.com/index.html
+[postgress-home-link]: https://www.postgresql.org
+[mongodb-home-link]: https://www.mongodb.org/
+[redis-home-link]: http://redis.io

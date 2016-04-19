@@ -1,5 +1,5 @@
 // restoff.js
-// version: 0.2.27
+// version: 0.2.28
 // author: ProductOps <restoff@productops.com>
 // license: MIT
 (function() {
@@ -7,7 +7,7 @@
 
 var root = this; // window (browser) or exports (server)
 var restlib = root.restlib || {}; // merge with previous or new module
-restlib["version-library"] = '0.2.27'; // version set through gulp build
+restlib["version-library"] = '0.2.28'; // version set through gulp build
 
 // export module for node or the browser
 if (typeof module !== 'undefined' && module.exports) {
