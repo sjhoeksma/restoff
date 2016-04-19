@@ -673,6 +673,67 @@ describe ("restoff", function() {
 
 	});
 
+	it("22: should, when offline, allow multiple updates on the same resource.", function(){
+
+		var userNew =  {
+			"ID": "5a30a4fb-b71e-4ef2-b430-d46f9af3f8fa",
+			"first_name": "New",
+			"last_name": "User",
+		};
+
+		var userPost01 =  {
+			"ID": "5a30a4fb-b71e-4ef2-b430-d46f9af3f8fa",
+			"first_name": "New",
+			"last_name": "User Post01",
+		};
+
+		var userPost02 =  {
+			"ID": "5a30a4fb-b71e-4ef2-b430-d46f9af3f8fa",
+			"first_name": "New Post02",
+			"last_name": "User Post01",
+		};
+
+		var roff = restlib.restoff({
+			"rootUri" : ROOT_URI,
+			dbService: {
+				primaryKeyName : "ID",
+			},
+		});
+		var userRepo = "users24";
+
+		roff.clear(userRepo, true);
+		dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
+		return roff.post(userRepo, userNew).then(function(usersResult) {
+			expect(userNew, "Initial setup should be correct").to.deep.equals(usersResult);
+			dbRepoShouldBeEqual(roff, userRepo, usersResult, 1); // changes to existing repository
+			// roff.forcedOffline = true;
+			// return roff.post(userRepo, userPost01).then(function(userPosted) {
+			// 	return roff.post(userRepo, userPost02).then(function(userPosted2) {
+			// 		roff.forcedOffline = false;
+			// 		return roff.get(userRepo).then(function(usersReturned2) {
+			// 			console.log(usersReturned2);
+						// return roff.get(userRepo).then(function(usersReturned2) {
+						// 	console.log(usersReturned2[0]);
+						// 	console.log(userPost02);
+						// 	// dbRepoShouldBeEqual(roff, userRepo, users, 1); // changes to existing repository
+							return roff.delete(userRepo+"/"+userNew.id).then(function() { // clean up repository
+								console.log("HERE")
+							});
+						// });
+			// 		});
+			// 	});
+			// });
+
+	// 		// return roff.get(userRepo + "/" + "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa", {primaryKeyName: "ID"}).then(function (userOnline) {
+	// 		// 	dbRepoShouldBeEqual(roff, userRepo, userOnline, 1); // changes to existing repository
+	// 		// 	roff.forcedOffline = true;
+	// 		// 	return roff.get(userRepo + "/" + "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa").then(function (userWhileOffline) {
+	// 		// 		dbRepoShouldBeEqual(roff, userRepo, userWhileOffline, 1); // no changes to existing repository
+	// 		// 		expect(deepEqual(usersReturned, userWhileOffline), " users returned should be the same").to.equal(true);
+	// 		// 	});
+	// 		});
+		});
+	});
 
 	// dbActions Differ From RESTful Action
 
