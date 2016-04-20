@@ -346,6 +346,7 @@ RestoffUri.prototype.uriFromClient = function(uri, restMethod, resources, option
     }
 
     var pkName = this._restOff._pkNameGet(uriResult);
+    uriResult.primaryKeyName = pkName;
     if (undefined !== resources) {
         if ("id" !== pkName && "guid" !== pkName) { // lowdb requires keyname of id. Can't find documentation that let's us set it. Will do more research later
             if (resources instanceof Array) {
@@ -394,27 +395,22 @@ function restoffPending(restOff, options) {
 
 function RestoffPending() {}
 RestoffPending.prototype = Object.create(Object.prototype, {
-    pendingRepoName: {
-        get: function() { return this._options.pendingRepoName; }
-    },
-    pendingUri: {
-        get: function() { return this._options.pendingUri; }
-    }
+    pendingRepoName: { get: function() { return this._options.pendingRepoName; }},
+    pendingUri: { get: function() { return this._options.pendingUri; } }
 });
 
-RestoffPending.prototype.uriFromClient = function(uri, restMethod, resources, options) {
-
-};
-
-RestoffPending.prototype.pendingGet = function(repoName) {
+RestoffPending.prototype.pendingGet = function(repoName, key) {
     var pendingUri = this.pendingRepoName + (repoName ? "?repoName=" + repoName : "");
+    if (undefined !== key) {
+      pendingUri += (repoName ? "&" : "?");
+      pendingUri += "primaryKey=" + key; // in pending repo, the resources' primary key is always named "primaryKey"
+    }
     return this._restOff.getRepo(pendingUri, {rootUri:this.pendingUri,clientOnly:true});
 };
 
 RestoffPending.prototype.pendingPost = function(resource) {
     return this._restOff.postRepo(this.pendingUri + this.pendingRepoName, resource, {rootUri:this.pendingUri,clientOnly:true,primaryKeyName:"id"});
 };
-
 
 RestoffPending.prototype.pendingCount = function(repoName) {
     var pending = this.pendingGet(repoName);
@@ -423,7 +419,7 @@ RestoffPending.prototype.pendingCount = function(repoName) {
 
 RestoffPending.prototype.pendingDelete = function(itemId) {
     var uri = this.pendingRepoName + (itemId ? "/"+itemId : "");
-    return this._restOff.deleteRepo(uri, {rootUri:this.pendingUri, clientOnly:true});
+    return this._restOff.deleteRepo(uri, {rootUri:this.pendingUri, clientOnly:true, primaryKeyName:"id"});
 };
 
 RestoffPending.prototype.pendingClear = function(repoName) {
@@ -441,11 +437,20 @@ RestoffPending.prototype.pendingAdd = function(uri) {
         "repoName" : uri.repoName,
         "primaryKey" : uri.primaryKey
     };
-
     if (!uri.options.persistenceDisabled) { // TODO: Write a test for this
-        var original = this._restOff.dbService.findSync(uri.repoName, {id:uri.primaryKey}); // TODO: Remove direct access to dbService and use restoff.getRepo call
-        if (undefined !== original[0]) {
-            result.original = JSON.parse(JSON.stringify(original[0])); // need to clone original record
+        var pendingFound = this.pendingGet(uri.repoName, uri.primaryKey);
+        if (1 === pendingFound.length) { // Already have a pending record? Use it's 'original' record then remove it from pending.
+          if (undefined !== pendingFound[0].original) {
+            result.original = JSON.parse(JSON.stringify(pendingFound[0].original)); // need to clone original record
+          } else {
+            result.original = JSON.parse(JSON.stringify(pendingFound[0].resources)); // need to clone original record
+          }
+          this.pendingDelete(pendingFound[0].id);
+        } else {
+          var original = this._restOff.getRepo(uri.repoName+"/"+uri.primaryKey, {primaryKeyName:uri.primaryKeyName});
+          if (undefined !== original[0]) {
+              result.original = JSON.parse(JSON.stringify(original[0])); // need to clone original record
+          }
         }
         return this.pendingPost(result);
     } else {
@@ -708,7 +713,6 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 			var onServer = (undefined !== serverResource);
 			var inRepo = (undefined !== repoResource);
 			var inPending = (undefined !== pendingHash[primaryKey]);
-
 			// console.log(primaryKey + " Server %O Repo %O Pending %O", onServer, inRepo, inPending);
 			// console.log("Server %O Repo %O Pending %O", serverResource, repoResource, pendingAction);
 			if (onServer) {

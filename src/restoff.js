@@ -251,7 +251,6 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 			var onServer = (undefined !== serverResource);
 			var inRepo = (undefined !== repoResource);
 			var inPending = (undefined !== pendingHash[primaryKey]);
-
 			// console.log(primaryKey + " Server %O Repo %O Pending %O", onServer, inRepo, inPending);
 			// console.log("Server %O Repo %O Pending %O", serverResource, repoResource, pendingAction);
 			if (onServer) {

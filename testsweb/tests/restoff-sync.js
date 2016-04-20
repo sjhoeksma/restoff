@@ -153,7 +153,7 @@ describe ("restoffSynchronous", function() {
 		expect(result6,"delete should return primary key").to.equal(postRec2.id);
 
 		var pending = pendingResourcesGetNp(roff, repository);
-		expect(pending.length, "should have pending records").to.equal(4);
+		expect(pending.length, "should have pending records").to.equal(2);
 	});
 
 	it("04: should thrown an exception when an invalid rest method is called", function() {

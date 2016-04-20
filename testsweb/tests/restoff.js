@@ -478,7 +478,7 @@ describe ("restoff", function() {
 						expect(result, "forcedOffline was true so should not be equal").to.equal(false);
 						return roff.put(pendingRepo + "/" + pendingRec.id, pendingRec, {forcedOffline:true}).then(function(result) {
 							expect(roff.dbService.dbRepo.length(pendingRepo), "repository should have one record").to.equal(1);
-							pendingStatusCount(roff, 2, "put"); // should have two pending
+							pendingStatusCount(roff, 1, "put"); // should have one pending because the same record is being edited
 							return dbRepoExactlyEqual(roff, pendingRepo, false).then(function(result) {
 								expect(result, "forcedOffline was true so should not be equal").to.equal(false);
 								return roff.post(pendingRepo, pendingRec).then(function(result) {
@@ -487,7 +487,7 @@ describe ("restoff", function() {
 										expect(result, "Initial db/repo to be equal").to.equal(true);
 										return roff.delete(pendingRepo + "/" + pendingRec.id, {forcedOffline:true}).then(function() { // for delete, while forcedOffline, should not delete
 											expect(roff.dbService.dbRepo.length(pendingRepo), "repository should be empty when forcedOffline is true").to.equal(0);
-											pendingStatusCount(roff, 3, "delete"); // should have three pending
+											pendingStatusCount(roff, 1, "delete"); // should have one pending because the same record is being edited.
 											return dbRepoExactlyEqual(roff, pendingRepo, false).then(function(result) {
 												expect(result, "db/repo should not be equal when forcedOffline").to.equal(false);
 												return roff.delete(pendingRepo + "/" + pendingRec.id).then(function() { // clean up test
@@ -675,10 +675,23 @@ describe ("restoff", function() {
 
 	it("22: should, when offline, allow multiple updates on the same resource.", function(){
 
+		var roff = restlib.restoff({
+			"rootUri" : ROOT_URI,
+			dbService: {
+				primaryKeyName : "ID",
+			},
+		});
+		var userRepo = "users24";
 		var userNew =  {
 			"ID": "5a30a4fb-b71e-4ef2-b430-d46f9af3f8fa",
 			"first_name": "New",
 			"last_name": "User",
+		};
+
+		var userNew2 =  {
+			"ID": "5a30a4fb-b71e-4ef2-b430-d46f9af3f8fb",
+			"first_name": "User",
+			"last_name": "Only Added One Time",
 		};
 
 		var userPost01 =  {
@@ -693,45 +706,39 @@ describe ("restoff", function() {
 			"last_name": "User Post01",
 		};
 
-		var roff = restlib.restoff({
-			"rootUri" : ROOT_URI,
-			dbService: {
-				primaryKeyName : "ID",
-			},
-		});
-		var userRepo = "users24";
-
-		roff.clear(userRepo, true);
+		roff.clearAll(true); // TODO: Find tests not cleaning up repo and call roff.clear(repo, true);
 		dbRepoShouldBeEqual(roff, userRepo, undefined, 0);
-		return roff.post(userRepo, userNew).then(function(usersResult) {
-			expect(userNew, "Initial setup should be correct").to.deep.equals(usersResult);
-			dbRepoShouldBeEqual(roff, userRepo, usersResult, 1); // changes to existing repository
-			// roff.forcedOffline = true;
-			// return roff.post(userRepo, userPost01).then(function(userPosted) {
-			// 	return roff.post(userRepo, userPost02).then(function(userPosted2) {
-			// 		roff.forcedOffline = false;
-			// 		return roff.get(userRepo).then(function(usersReturned2) {
-			// 			console.log(usersReturned2);
-						// return roff.get(userRepo).then(function(usersReturned2) {
-						// 	console.log(usersReturned2[0]);
-						// 	console.log(userPost02);
-						// 	// dbRepoShouldBeEqual(roff, userRepo, users, 1); // changes to existing repository
-							return roff.delete(userRepo+"/"+userNew.id).then(function() { // clean up repository
-								console.log("HERE")
+		return Promise.all([
+			roff.delete(userRepo+"/"+userNew.ID),
+			roff.delete(userRepo+"/"+userNew2.ID),
+			roff.post(userRepo, userNew, {primaryKeyName:"ID"}),
+		]).then(function(result) { // reset test
+			var newlyPostedUserResult = result[0];
+			return dbRepoExactlyEqual(roff, userRepo, true).then(function(result) { // verify posted to server
+				expect(result, "db and repo should be the same").to.equal(true);
+				roff.forcedOffline = true;
+				return Promise.all([
+					roff.post(userRepo, userPost01, {primaryKeyName:"ID"}),
+					roff.post(userRepo, userNew2, {primaryKeyName:"ID"}),
+				]).then(function(result) {
+					return dbRepoExactlyEqual(roff, userRepo, false).then(function() { // verify not posted because we are offline
+						return roff.post(userRepo, userPost02).then(function() {
+							return roff.get(userRepo).then(function() {
+								pendingStatusCount(roff, 2, "post");
+								roff.forcedOffline = false;
+								return roff.get(userRepo).then(function(usersReturned) {
+									deepEqualOrderUnimportant([userPost02, userNew2], usersReturned, "ID");
+									return Promise.all([
+										roff.delete(userRepo+"/"+userNew.ID),
+										roff.delete(userRepo+"/"+userNew2.ID)
+									]).then(function(result) { // reset test
+									});
+								});
 							});
-						// });
-			// 		});
-			// 	});
-			// });
-
-	// 		// return roff.get(userRepo + "/" + "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa", {primaryKeyName: "ID"}).then(function (userOnline) {
-	// 		// 	dbRepoShouldBeEqual(roff, userRepo, userOnline, 1); // changes to existing repository
-	// 		// 	roff.forcedOffline = true;
-	// 		// 	return roff.get(userRepo + "/" + "4a30a4fb-b71e-4ef2-b430-d46f9af3f8fa").then(function (userWhileOffline) {
-	// 		// 		dbRepoShouldBeEqual(roff, userRepo, userWhileOffline, 1); // no changes to existing repository
-	// 		// 		expect(deepEqual(usersReturned, userWhileOffline), " users returned should be the same").to.equal(true);
-	// 		// 	});
-	// 		});
+						});
+					});
+				});
+			});
 		});
 	});
 
@@ -1507,7 +1514,7 @@ describe ("restoff", function() {
 							return roff.get(emailRepo, {primaryKeyName:"ID"}).then(function(updatedResults) {
 								return pendingResourcesGet(roff, emailRepo).then(function(pending) {
 									expect(pending.length, "Should have nothing pending").to.equal(0);
-									deepEqualOrderUnimportant([emailAId, emailBPutId, emailDId], updatedResults, "ID");
+									expect(deepEqualOrderUnimportant([emailAId, emailBPutId, emailDId], updatedResults, "ID"), "should have no pending").to.equal(true);
 									pendingStatusCount(roff, 0);
 									expect(pendingCallBack, "pending call back was called").to.equal(3);
 									expect(callBackAction, "Should pass callBackAction").to.be.an("object");
