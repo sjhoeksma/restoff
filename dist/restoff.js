@@ -887,7 +887,8 @@ RestOff.prototype.autoQueryParamGet = function(name) {
 };
 
 RestOff.prototype.autoHeaderParamSet = function(name, value) {
-	this._autoHeaders[name] = value;
+	if (value)  this._autoHeaders[name] = value;
+	else delete  this._autoHeaders[name];
 	return this;
 };
 
