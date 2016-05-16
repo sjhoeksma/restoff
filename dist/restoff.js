@@ -803,9 +803,9 @@ RestOff.prototype._repoAddResourceSync = function(uri) {
 	if (!uri.options.persistenceDisabled) {
 		var resourceArray = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // make logic easier
 		this.dbService.writeSync(uri.repoName, resourceArray, uri.options);
-		return uri.resources;
+		return uri.options.returnResponse ? (uri.request.response || uri.request.responseText) : uri.resources;
 	} // else don't persist
-	return uri.resources;
+	return uri.options.returnResponse!==false ? (uri.request.response || uri.request.responseText) : uri.resources;
 };
 
 // NOTE: Will alter the order of the records returned. So, if a sort
@@ -833,22 +833,22 @@ RestOff.prototype._repoAddResource = function(uri) {
 						that.dbService.writeSync(uri.repoName, newUpdatedResources, uri.options);
 						that.pendingService.pendingClear(uri.repoName); // that.delete removes any dangling pending changes like a post and then delete of the same resource while offline.
 						var repoResources = that._repoGetRaw(uri);
-						resolve(repoResources);
+						resolve(uri.options.returnResponse ? (uri.response || uri.responseText) : repoResources);
 					}).catch(function(error) {
 						reject(error);
 					});
 				} else {
 					that.clear(uri.repoName);
 					that.dbService.writeSync(uri.repoName, serverResources, uri.options);
-					resolve(serverResources);
+					resolve(uri.options.returnResponse ? (uri.request.response || uri.request.responseText) : serverResources);
 				}
 			} else {
 				var resourceArray = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // make logic easier
 				that.dbService.writeSync(uri.repoName, resourceArray, uri.options);
-				resolve(uri.resources);
+				resolve(uri.options.returnResponse ? (uri.request.response || uri.request.responseText) : repoResources);
 			}
 		} // else don't persist
-		resolve(uri.resources);
+		else resolve(uri.options.returnResponse!==false ? (uri.request.response || uri.request.responseText) : repoResources);
 	});
 };
 
@@ -878,7 +878,8 @@ RestOff.prototype._createError = function(uri, customMessage) {
 };
 
 RestOff.prototype.autoQueryParamSet = function(name, value) {
-	this._autoParams[name] = value;
+	if (value) this._autoParams[name] = value;
+	else delete this._autoParams[name];
 	return this;
 };
 

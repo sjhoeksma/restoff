@@ -281,6 +281,12 @@ Use ```pendingUri``` and ```pendingRepoName``` to configure the URI and reposito
 
 * Note: In ```clientOnly``` mode, no changes are recorded in the ```pending``` repository.
 
+### returnResponse [Optional]
+
+The ```returnResponse``` option defaults to null when set to true the URL response is returned for GET/POST. It is also default 
+behaviour when using option ```persistenceDisabled```.
+
+
 ## **RESToff** Methods
 
 ### autoQueryParamSet(name, value)

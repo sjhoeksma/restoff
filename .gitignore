@@ -5,3 +5,4 @@ restoff.json
 newOne
 .idea
 bower_components
+.DS_Store
