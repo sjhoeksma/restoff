@@ -685,4 +685,21 @@ RestOff.prototype.put = function(uri, resource, options) {
 	return this._restCall(uri, "PUT", options, resource, false);
 };
 
+RestOff.prototype.deleteOne = function(uri, resource, options) {
+	return this._restCall(uri + '/' + resource[this._options.dbService.primaryKeyName], "DELETE", options, undefined, false);
+};
+
+RestOff.prototype.getOne = function(uri,resource,options){
+	return this._restCall(uri + '/' + resource[this._options.dbService.primaryKeyName], "GET", options, undefined, false);
+}
+
+RestOff.prototype.postOne = function(uri, resource, options) {
+	return this._restCall(uri + '/' + resource[this._options.dbService.primaryKeyName], "POST", options, resource, false);
+};
+
+RestOff.prototype.putOne = function(uri, resource, options) {
+	return this._restCall(uri + '/' + resource[this._options.dbService.primaryKeyName], "PUT", options, resource, false);
+};
+
+
 restlib.restoff = restoff;

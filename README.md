@@ -389,10 +389,11 @@ console.log("User repository, even if it had pending, was cleared ");
 
 
 
-### delete(uri, [options]), deleteRepo(uri, [options])
+### delete(uri, [options]), deleteRepo(uri, [options]),  deleteOne(uri, resource, [options]),
 
 * ```delete(uri, [options])``` asynchronously deletes a resource from a remote server and in the local repository.
 * ```deleteRepo(uri, [options])``` synchronously deletes a resource from in the local repository.
+* ```deleteOne(uri, resource, [options])``` asynchronously deletes a resource from a remote server using primarykey for uri extention and in the local repository.
 
 Note:
 
@@ -412,10 +413,11 @@ roff.forcedOffline = true;
 var result = roff.deleteRepo("http://test.development.com:4050/users/553fdf");
 ```
 
-### get(uri, [options]), getRepo(uri, [options])
+### get(uri, [options]), getRepo(uri, [options]) getOne(uri, resource, [options])
 
 * ```get(uri, [options])``` asynchronously retrieves a resource from a remote server. Uses the local repository when offline.
 * ```getRepo(uri, [options])``` synchronously retrieves a resource from the local repository.
+* ```getOne(uri, resource, [options])``` asynchronously retrieves one resource using primarykey for uri extention from a remote server. Uses the local repository when offline.
 
 Example usage:
 
@@ -430,10 +432,11 @@ roff.forcedOffline = true;
 var result = roff.getRepo("http://test.development.com:4050/testsweb/testdata/users");
 ```
 
-### post(uri, resource, [options]), postRepo(uri, resource, [options])
+### post(uri, resource, [options]), postRepo(uri, resource, [options]), postOne(uri, resource, [options])
 
 * ```post(uri, resource, [options])``` asynchronously posts a resource to a remote server and in the local repository adding the resource if it doesn't exist or overwriting the existing resource.
 * ```postRepo(uri, resource, [options])``` synchronously posts a resource in the local repository adding the resource if it doesn't exist or overwriting the existing resource.
+* ```postOne(uri, resource, [options])``` asynchronously posts a resource to a remote server using the primarykey for uri extention and in the local repository adding the resource if it doesn't exist or overwriting the existing resource.
 
 * When online, ```post(...)``` calls will happen immediately.
 * With ```postRepo(...)```, updates will happen when a ```get(...)``` is executed on that resource.
@@ -457,10 +460,11 @@ roff.forcedOffline = true;
 var result = roff.postRepo("http://test.development.com:4050/users", newUser)
 ```
 
-### put(uri, resource, [options]), putRepo(uri, resource, [options])
+### put(uri, resource, [options]), putRepo(uri, resource, [options]), putOne(uri, resource, [options]),
 
 * ```put(uri, resource, [options])``` asynchronously puts a known resource on a remote server and in the local repository updating the resource id provided in the uri.
 * ```putRepo(uri, resource, [options])``` synchronously puts a known resource in the local repository updating the resource id provided in the uri.
+* ```put(uri, resource, [options])``` asynchronously puts a known resource on a remote server using the primarykey for uri extention and in the local repository updating the resource id provided in the uri.
 
 Example usage:
 
