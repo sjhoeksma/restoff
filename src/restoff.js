@@ -691,7 +691,7 @@ RestOff.prototype.deleteOne = function(uri, resource, options) {
 
 RestOff.prototype.getOne = function(uri,resource,options){
 	return this._restCall(uri + '/' + resource[this._options.dbService.primaryKeyName], "GET", options, undefined, false);
-}
+};
 
 RestOff.prototype.postOne = function(uri, resource, options) {
 	return this._restCall(uri + '/' + resource[this._options.dbService.primaryKeyName], "POST", options, resource, false);
@@ -699,6 +699,17 @@ RestOff.prototype.postOne = function(uri, resource, options) {
 
 RestOff.prototype.putOne = function(uri, resource, options) {
 	return this._restCall(uri + '/' + resource[this._options.dbService.primaryKeyName], "PUT", options, resource, false);
+};
+
+RestOff.prototype.clone = function(config){
+	if (!config) config={};
+	for (var key in this._options) {
+		if (!(config.hasOwnProperty(key))) config[key]=this._options[key];
+	}
+	var obj = new restoff(config);
+	for (var key in this._autoParams) obj.autoQueryParamSet(key,this._autoParams[key]);	
+	for (var key in this._autoHeaders) obj.autoHeaderParamSet(key,this._autoHeaders[key]);	
+	return obj;
 };
 
 

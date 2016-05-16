@@ -430,6 +430,16 @@ return roff.get("http://test.development.com:4050/testsweb/testdata/users")
 
 roff.forcedOffline = true;
 var result = roff.getRepo("http://test.development.com:4050/testsweb/testdata/users");
+
+var user = {
+    "id" : "ffa454",
+    "first_name": "Happy",
+    "last_name": "User"
+}
+return roff.getOne("http://test.development.com:4050/testsweb/testdata/users",user)
+.then(function(result){
+	// use the result of single get here
+});
 ```
 
 ### post(uri, resource, [options]), postRepo(uri, resource, [options]), postOne(uri, resource, [options])
@@ -458,6 +468,12 @@ return roff.post("http://test.development.com:4050/users", newUser)
 
 roff.forcedOffline = true;
 var result = roff.postRepo("http://test.development.com:4050/users", newUser)
+
+
+return roff.postOne("http://test.development.com:4050/testsweb/testdata/users",newUser)
+.then(function(result){
+	// use the result of single post here
+});
 ```
 
 ### put(uri, resource, [options]), putRepo(uri, resource, [options]), putOne(uri, resource, [options]),
@@ -478,13 +494,18 @@ var existingUser = {
 	"last_name": "User"
 }
 
-return roff.post("users/ffa454", existingUser)
+return roff.put("users/ffa454", existingUser)
 .then(function(result){
 	// use the result here
 });
 
 roff.forcedOffline = true;
-var result = roff.postRepo("users/ffa454", existingUser)
+var result = roff.putRepo("users/ffa454", existingUser)
+
+return roff.putOne("http://test.development.com:4050/testsweb/testdata/users",existingUser)
+.then(function(result){
+	// use the result  here
+});
 ```
 
 ### uriFromClient(uri)
@@ -498,6 +519,18 @@ var roff = restoff().autoQueryParamSet("access_token", "rj5aabcea");
 var actualUri = roff.uriFromClient("http://test.development.com:4050/emailaddresses");
 expect(actualUri)).to.equal("http://test.development.com:4050/emailaddresses?access_token=rj5aabcea");
 ```
+
+### clone(config)
+
+you may need a clone of the restOff with add other config, config parts of orginal are copied to clone.
+
+Example usage:
+
+```javascript
+var roff = restoff({rootUri:'http://test.development.com:4050'});
+var cloneOff = roff.clone({rootUri:'http://test.production.com:4050'});
+```
+
 
 # FAQ
 

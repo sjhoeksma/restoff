@@ -7,14 +7,15 @@ function lowdbRepo(config) {
 	that._options = Object.assign(defaultConfig, config);
 
 	var low = root && root.low ? root.low : undefined;
+	var _format = that._options.format;
 
 	if (typeof module !== 'undefined' && module.exports) {
 		low = require('lowdb');
 		var storage = require('lowdb/file-sync');
-		that._low = low(that.dbName, { storage: storage }); // file storage
+		that._low = low(that.dbName, _format ? { storage: storage, format: _format } : { storage: storage }); // file storage
 	} else {
 		if (typeof low !== 'undefined') {
-			that._low = low(that.dbName, { storage: low.localStorage }); // local storage
+			that._low = low(that.dbName, _format ? { storage: low.localStorage, format: _format } : { storage: low.localStorage }); // local storage
 		} else {
 			throw new Error ("LowDb library required. Please see README.md on how to get this library.");
 		}
