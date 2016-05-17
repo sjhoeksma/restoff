@@ -51,6 +51,10 @@ RestOff.prototype = Object.create(Object.prototype, {
 	rootUri: {
 		get: function() { return this._options.rootUri; },
 		set: function(value) { this._options.rootUri = value; }
+	},
+	resourceFilter: {
+		get: function() { return this._options.resourceFilter; },
+		set: function(value) { this._options.resourceFilter = value; }
 	}
 });
 
@@ -68,7 +72,7 @@ RestOff.prototype._pendingRepoAddSync = function(uri) {
 RestOff.prototype._pendingRepoAdd = function(uri, clientOnly, resolve, reject) {
 	if (!clientOnly) {
 		var that = this;
-		this.pendingService.pendingAdd(uri);
+		this.pendingService.pendingAdd(uri);		
 		return that._repoAddResource(uri).then(function(result) {
 			resolve(result);
 		}).catch(function(error) { // TODO: Test
@@ -340,10 +344,11 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 RestOff.prototype._repoAddResourceSync = function(uri) {
 	if (!uri.options.persistenceDisabled) {
 		var resourceArray = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // make logic easier
+		if (this.resourceFilter) resourceArray=this.resourceFilter(resourceArray,uri);
 		this.dbService.writeSync(uri.repoName, resourceArray, uri.options);
-		return uri.options.returnResponse ? (uri.request.response || uri.request.responseText) : uri.resources;
+		return uri.options.returnResponse && uri.request ? (uri.request.response || uri.request.responseText) : resourceArray;
 	} // else don't persist
-	return uri.options.returnResponse!==false ? (uri.request.response || uri.request.responseText) : uri.resources;
+	return uri.options.returnResponse!==false && uri.request ? (uri.request.response || uri.request.responseText) : uri.resources;
 };
 
 // NOTE: Will alter the order of the records returned. So, if a sort
@@ -358,6 +363,7 @@ RestOff.prototype._repoAddResource = function(uri) {
 		if (!uri.options.persistenceDisabled) {
 			if ("GET" === uri.restMethod) {  // Complete get, doing a merge because we don't have soft_delete
 				var serverResources = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // makes logic easier
+				if (that.resourceFilter) serverResources=that.resourceFilter(serverResources,uri);
 				var pending = that.pendingService.pendingGet(uri.repoName);
 				if (pending.length > 0 ) { // we got reconciliation work to do!!!
 					var repoResources = that._repoGetRaw(uri);
@@ -368,25 +374,29 @@ RestOff.prototype._repoAddResource = function(uri) {
 
 					var actions = that._forEachHashEntry(uri, joinedHash, serverResources, repoResources, pendingHash, newUpdatedResources);
 					return Promise.all(actions).then(function() {
-						that.dbService.writeSync(uri.repoName, newUpdatedResources, uri.options);
+						console.log("GET UPDATING", JSON.stringify(newUpdatedResources));
+						that.dbService.writeSync(uri.repoName, newUpdatedResources, Object.assign({hasPK:true}, uri.options));
 						that.pendingService.pendingClear(uri.repoName); // that.delete removes any dangling pending changes like a post and then delete of the same resource while offline.
 						var repoResources = that._repoGetRaw(uri);
-						resolve(uri.options.returnResponse ? (uri.response || uri.responseText) : repoResources);
+						resolve(uri.options.returnResponse && uri.request ? (uri.request.response || uri.request.responseText) : repoResources);
 					}).catch(function(error) {
 						reject(error);
 					});
 				} else {
 					that.clear(uri.repoName);
 					that.dbService.writeSync(uri.repoName, serverResources, uri.options);
-					resolve(uri.options.returnResponse ? (uri.request.response || uri.request.responseText) : serverResources);
+					resolve(uri.options.returnResponse && uri.request ? (uri.request.response || uri.request.responseText) : serverResources);
 				}
 			} else {
 				var resourceArray = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // make logic easier
+				if (that.resourceFilter) resourceArray=that.resourceFilter(resourceArray,uri);
 				that.dbService.writeSync(uri.repoName, resourceArray, uri.options);
-				resolve(uri.options.returnResponse ? (uri.request.response || uri.request.responseText) : repoResources);
+				resolve(uri.options.returnResponse && uri.request  ? (uri.request.response || uri.request.responseText) : resourceArray);
 			}
 		} // else don't persist
-		else resolve(uri.options.returnResponse!==false ? (uri.request.response || uri.request.responseText) : repoResources);
+		else {
+			resolve(uri.options.returnResponse!==false && uri.request ? (uri.request.response || uri.request.responseText) : uri.resources);
+		}
 	});
 };
 
@@ -488,7 +498,7 @@ RestOff.prototype._dbDelete = function(uri, resolve, reject) {
 			reject(this._createError(uri));
 		break;
 		default:
-			reject(that._createError(uri, "Delete Unsupported HTTP response " + request.status)); // TODO: Tests
+			reject(this._createError(uri, "Delete Unsupported HTTP response " + request.status)); // TODO: Tests
 	}
 };
 
@@ -517,7 +527,7 @@ RestOff.prototype._dbGet = function(uri) {
 				reject(this._createError(uri));
 			break;
 			default:
-				reject(that._createError(uri, "Get Unsupported HTTP response " + request.status)); // TODO: Tests
+				reject(this._createError(uri, "Get Unsupported HTTP response " + request.status)); // TODO: Tests
 		}
 	});
 };
@@ -602,7 +612,7 @@ RestOff.prototype._restCall = function(uriClient, restMethod, options, resource,
 	return new Promise(function(resolve, reject) {
 		var uri = that.uriFromClient(uriClient, restMethod, resource, options, useOriginalUri);
 		var request = that._requestGet(uri);
-		var body = JSON.stringify(resource);
+		var body = JSON.stringify(resource || {});
 		request.open(uri.restMethod, uri.uriFinal, true); // true: asynchronous
 		that._requestHeaderSet(request);
 		request.onreadystatechange = function() {
@@ -628,7 +638,7 @@ RestOff.prototype._restCall = function(uriClient, restMethod, options, resource,
 				}
 			} // else ignore other readyStates
 		};
-		if (("POST" === uri.restMethod) || ("PUT" === uri.restMethod)) {
+		if (("POST" === uri.restMethod) || ("PUT" === uri.restMethod) || ("DELETE" === uri.restMethod) ) {
 			request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
 			request.send(body);
 		} else {
@@ -686,19 +696,19 @@ RestOff.prototype.put = function(uri, resource, options) {
 };
 
 RestOff.prototype.deleteOne = function(uri, resource, options) {
-	return this._restCall(uri + '/' + resource[this._options.dbService.primaryKeyName], "DELETE", options, undefined, false);
+	return this._restCall(uri + '/' + resource[this._options.dbService.primaryKeyName], "DELETE", Object.assign(options||{},{hasPK:true}), undefined, false);
 };
 
 RestOff.prototype.getOne = function(uri,resource,options){
-	return this._restCall(uri + '/' + resource[this._options.dbService.primaryKeyName], "GET", options, undefined, false);
+	return this._restCall(uri + '/' + resource[this._options.dbService.primaryKeyName], "GET", Object.assign(options||{},{hasPK:true}), undefined, false);
 };
 
 RestOff.prototype.postOne = function(uri, resource, options) {
-	return this._restCall(uri + '/' + resource[this._options.dbService.primaryKeyName], "POST", options, resource, false);
+	return this._restCall(uri + '/' + resource[this._options.dbService.primaryKeyName], "POST", Object.assign(options||{},{hasPK:true}), resource, false);
 };
 
 RestOff.prototype.putOne = function(uri, resource, options) {
-	return this._restCall(uri + '/' + resource[this._options.dbService.primaryKeyName], "PUT", options, resource, false);
+	return this._restCall(uri + '/' + resource[this._options.dbService.primaryKeyName], "PUT", Object.assign(options||{},{hasPK:true}), resource, false);
 };
 
 RestOff.prototype.clone = function(config){
@@ -710,6 +720,10 @@ RestOff.prototype.clone = function(config){
 	for (var key in this._autoParams) obj.autoQueryParamSet(key,this._autoParams[key]);	
 	for (var key in this._autoHeaders) obj.autoHeaderParamSet(key,this._autoHeaders[key]);	
 	return obj;
+};
+
+RestOff.prototype.read = function(repoName,query) {
+	return this.dbService.dbRepo.read(repoName,query);
 };
 
 

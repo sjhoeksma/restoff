@@ -52,10 +52,10 @@ var roff = restoff({
 });
 
 roff.get("users").then(function(user) {
-	console.log(rest.dbRepo.read("users")); // Access repository directly
+	console.log(roff.read("users")); // Access repository directly
 });
 
-roff.delete("users/301378d5").then(function(deletedUserId) {
+roff.deleteOne("users",{id:301378d5}).then(function(deletedUserId) {
 	console.log("User " + deletedUserId + " deleted");
 });
 
@@ -283,9 +283,23 @@ Use ```pendingUri``` and ```pendingRepoName``` to configure the URI and reposito
 
 ### returnResponse [Optional]
 
-The ```returnResponse``` option defaults to null when set to true the URL response is returned for GET/POST. It is also default 
-behaviour when using option ```persistenceDisabled```.
+The ```returnResponse``` option defaults to null when set to true the URL response is returned for GET/POST. Default behaviour
+in case you are using ```persistenceDisabled```
 
+
+### resourceFilter(dataArray,uri):dataArray [Optional]
+
+The ```resourceFilter``` option defaults to null, when set to an function we can manipulate the received resourcedata before writing it to the lowDB. Systems like Backendless.comm return paged REST results to reduce long waits.
+
+```javascript
+var rest = restoff({
+	rootUri: "http://api.example.com/",
+  resourceFilter: function(resources,uri) {
+	  //Do You stuff to resources here
+	  return resources;
+	}
+});
+```
 
 ## **RESToff** Methods
 
@@ -386,8 +400,6 @@ var roff = restoff({
 roff.clearAll(true);
 console.log("User repository, even if it had pending, was cleared ");
 ```
-
-
 
 ### delete(uri, [options]), deleteRepo(uri, [options]),  deleteOne(uri, resource, [options]),
 
@@ -531,6 +543,17 @@ var roff = restoff({rootUri:'http://test.development.com:4050'});
 var cloneOff = roff.clone({rootUri:'http://test.production.com:4050'});
 ```
 
+### read(repoName,filter)
+
+Short hand for ```dbService.dbRepo.read()``` allowing quick access to the internal data storage.
+
+
+Example usage:
+
+```javascript
+var roff = restoff({rootUri:'http://test.development.com:4050'});
+var cloneOff = roff.clone({rootUri:'http://test.production.com:4050'});
+```
 
 # FAQ
 

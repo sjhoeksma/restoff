@@ -55,7 +55,7 @@ RestoffUri.prototype.uriFromClient = function(uri, restMethod, resources, option
     if (!uriResult.options.rootUri.endsWith("/")) {
         uriResult.options.rootUri = uriResult.options.rootUri + "/";
     }
-    uriResult.uriFinal = useOriginalUri ? uri : this._uriGenerate(uriResult);
+   uriResult.uriFinal = useOriginalUri ? uri : this._uriGenerate(uriResult);
     var result = uri.replace(uriResult.options.rootUri, "");
 
     this.filter.forEach(function(item) { // remove unwanted parts from the uri.
@@ -77,20 +77,23 @@ RestoffUri.prototype.uriFromClient = function(uri, restMethod, resources, option
     }
 
     var uriPrimaryKey = result.split("/");
-    if (uriPrimaryKey.length > 1) {
-        result = uriPrimaryKey[0];
-        uriResult.primaryKey = uriPrimaryKey[1]; // TODO Support nested resources
-    }
+	  if (options && options.hasPK && uriPrimaryKey.length > 1) {
+			uriResult.primaryKey = uriPrimaryKey.pop(); 
+			result =  uriPrimaryKey.pop();	
+		} 
 
     var pkName = this._restOff._pkNameGet(uriResult);
     uriResult.primaryKeyName = pkName;
-    if (undefined !== resources) {
+	  if (undefined !== resources) {
         if ("id" !== pkName && "guid" !== pkName) { // lowdb requires keyname of id. Can't find documentation that let's us set it. Will do more research later
+					  //We auto generate pkName if not set
             if (resources instanceof Array) {
                 resources.forEach(function (item) {
-                    item.id = item[pkName];
+								   if (!item[pkName])  item[pkName] = uuidGenerate();
+                   item.id = item[pkName];
                 });
             } else {
+							  if (!resources[pkName]) resources[pkName] = uuidGenerate();
                 resources.id = resources[pkName];
             }
         }
@@ -104,9 +107,9 @@ RestoffUri.prototype.uriFromClient = function(uri, restMethod, resources, option
     if (options && options.repoName) {
         uriResult.repoName = options.repoName;
     } else {
-        uriResult.repoName = result;
+        uriResult.repoName =  result;
     }
-
+	
     if (("http:" === uriResult.repoName) || ("" === uriResult.repoName)) {
         // Note: We really can't figure out the rootUri from the uri provided when no rootUri was
         //       configured. This is because the rootUri could contain anything plus resource names
