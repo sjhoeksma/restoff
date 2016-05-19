@@ -234,14 +234,13 @@ RestOffService.prototype.writeSync = function(repoName, resources, options) {
 	resources.forEach(function(resource) {
 		var primaryKey = resource[pkName];
 		if (undefined === primaryKey) {
-				console.log("Expected resource in repository " + repoName, primaryKey, pkName,JSON.stringify(resource));
 			// TODO: Provide a call back for logging so user can log/notify/etc.
 			// TODO: Allow Program to continue execution?
 			throw new Error("Expected resource in repository '" + repoName + "' to have a primary key named '" + pkName + "'. The resource we are checking against is " + JSON.stringify(resource) + ". The primary key name comes from the global configuration or you can set it for each RESTful call. Please see supporting documentation.");
 		}
 	});
 	var that = this;
-	if (this.reconSettings.softDeleteFieldName !== "") {
+	if (this.reconSettings.softDeleteFieldName) {
 		var softDeleteFN = this.reconSettings.softDeleteFieldName;
 		var softDeleteFV = this.reconSettings.softDeleteValue;
 		resources.forEach(function(resource, pos) {
@@ -343,7 +342,7 @@ RestoffUri.prototype.uriFromClient = function(uri, restMethod, resources, option
     var uriPrimaryKey = result.split("/");
 	  if (options && options.hasPK && uriPrimaryKey.length > 1) {
 			uriResult.primaryKey = uriPrimaryKey.pop(); 
-			result =  uriPrimaryKey.pop();	
+			result =  uriPrimaryKey.join("/");	
 		} 
 
     var pkName = this._restOff._pkNameGet(uriResult);
@@ -421,9 +420,9 @@ RestoffPending.prototype.pendingCount = function(repoName) {
     return pending ? pending.length : 0;
 };
 
-RestoffPending.prototype.pendingDelete = function(itemId) {
-    var uri = this.pendingRepoName + (itemId ? "/"+itemId : "");
-    return this._restOff.deleteRepo(uri, {rootUri:this.pendingUri, clientOnly:true, primaryKeyName:"id"});
+RestoffPending.prototype.pendingDelete = function(itemId) {	
+  	var uri = this.pendingRepoName + (itemId ? "/"+itemId : "");
+    return this._restOff.deleteRepo(uri, {rootUri:this.pendingUri, clientOnly:true, primaryKeyName:"id",hasPK:!(!itemId)});
 };
 
 RestoffPending.prototype.pendingClear = function(repoName) {
@@ -439,7 +438,8 @@ RestoffPending.prototype.pendingAdd = function(uri) {
         "clientTime" : new Date(),
         "uri" : uri.uriFinal,
         "repoName" : uri.repoName,
-        "primaryKey" : uri.primaryKey
+        "primaryKey" : uri.primaryKey,
+			  "hasPK": uri.options && uri.options.hasPK
     };
     if (!uri.options.persistenceDisabled) { // TODO: Write a test for this
         var pendingFound = this.pendingGet(uri.repoName, uri.primaryKey);
@@ -451,7 +451,8 @@ RestoffPending.prototype.pendingAdd = function(uri) {
           }
           this.pendingDelete(pendingFound[0].id);
         } else {
-          var original = this._restOff.getRepo(uri.repoName+"/"+uri.primaryKey, {primaryKeyName:uri.primaryKeyName});
+					//THIS CREATES THE REPO
+          var original = this._restOff.getRepo(uri.repoName+"/"+uri.primaryKey, {primaryKeyName:uri.primaryKeyName,hasPK:true});
           if (undefined !== original[0]) {
               result.original = JSON.parse(JSON.stringify(original[0])); // need to clone original record
           }
@@ -538,7 +539,7 @@ RestOff.prototype._pendingRepoAddSync = function(uri) {
 RestOff.prototype._pendingRepoAdd = function(uri, clientOnly, resolve, reject) {
 	if (!clientOnly) {
 		var that = this;
-		this.pendingService.pendingAdd(uri);		
+		this.pendingService.pendingAdd(uri);	
 		return that._repoAddResource(uri).then(function(result) {
 			resolve(result);
 		}).catch(function(error) { // TODO: Test
@@ -690,7 +691,9 @@ RestOff.prototype._applyAndClearPending = function(pendingAction, uri) {
 		//       server now that we are online. So, we pass true for useOriginalUri
 		//       so we don't re-generate it (which would also cause any
 		//       autoQueryParams to get appended twice.
-		return that._restCall(pendingAction.uri, pendingAction.restMethod, uri.options, pendingAction.resources, true).then(function() { // TODO: Write a test for this being true.
+		return that._restCall(pendingAction.uri, pendingAction.restMethod, 
+					pendingAction.hasPK ? Object.assign({hasPK:true},uri.options) :	uri.options, 
+					pendingAction.resources, true).then(function() { // TODO: Write a test for this being true.
 			resolve(that.pendingService.pendingDelete(pendingAction.id));
 		}).catch(function(error) {
 			reject(error);
@@ -727,6 +730,9 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 				if (inRepo) {
 					if (inPending) {  // True, True, True   : Client changes. Possible changes on server too. PUT/POST Only   | Reconcile. Clear out pending.
 						var pendingOriginal = pendingAction ? pendingAction.original : undefined;
+						if (that.resourceFilter) {
+							pendingOriginal=that.resourceFilter(pendingOriginal,uri);
+						}
 						var serverSideEdit = ('overwrite' === that.options.concurrency) ? false : !deepEquals(serverResource, pendingOriginal);
 						if (serverSideEdit) { // edited on server and client: BRENT reconciliation
 							// First: Let's fix the original record
@@ -734,19 +740,20 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 							pendingAction.primaryKeyOriginal = pendingAction.primaryKey;
 							pendingAction.primaryKey = newId;
 							pendingAction.resources[that._pkNameGet(uri)] = newId;
+							//TODO CHECK WHY he indicates server has been updated
 							if ("PUT" === pendingAction.restMethod) { // will need to convert a PUT to a POST but can keep the existing post the same
 								pendingAction.restMethod = "POST";
-								pendingAction.uri = pendingAction.uri.replace(pendingAction.primaryKeyOriginal, "");
+								//When on backenless also remove the ojectkey
+								pendingAction.uri = pendingAction.uri.replace("/"+pendingAction.primaryKeyOriginal, "");
+								pendingAction.hasPK =false;
 							}
 
 							// Second: Let's apply the new change on the server
 							return that._applyAndClearPending(pendingAction, uri).then(function() {
-
-								// Thrid: We will need to add this "new record" to the existing repository
-								newUpdatedResources.push(pendingAction.resources);
+								// Thrid: We will need to add this "new record" to the existing repository, disabled is allready added by post
+					      //newUpdatedResources.push(pendingAction.resources);
 								// Fourth: but we keep the original record in the repo becuase it will be overwritten by the resolve
 								newUpdatedResources.push(serverResource);
-
 								// Finally: Notify someone that Brent Reconciliation just happened
 								if (that.options.onReconciliation) {
 									that.options.onReconciliation(pendingAction);
@@ -781,6 +788,7 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 			} else {
 				if (inRepo) {
 					if (inPending) {  // False, True, True  : Post/Put on client                                 | Clear out pending. Complete post/put on client
+						//console.log("Server %O Repo %O Pending %O", serverResource, repoResource, pendingAction);
 						if (undefined === pendingAction.original) { // not on server no origional, so must have been created on client.
 							return that._applyAndClearPending(pendingAction, uri).then(function(){
 								resolve();
@@ -833,6 +841,8 @@ RestOff.prototype._repoAddResource = function(uri) {
 				var pending = that.pendingService.pendingGet(uri.repoName);
 				if (pending.length > 0 ) { // we got reconciliation work to do!!!
 					var repoResources = that._repoGetRaw(uri);
+					
+		
 					var newUpdatedResources = [];
 					var pkName = that._pkNameGet(uri);
 					var joinedHash = that._joinedHash(pkName, serverResources, repoResources);
@@ -840,8 +850,7 @@ RestOff.prototype._repoAddResource = function(uri) {
 
 					var actions = that._forEachHashEntry(uri, joinedHash, serverResources, repoResources, pendingHash, newUpdatedResources);
 					return Promise.all(actions).then(function() {
-						console.log("GET UPDATING", JSON.stringify(newUpdatedResources));
-						that.dbService.writeSync(uri.repoName, newUpdatedResources, Object.assign({hasPK:true}, uri.options));
+						that.dbService.writeSync(uri.repoName, newUpdatedResources, uri.options);
 						that.pendingService.pendingClear(uri.repoName); // that.delete removes any dangling pending changes like a post and then delete of the same resource while offline.
 						var repoResources = that._repoGetRaw(uri);
 						resolve(uri.options.returnResponse && uri.request ? (uri.request.response || uri.request.responseText) : repoResources);
@@ -855,8 +864,14 @@ RestOff.prototype._repoAddResource = function(uri) {
 				}
 			} else {
 				var resourceArray = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // make logic easier
+				
 				if (that.resourceFilter) resourceArray=that.resourceFilter(resourceArray,uri);
-				that.dbService.writeSync(uri.repoName, resourceArray, uri.options);
+				if (("POST" === uri.restMethod) && uri.options.dbService && uri.options.dbService.primaryKeyNotOnPost) {
+		     	 //We have received new primary key from server
+					 var options = Object.assign({},uri.options);
+					 options.primaryKeyName="id";
+					 that.dbService.writeSync(uri.repoName, resourceArray, options); 
+		    } else that.dbService.writeSync(uri.repoName, resourceArray, uri.options);
 				resolve(uri.options.returnResponse && uri.request  ? (uri.request.response || uri.request.responseText) : resourceArray);
 			}
 		} // else don't persist
@@ -1078,7 +1093,14 @@ RestOff.prototype._restCall = function(uriClient, restMethod, options, resource,
 	return new Promise(function(resolve, reject) {
 		var uri = that.uriFromClient(uriClient, restMethod, resource, options, useOriginalUri);
 		var request = that._requestGet(uri);
-		var body = JSON.stringify(resource || {});
+		var cResource = Object.assign({},resource)	
+		//A lot of systems do not like the primarykey being send during post
+		if (("POST" === uri.restMethod) && uri.options.dbService && uri.options.dbService.primaryKeyNotOnPost) {
+			delete cResource[uri.primaryKeyName];
+		}
+		//Angular is adding $$haskey to keep tracking his object when using JSON.stringify , remove it
+		delete cResource['$$hashKey'];
+		var	body = JSON.stringify(cResource || {});
 		request.open(uri.restMethod, uri.uriFinal, true); // true: asynchronous
 		that._requestHeaderSet(request);
 		request.onreadystatechange = function() {

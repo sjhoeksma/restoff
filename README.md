@@ -545,7 +545,8 @@ var cloneOff = roff.clone({rootUri:'http://test.production.com:4050'});
 
 ### read(repoName,filter)
 
-Short hand for ```dbService.dbRepo.read()``` allowing quick access to the internal data storage.
+Short hand for ```dbService.dbRepo.read()``` allowing quick access to the internal data storage. But becarefull not 
+to update the fields using this object, because it can cause wrong updates.
 
 
 Example usage:

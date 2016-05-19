@@ -79,7 +79,7 @@ RestoffUri.prototype.uriFromClient = function(uri, restMethod, resources, option
     var uriPrimaryKey = result.split("/");
 	  if (options && options.hasPK && uriPrimaryKey.length > 1) {
 			uriResult.primaryKey = uriPrimaryKey.pop(); 
-			result =  uriPrimaryKey.pop();	
+			result =  uriPrimaryKey.join("/");	
 		} 
 
     var pkName = this._restOff._pkNameGet(uriResult);
