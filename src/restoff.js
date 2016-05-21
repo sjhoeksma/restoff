@@ -14,8 +14,10 @@ function restoff(options) {
 	var that = Object.create(RestOff.prototype);
 	that._options = Object.assign(defaultOptions, options);
 	that._options.generateId = (options && options.generateId) ? options.generateId : uuidGenerate;
-	that._autoParams = {};
-	that._autoHeaders = {};
+	that._autoParams = that._options.defaultParams || {};
+	that._autoHeaders = that._options.defaultHeaders || {};
+	delete that._options.defaultParams;
+	delete that._options.defaultHeaders;
 	that._dbService = restoffService(that._options.dbService);
 	that._restoffUri = restoffUri(that, that._options.uriOptions);
 	that._pendingService = restoffPending(that, that._options.pending);
@@ -55,6 +57,10 @@ RestOff.prototype = Object.create(Object.prototype, {
 	resourceFilter: {
 		get: function() { return this._options.resourceFilter; },
 		set: function(value) { this._options.resourceFilter = value; }
+	},
+	pageHandler: {
+		get: function() { return this._options.pageHandler; },
+		set: function(value) { this._options.pageHandler = value; }
 	}
 });
 
@@ -170,7 +176,10 @@ RestOff.prototype._repoFind = function(uri) {
 RestOff.prototype._repoAdd = function(uri, resourceRaw) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
-		uri.resources = JSON.parse(resourceRaw); // TODO: Check for non-json result and throw error/convert/support images/etc.
+		if (!uri.resources && resourceRaw){
+			  uri.resources = JSON.parse(resourceRaw); // TODO: Check for non-json result and throw error/convert/support images/etc.
+			  if (that.resourceFilter) uri.resources=that.resourceFilter(uri.resources,uri); //Clean the resources
+		}
 		return that._repoAddResource(uri).then(function(result) {
 			resolve(result);
 		}).catch(function(error) { // TODO: Test
@@ -227,6 +236,12 @@ RestOff.prototype._applyAndClearPending = function(pendingAction, uri) {
 		return that._restCall(pendingAction.uri, pendingAction.restMethod, 
 					pendingAction.hasPK ? Object.assign({hasPK:true},uri.options) :	uri.options, 
 					pendingAction.resources, true).then(function() { // TODO: Write a test for this being true.
+			if ("POST"===pendingAction.restMethod && uri.options.dbService && uri.options.dbService.primaryKeyNotOnPost) {
+				  //We need to remove the old object when receive new keys on post
+				  var pkSearch = {};
+				  pkSearch[that._pkNameGet(uri)]=pendingAction.primaryKey;
+		  		that.dbService.deleteRepo(pendingAction.repoName, pkSearch);
+			}
 			resolve(that.pendingService.pendingDelete(pendingAction.id));
 		}).catch(function(error) {
 			reject(error);
@@ -263,9 +278,6 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 				if (inRepo) {
 					if (inPending) {  // True, True, True   : Client changes. Possible changes on server too. PUT/POST Only   | Reconcile. Clear out pending.
 						var pendingOriginal = pendingAction ? pendingAction.original : undefined;
-						if (that.resourceFilter) {
-							pendingOriginal=that.resourceFilter(pendingOriginal,uri);
-						}
 						var serverSideEdit = ('overwrite' === that.options.concurrency) ? false : !deepEquals(serverResource, pendingOriginal);
 						if (serverSideEdit) { // edited on server and client: BRENT reconciliation
 							// First: Let's fix the original record
@@ -351,11 +363,10 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 RestOff.prototype._repoAddResourceSync = function(uri) {
 	if (!uri.options.persistenceDisabled) {
 		var resourceArray = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // make logic easier
-		if (this.resourceFilter) resourceArray=this.resourceFilter(resourceArray,uri);
 		this.dbService.writeSync(uri.repoName, resourceArray, uri.options);
-		return uri.options.returnResponse && uri.request ? (uri.request.response || uri.request.responseText) : resourceArray;
+		return resourceArray;
 	} // else don't persist
-	return uri.options.returnResponse!==false && uri.request ? (uri.request.response || uri.request.responseText) : uri.resources;
+	return  uri.resources;
 };
 
 // NOTE: Will alter the order of the records returned. So, if a sort
@@ -370,7 +381,6 @@ RestOff.prototype._repoAddResource = function(uri) {
 		if (!uri.options.persistenceDisabled) {
 			if ("GET" === uri.restMethod) {  // Complete get, doing a merge because we don't have soft_delete
 				var serverResources = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // makes logic easier
-				if (that.resourceFilter) serverResources=that.resourceFilter(serverResources,uri);
 				var pending = that.pendingService.pendingGet(uri.repoName);
 				if (pending.length > 0 ) { // we got reconciliation work to do!!!
 					var repoResources = that._repoGetRaw(uri);
@@ -386,30 +396,25 @@ RestOff.prototype._repoAddResource = function(uri) {
 						that.dbService.writeSync(uri.repoName, newUpdatedResources, uri.options);
 						that.pendingService.pendingClear(uri.repoName); // that.delete removes any dangling pending changes like a post and then delete of the same resource while offline.
 						var repoResources = that._repoGetRaw(uri);
-						resolve(uri.options.returnResponse && uri.request ? (uri.request.response || uri.request.responseText) : repoResources);
+						//resolve(uri.options.returnResponse && uri.request ? (uri.request.response || uri.request.responseText) : repoResources);
+						resolve(repoResources);
 					}).catch(function(error) {
 						reject(error);
 					});
 				} else {
 					that.clear(uri.repoName);
 					that.dbService.writeSync(uri.repoName, serverResources, uri.options);
-					resolve(uri.options.returnResponse && uri.request ? (uri.request.response || uri.request.responseText) : serverResources);
+					//resolve(uri.options.returnResponse && uri.request ? (uri.request.response || uri.request.responseText) : serverResources);
+					resolve(serverResources);
 				}
 			} else {
 				var resourceArray = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // make logic easier
-				
-				if (that.resourceFilter) resourceArray=that.resourceFilter(resourceArray,uri);
-				if (("POST" === uri.restMethod) && uri.options.dbService && uri.options.dbService.primaryKeyNotOnPost) {
-		     	 //We have received new primary key from server
-					 var options = Object.assign({},uri.options);
-					 options.primaryKeyName="id";
-					 that.dbService.writeSync(uri.repoName, resourceArray, options); 
-		    } else that.dbService.writeSync(uri.repoName, resourceArray, uri.options);
-				resolve(uri.options.returnResponse && uri.request  ? (uri.request.response || uri.request.responseText) : resourceArray);
+				that.dbService.writeSync(uri.repoName, resourceArray, uri.options);
+				resolve(resourceArray);
 			}
 		} // else don't persist
 		else {
-			resolve(uri.options.returnResponse!==false && uri.request ? (uri.request.response || uri.request.responseText) : uri.resources);
+			resolve(uri.resources);
 		}
 	});
 };
@@ -430,13 +435,16 @@ RestOff.prototype._createError = function(uri, customMessage) {
 		message = "Network Error";
 	}
 
-	return {
+	var msg = {
 		message: message,
 		messageDetail: messageDetail,
+		response:request.response || request.responseText,
 		status: request.status,
 		uri: uri.uriFinal,
 		restMethod: uri.restMethod
 	};
+	if (uri.options.errorHandler) uri.options.errorHandler(msg);
+	return msg;
 };
 
 RestOff.prototype.autoQueryParamSet = function(name, value) {
@@ -469,13 +477,36 @@ RestOff.prototype._requestHeaderSet = function(request) {
 };
 
 RestOff.prototype._uriAddRequest = function(uri, request) {
-	uri.request = {
-		readyState : request.readyStateRestOff,
-		status : request.status,
-		statusText : request.statusText,
-		response: request.response,
-		responseText: request.responseText
-	};
+	if (uri.request) { //We allready have a uri request, we will join it
+		uri.request.readyState =request.readyStateRestOff;
+		if (request.status!=200) uri.request.status=request.status;
+		uri.request.readyState=uri.request.readyState;
+		uri.request.statusText=uri.request.statusText ? uri.request.statusText + request.statusText : request.statusText;
+		//Join response data
+		var resp1 = JSON.parse(request.response || request.responseText);
+		if (this.resourceFilter) {
+			var resp2 = this.resourceFilter(resp1,uri);
+			for (var i=0;i<resp2.length;i++) uri.resources.push(resp2[i]);
+		}
+		if (this.pageHandler)  uri.nextUri = this.pageHandler(resp1,uri);
+		else delete uri.nextUri;
+		delete uri.request.response; //Should not be used we have allready parse the resources
+		delete uri.request.responseText; //Should not be used we have allready parse the resources
+	} else {
+		uri.request = {
+			readyState : request.readyStateRestOff,
+			status : request.status,
+			statusText : request.statusText,
+			response: request.response,
+			responseText: request.responseText
+		}
+		if (uri.request.response || uri.request.responseText) {
+			var resp1= JSON.parse(uri.request.response || uri.request.responseText);
+			if (this.resourceFilter) uri.resources=this.resourceFilter(resp1,uri);
+			if (!(uri.resources instanceof Array))  uri.resources = [uri.resources];
+			if (this.pageHandler)  uri.nextUri = this.pageHandler(resp1,uri);
+		}
+	}
 	return uri;
 };
 
@@ -550,7 +581,7 @@ RestOff.prototype._dbPost = function(uri, resolve, reject) {
 	var request = uri.request;
 	switch (request.status) {
 		case 200: case 201: // TODO: Test for case 200
-			return this._repoAddResource(uri).then(function(result) {  // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
+			return this._repoAdd(uri,request.response).then(function(result) {  // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
 				resolve(result);
 			}).catch(function(error){
 				reject(error);
@@ -590,7 +621,7 @@ RestOff.prototype._dbPut = function(uri, resolve, reject) {
 	var request = uri.request;
 	switch (request.status) {
 		case 200:
-			return this._repoAddResource(uri).then(function(result) {  // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
+			return this._repoAdd(uri,request.response).then(function(result) {  // TODO: IMPORTANT!!! Use request.response: need to add backend service to test this
 				resolve(result);
 			}).catch(function(error){
 				reject(error);
@@ -623,22 +654,44 @@ RestOff.prototype._dbPut = function(uri, resolve, reject) {
 
 RestOff.prototype._restCall = function(uriClient, restMethod, options, resource, useOriginalUri) {
 	var that = this;
+	var restRequest = function _resetRequest(uri,resource) {
+		return new Promise(function(resolve, reject) {
+				var request = that._requestGet(uri);
+				var cResource = Object.assign({},resource)	
+				//A lot of systems do not like the primarykey being send during post
+				if (("POST" === uri.restMethod) && uri.options.dbService && uri.options.dbService.primaryKeyNotOnPost) {
+					delete cResource[uri.primaryKeyName];
+				}
+				//Angular is adding $$haskey to keep tracking his object when using JSON.stringify , remove it
+				delete cResource['$$hashKey'];
+				var	body = JSON.stringify(cResource || {});
+				request.open(uri.restMethod, uri.uriFinal, true); // true: asynchronous
+				that._requestHeaderSet(request);
+				request.onreadystatechange = function() {
+					if(4 === request.readyStateRestOff) { // Done = 4
+						that._uriAddRequest(uri, request);
+						if (uri.nextUri) {
+								uri.uriFinal=uri.nextUri;
+								restRequest(uri,resource).then(resolve,reject).catch(function(error) { 
+														reject(error);
+													 });
+						} else resolve(); //Finished Request resolve it
+					} // else ignore other readyStates
+				};
+				if (("POST" === uri.restMethod) || ("PUT" === uri.restMethod) || ("DELETE" === uri.restMethod) ) {
+					request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+					request.send(body);
+				} else {
+					request.send();
+				}
+			});
+	}
+
+	
+	var that = this;
 	return new Promise(function(resolve, reject) {
 		var uri = that.uriFromClient(uriClient, restMethod, resource, options, useOriginalUri);
-		var request = that._requestGet(uri);
-		var cResource = Object.assign({},resource)	
-		//A lot of systems do not like the primarykey being send during post
-		if (("POST" === uri.restMethod) && uri.options.dbService && uri.options.dbService.primaryKeyNotOnPost) {
-			delete cResource[uri.primaryKeyName];
-		}
-		//Angular is adding $$haskey to keep tracking his object when using JSON.stringify , remove it
-		delete cResource['$$hashKey'];
-		var	body = JSON.stringify(cResource || {});
-		request.open(uri.restMethod, uri.uriFinal, true); // true: asynchronous
-		that._requestHeaderSet(request);
-		request.onreadystatechange = function() {
-			if(4 === request.readyStateRestOff) { // Done = 4
-				that._uriAddRequest(uri, request);
+		restRequest(uri,resource).then(function (request){
 				switch(uri.restMethod) {
 					case "GET":
 						return that._dbGet(uri).then(function(result) {
@@ -655,16 +708,12 @@ RestOff.prototype._restCall = function(uriClient, restMethod, options, resource,
 					case "DELETE":
 						that._dbDelete(uri, resolve, reject);
 					break;
-					// default: Not required
+						
+					 default: reject(); //Should not happen 
 				}
-			} // else ignore other readyStates
-		};
-		if (("POST" === uri.restMethod) || ("PUT" === uri.restMethod) || ("DELETE" === uri.restMethod) ) {
-			request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-			request.send(body);
-		} else {
-			request.send();
-		}
+		}).catch(function(error) { // TODO: Test
+			reject(error);
+		});
 	});
 };
 
@@ -743,7 +792,8 @@ RestOff.prototype.clone = function(config){
 	return obj;
 };
 
-RestOff.prototype.read = function(repoName,query) {
+RestOff.prototype.read = function(repoName,query,makeCopy) {
+	if (makeCopy!==false) return JSON.parse(JSON.stringify(this.dbService.dbRepo.read(repoName,query)));
 	return this.dbService.dbRepo.read(repoName,query);
 };
 

@@ -4,19 +4,24 @@ function logMessage(message) {
 
 function deepEquals(x, y) {
     if ((typeof x == "object" && x !== null) && (typeof y == "object" && y !== null)) {
-        if (Object.keys(x).length != Object.keys(y).length) {
+			  //Clean out the angular keys
+			  var xc = x.hasOwnProperty('$$hashKey') ? 0 : 1;
+			  var yc = y.hasOwnProperty('$$hashKey') ? 0 : 1;
+	      if (Object.keys(x).length+xc != Object.keys(y).length+yc) {
             return false;
         }
 
         for (var prop in x) {
-            if (y.hasOwnProperty(prop)) {
-                if (! deepEquals(x[prop], y[prop])) {
-                    return false;
-                }
-            }
-            else {
-                return false;
-            }
+					  if (prop!='$$hashKey') {
+							if (y.hasOwnProperty(prop)) {
+									if (! deepEquals(x[prop], y[prop])) {
+											return false;
+									}
+							}
+							else {
+									return false;
+							}
+						}
         }
         return true;
     } else return x === y;

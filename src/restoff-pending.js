@@ -26,7 +26,7 @@ RestoffPending.prototype.pendingGet = function(repoName, key) {
 };
 
 RestoffPending.prototype.pendingPost = function(resource) {
-    return this._restOff.postRepo(this.pendingUri + this.pendingRepoName, resource, {rootUri:this.pendingUri,clientOnly:true,primaryKeyName:"id"});
+  return this._restOff.postRepo(this.pendingUri + this.pendingRepoName, resource, {rootUri:this.pendingUri,clientOnly:true,primaryKeyName:"id"});
 };
 
 RestoffPending.prototype.pendingCount = function(repoName) {
@@ -65,7 +65,6 @@ RestoffPending.prototype.pendingAdd = function(uri) {
           }
           this.pendingDelete(pendingFound[0].id);
         } else {
-					//THIS CREATES THE REPO
           var original = this._restOff.getRepo(uri.repoName+"/"+uri.primaryKey, {primaryKeyName:uri.primaryKeyName,hasPK:true});
           if (undefined !== original[0]) {
               result.original = JSON.parse(JSON.stringify(original[0])); // need to clone original record

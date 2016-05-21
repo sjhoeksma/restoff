@@ -84,20 +84,16 @@ RestoffUri.prototype.uriFromClient = function(uri, restMethod, resources, option
 
     var pkName = this._restOff._pkNameGet(uriResult);
     uriResult.primaryKeyName = pkName;
-	  if (undefined !== resources) {
-        if ("id" !== pkName && "guid" !== pkName) { // lowdb requires keyname of id. Can't find documentation that let's us set it. Will do more research later
-					  //We auto generate pkName if not set
-            if (resources instanceof Array) {
-                resources.forEach(function (item) {
-								   if (!item[pkName])  item[pkName] = uuidGenerate();
-                   item.id = item[pkName];
-                });
-            } else {
-							  if (!resources[pkName]) resources[pkName] = uuidGenerate();
-                resources.id = resources[pkName];
-            }
-        }
-    }
+
+	 if (undefined !== resources) {
+     if (resources instanceof Array) {
+				resources.forEach(function (item) {
+						if (!item[pkName])  item[pkName] = uriResult.options.generateId();
+				});
+		 } else {
+				if (!resources[pkName]) resources[pkName] = uriResult.options.generateId();
+		 }
+	 }
 
     // TODO: Check if resource's primary key != uri primary key and warn (some cases when this could happen)
     if (("" === uriResult.primaryKey) && (undefined !== resources) && (null !== resources) && (undefined !== resources[pkName])) {

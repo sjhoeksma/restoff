@@ -218,6 +218,12 @@ roff.get("users", {primaryKeyName:"USER_ID"}).then(function(result) {
 });
 ```
 
+### 	dbService.primaryKeyNotOnPost or options {primaryKeyNotOnPost:"true"} [OPTIONAL]
+
+```primaryKeyNotOnPost``` is a boolean indication that we should not send a primary key on post. Some servers
+create a primary key on post and send it back via response.
+
+
 ### forcedOffline [Optional]
 
 Forces the application to run in offline mode.
@@ -281,25 +287,80 @@ Use ```pendingUri``` and ```pendingRepoName``` to configure the URI and reposito
 
 * Note: In ```clientOnly``` mode, no changes are recorded in the ```pending``` repository.
 
-### returnResponse [Optional]
-
-The ```returnResponse``` option defaults to null when set to true the URL response is returned for GET/POST. Default behaviour
-in case you are using ```persistenceDisabled```
-
 
 ### resourceFilter(dataArray,uri):dataArray [Optional]
 
 The ```resourceFilter``` option defaults to null, when set to an function we can manipulate the received resourcedata before writing it to the lowDB. Systems like Backendless.comm return paged REST results to reduce long waits.
 
 ```javascript
+//Example for BackendLess.com ,plain functions removes all internal objects from the code
 var rest = restoff({
 	rootUri: "http://api.example.com/",
-  resourceFilter: function(resources,uri) {
-	  //Do You stuff to resources here
-	  return resources;
+	resourceFilter: function(resources,uri){
+	  if (resources.hasOwnProperty('totalObjects') && resources.hasOwnProperty('data')) {
+			resources=resources.data;
+			for (var i=0;i<resources.length;i++) resources[i]=self.plain(resources[i]);
+	 } else {
+		 resources = self.plain(resources);
+	 }
+
+	 return resources;
+ }
+});
+```
+
+### errorHandler(errorMessage) [Optional]
+
+The ```errorHandler``` option defaults to null, when set to a function it will we called allowing you to intercept the error, before
+it is passed to the reject part of promise.
+
+```javascript
+var rest = restoff({
+	rootUri: "http://api.example.com/",
+  errorHandler: function(error) {
+	 /* error layout
+	   error = {
+		    message: message,
+	 	    messageDetail: messageDetail,
+		    status: request.status,
+				response:request.response || request.responseText,
+		    uri: uri.uriFinal,
+		    restMethod: uri.restMethod
+	   };
+	*/
+	  
 	}
 });
 ```
+
+### pageHandler(resources,uri):nextPageURL [Optional]
+
+The ```pageHandler``` option defaults to null, when set to a function it will we called allowing you to handle paged results form your backend system. The url returned by this functions will be loaded and added to the result set.
+
+```
+//Example for BackendLess.com
+var rest = restoff({
+	rootUri: "http://api.example.com/",
+	pageHandler : function(resources,uri) {
+		if (resources.hasOwnProperty('totalObjects') && resources.hasOwnProperty('data')  && resources.nextPage ) {
+			var p =  uri.uriFinal.indexOf('?');
+			var ret = (p>0 ? uri.uriFinal.substr(0,p) : uri.uriFinal) + "?" + resources.nextPage.substr( resources.nextPage.indexOf('?')+1) ;
+			return ret;
+		}
+		return false;
+	}
+});
+```		
+
+### defaultParams [Optional]
+The ```defaultParams``` option defaults to null, but when set an object, the key values will be used as parameters in all
+rest calls. See also ```autoQueryParamSet```
+
+
+### defaultHeaders [Optional]
+The ```defaultHeader``` option defaults to null, but when set an object, the key values will be used as header parameters in all
+rest calls. See also ```autoHeaderParamSet```
+
 
 ## **RESToff** Methods
 
@@ -543,17 +604,20 @@ var roff = restoff({rootUri:'http://test.development.com:4050'});
 var cloneOff = roff.clone({rootUri:'http://test.production.com:4050'});
 ```
 
-### read(repoName,filter)
+### read(repoName,filter,makeCopy)
 
-Short hand for ```dbService.dbRepo.read()``` allowing quick access to the internal data storage. But becarefull not 
-to update the fields using this object, because it can cause wrong updates.
+Short hand for ```dbService.dbRepo.read()``` allowing quick access to the internal data storage. Because it
+was giving access to the internal buffers directly we copy the data into a other array. If you don't like this 
+then set ```makeCopy``` to false.
 
 
 Example usage:
 
 ```javascript
-var roff = restoff({rootUri:'http://test.development.com:4050'});
-var cloneOff = roff.clone({rootUri:'http://test.production.com:4050'});
+return roff.get("http://test.development.com:4050/testsweb/testdata/users")
+.then(function(result){
+   data = roff.read('testweb/users');
+});
 ```
 
 # FAQ
