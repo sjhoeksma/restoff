@@ -41,8 +41,6 @@ Synchronize client/server data using your existing RESTful APIs.
 ## RestOff Usage
 
 
-
-
 Examples:
 
 ```javascript
@@ -52,7 +50,7 @@ var roff = restoff({
 });
 
 roff.get("users").then(function(user) {
-	console.log(roff.read("users")); // Access repository directly
+	console.log(roff.getRepo("users")); // Access repository directly
 });
 
 roff.deleteOne("users",{id:301378d5}).then(function(deletedUserId) {
@@ -595,29 +593,13 @@ expect(actualUri)).to.equal("http://test.development.com:4050/emailaddresses?acc
 
 ### clone(config)
 
-you may need a clone of the restOff with add other config, config parts of orginal are copied to clone.
+you may need a clone of the restOff with add other config. config parts of orginal are copied to clone.
 
 Example usage:
 
 ```javascript
 var roff = restoff({rootUri:'http://test.development.com:4050'});
 var cloneOff = roff.clone({rootUri:'http://test.production.com:4050'});
-```
-
-### read(repoName,filter,makeCopy)
-
-Short hand for ```dbService.dbRepo.read()``` allowing quick access to the internal data storage. Because it
-was giving access to the internal buffers directly we copy the data into a other array. If you don't like this 
-then set ```makeCopy``` to false.
-
-
-Example usage:
-
-```javascript
-return roff.get("http://test.development.com:4050/testsweb/testdata/users")
-.then(function(result){
-   data = roff.read('testweb/users');
-});
 ```
 
 # FAQ
@@ -749,6 +731,106 @@ angular.module("fakeRoot", ["restoff"])
         });
     }]);
 ```
+
+When using angular you should add a resourceFilter to remove $$hashKey added by angular if you don't want to keep your
+database clean.
+Example config for Angular, using the backendless.com backend servivce
+
+```javascript
+	var self = restoff.clone({
+    rootUri : $common.getENV('backendURL')
+		
+		,pageHandler : function(resources,uri) {
+			if (resources.hasOwnProperty('totalObjects') && resources.hasOwnProperty('data')  && resources.nextPage ) {
+				var p =  uri.uriFinal.indexOf('?');
+				var ret = (p>0 ? uri.uriFinal.substr(0,p) : uri.uriFinal) + "?" + resources.nextPage.substr( resources.nextPage.indexOf('?')+1) ;
+				return ret;
+			}
+			return false;
+		}
+		
+		,errorHandler : function(error){
+			// error = {  message,messageDetail,status,response,uri,restMethod};
+			try {
+				var resp = JSON.parse(response);
+			  if (resp.code==3064) {
+				    console.log('Got an invalid user response');
+				    self.logout();
+			      $rootScope.$broadcast('baas.invaliduser',resp);
+			  }
+			} catch (ex){}
+		}
+
+		,resourceFilter: function(resources,uri){
+		   if (resources.hasOwnProperty('totalObjects') && resources.hasOwnProperty('data')) {
+					resources=resources.data;
+					for (var i=0;i<resources.length;i++) resources[i]=self.plain(resources[i]);
+	 		  } else {
+				 resources = self.plain(resources);
+			 }
+			 return resources;
+		 }
+		,dbService: { 
+		 primaryKeyName : "objectId" 
+		 ,primaryKeyNotOnPost: true
+		 ,dbName: $common.getENV('appName','restoff') +".json"
+ 		 ,repoOptions: []
+		 ,reconSettings: {
+			 lastUpdatedFieldName: "updated"
+			, softDeleteFieldName: ""
+			, softDeleteValue: ""
+		 }
+			
+			,format: {
+				deserialize: function(str){
+					try {
+					 return JSON.parse(CryptoJS.AES.decrypt(str, $rootScope.secretKey || 'undefined').toString(CryptoJS.enc.Utf8));
+					} catch (ex) {
+						try {return JSON.parse(str);} catch (exx){return {}}
+					}
+				},
+				serialize: function (obj)  {
+					return  CryptoJS.AES.encrypt(JSON.stringify(obj),$rootScope.secretKey || 'undefined');
+				}
+			}
+   }
+	
+    ,onReconciliation: function(completedAction) {
+      console.log("The following completed action was reconciled and saved to the server "+ completedAction);
+    }
+//		,concurrency : 'overwrite'	
+//		,persistenceDisabled : true
+			
+  });
+	
+self.plain = function (data){
+		 if (!data) return data;
+		 var obj;
+		 try {
+			 if (data instanceof Array) {
+				 obj =[];
+					angular.forEach(data,function(value){
+					 this.push(self.plain(value));
+					},obj);
+			 } else {
+				 if (typeof data == "string") {
+					 data=JSON.parse(data);
+				 }
+				 obj = {};
+				 angular.forEach(data,function(value,key){
+					 if (key.indexOf('__')!=0 &&  key.indexOf('$$hashKey')!=0)  {
+						 if (typeof value === 'object') this[key]=self.plain(value);
+						 else this[key]=value; 
+					 }
+				},obj);
+			 }
+			return obj;
+		 } catch (ex) {
+			 //console.log("Failed to convert to plain ",JSON.stringify(data),ex.toString());
+			 return data;
+		 }
+	}	
+```javascript
 
 Note that we "hard code" the configuration, but you could also get the configuration from another service.
 

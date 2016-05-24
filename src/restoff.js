@@ -278,6 +278,10 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 				if (inRepo) {
 					if (inPending) {  // True, True, True   : Client changes. Possible changes on server too. PUT/POST Only   | Reconcile. Clear out pending.
 						var pendingOriginal = pendingAction ? pendingAction.original : undefined;
+						if (that.resourceFilter) {
+							pendingOriginal=that.resourceFilter(pendingOriginal,uri); //Clean the resources
+							serverResource=that.resourceFilter(serverResource,uri); //Clean the resources
+						}
 						var serverSideEdit = ('overwrite' === that.options.concurrency) ? false : !deepEquals(serverResource, pendingOriginal);
 						if (serverSideEdit) { // edited on server and client: BRENT reconciliation
 							// First: Let's fix the original record
@@ -333,7 +337,6 @@ RestOff.prototype._forEachHashEntry = function(uri, joinedHash, serverResources,
 			} else {
 				if (inRepo) {
 					if (inPending) {  // False, True, True  : Post/Put on client                                 | Clear out pending. Complete post/put on client
-						//console.log("Server %O Repo %O Pending %O", serverResource, repoResource, pendingAction);
 						if (undefined === pendingAction.original) { // not on server no origional, so must have been created on client.
 							return that._applyAndClearPending(pendingAction, uri).then(function(){
 								resolve();
@@ -381,11 +384,10 @@ RestOff.prototype._repoAddResource = function(uri) {
 		if (!uri.options.persistenceDisabled) {
 			if ("GET" === uri.restMethod) {  // Complete get, doing a merge because we don't have soft_delete
 				var serverResources = (uri.resources instanceof Array) ? uri.resources : [uri.resources]; // makes logic easier
+				
 				var pending = that.pendingService.pendingGet(uri.repoName);
 				if (pending.length > 0 ) { // we got reconciliation work to do!!!
 					var repoResources = that._repoGetRaw(uri);
-					
-		
 					var newUpdatedResources = [];
 					var pkName = that._pkNameGet(uri);
 					var joinedHash = that._joinedHash(pkName, serverResources, repoResources);
@@ -396,7 +398,6 @@ RestOff.prototype._repoAddResource = function(uri) {
 						that.dbService.writeSync(uri.repoName, newUpdatedResources, uri.options);
 						that.pendingService.pendingClear(uri.repoName); // that.delete removes any dangling pending changes like a post and then delete of the same resource while offline.
 						var repoResources = that._repoGetRaw(uri);
-						//resolve(uri.options.returnResponse && uri.request ? (uri.request.response || uri.request.responseText) : repoResources);
 						resolve(repoResources);
 					}).catch(function(error) {
 						reject(error);
@@ -404,7 +405,6 @@ RestOff.prototype._repoAddResource = function(uri) {
 				} else {
 					that.clear(uri.repoName);
 					that.dbService.writeSync(uri.repoName, serverResources, uri.options);
-					//resolve(uri.options.returnResponse && uri.request ? (uri.request.response || uri.request.responseText) : serverResources);
 					resolve(serverResources);
 				}
 			} else {
@@ -658,12 +658,16 @@ RestOff.prototype._restCall = function(uriClient, restMethod, options, resource,
 		return new Promise(function(resolve, reject) {
 				var request = that._requestGet(uri);
 				var cResource = Object.assign({},resource)	
+				if (that.resourceFilter) cResource=that.resourceFilter(cResource,uri); 
 				//A lot of systems do not like the primarykey being send during post
 				if (("POST" === uri.restMethod) && uri.options.dbService && uri.options.dbService.primaryKeyNotOnPost) {
 					delete cResource[uri.primaryKeyName];
 				}
-				//Angular is adding $$haskey to keep tracking his object when using JSON.stringify , remove it
-				delete cResource['$$hashKey'];
+			  if (("PUT" === uri.restMethod)
+					&& uri.options.dbService && uri.options.dbService.updatedFieldName){
+					cResource[uri.options.dbService.updatedFieldName]=
+						  uri.options.dbService.updatedValue ? uri.options.dbService.updatedValue() : new Date().getTime();
+				}
 				var	body = JSON.stringify(cResource || {});
 				request.open(uri.restMethod, uri.uriFinal, true); // true: asynchronous
 				that._requestHeaderSet(request);
@@ -678,7 +682,7 @@ RestOff.prototype._restCall = function(uriClient, restMethod, options, resource,
 						} else resolve(); //Finished Request resolve it
 					} // else ignore other readyStates
 				};
-				if (("POST" === uri.restMethod) || ("PUT" === uri.restMethod) || ("DELETE" === uri.restMethod) ) {
+				if (("POST" === uri.restMethod) || ("PUT" === uri.restMethod) || ("DELETE" === uri.restMethod)) {
 					request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
 					request.send(body);
 				} else {
@@ -687,8 +691,6 @@ RestOff.prototype._restCall = function(uriClient, restMethod, options, resource,
 			});
 	}
 
-	
-	var that = this;
 	return new Promise(function(resolve, reject) {
 		var uri = that.uriFromClient(uriClient, restMethod, resource, options, useOriginalUri);
 		restRequest(uri,resource).then(function (request){
@@ -766,11 +768,11 @@ RestOff.prototype.put = function(uri, resource, options) {
 };
 
 RestOff.prototype.deleteOne = function(uri, resource, options) {
-	return this._restCall(uri + '/' + resource[this._options.dbService.primaryKeyName], "DELETE", Object.assign(options||{},{hasPK:true}), undefined, false);
+	return this._restCall(uri + '/' + (typeof resource == "string" ?  resource : resource[this._options.dbService.primaryKeyName]), "DELETE", Object.assign(options||{},{hasPK:true}), undefined, false);
 };
 
 RestOff.prototype.getOne = function(uri,resource,options){
-	return this._restCall(uri + '/' + resource[this._options.dbService.primaryKeyName], "GET", Object.assign(options||{},{hasPK:true}), undefined, false);
+	return this._restCall(uri + '/' + (typeof resource == "string" ?  resource : resource[this._options.dbService.primaryKeyName]), "GET", Object.assign(options||{},{hasPK:true}), undefined, false);
 };
 
 RestOff.prototype.postOne = function(uri, resource, options) {

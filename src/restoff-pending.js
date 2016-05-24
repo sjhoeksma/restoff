@@ -58,11 +58,18 @@ RestoffPending.prototype.pendingAdd = function(uri) {
     if (!uri.options.persistenceDisabled) { // TODO: Write a test for this
         var pendingFound = this.pendingGet(uri.repoName, uri.primaryKey);
         if (1 === pendingFound.length) { // Already have a pending record? Use it's 'original' record then remove it from pending.
-          if (undefined !== pendingFound[0].original) {
-            result.original = JSON.parse(JSON.stringify(pendingFound[0].original)); // need to clone original record
-          } else {
-            result.original = JSON.parse(JSON.stringify(pendingFound[0].resources)); // need to clone original record
-          }
+					if ("POST" === pendingFound[0].restMethod && "DELETE" !== uri.restMethod) {
+						//We need to keep it the original post record
+						result.restMethod="POST"; 
+						result.hasPK=false;
+						result.uri=pendingFound[0].uri;
+					} else {
+						if (undefined !== pendingFound[0].original) {
+							result.original = JSON.parse(JSON.stringify(pendingFound[0].original)); // need to clone original record
+						} else {
+							result.original = JSON.parse(JSON.stringify(pendingFound[0].resources)); // need to clone original record
+						}
+					}
           this.pendingDelete(pendingFound[0].id);
         } else {
           var original = this._restOff.getRepo(uri.repoName+"/"+uri.primaryKey, {primaryKeyName:uri.primaryKeyName,hasPK:true});

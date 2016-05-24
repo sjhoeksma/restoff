@@ -92,7 +92,9 @@ RestOffService.prototype.findSync = function(repoName, query) {
 };
 
 RestOffService.prototype.writeSync = function(repoName, resources, options) {
+	var that = this;
 	var pkName = this.pkNameGet(repoName, options);
+	var updatedField = this.lastUpdatedFieldName;
 	resources = (resources instanceof Array) ? resources : [resources]; // make logic easier
 	resources.forEach(function(resource) {
 		var primaryKey = resource[pkName];
@@ -102,7 +104,7 @@ RestOffService.prototype.writeSync = function(repoName, resources, options) {
 			throw new Error("Expected resource in repository '" + repoName + "' to have a primary key named '" + pkName + "'. The resource we are checking against is " + JSON.stringify(resource) + ". The primary key name comes from the global configuration or you can set it for each RESTful call. Please see supporting documentation.");
 		}
 	});
-	var that = this;
+
 	if (this.reconSettings.softDeleteFieldName) {
 		var softDeleteFN = this.reconSettings.softDeleteFieldName;
 		var softDeleteFV = this.reconSettings.softDeleteValue;
