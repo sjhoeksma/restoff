@@ -799,5 +799,23 @@ RestOff.prototype.read = function(repoName,query,makeCopy) {
 	return this.dbService.dbRepo.read(repoName,query);
 };
 
+RestOff.prototype.sync = function(repoName,config){
+	if (!config) config={};
+	return new Promise(function (resolve,reject){
+		//We cannot sync if we are offline
+		if (this.forcedOffline) {
+       resolve();
+		} else {
+			 //Check if we have pending items for this repo
+			 //Check if we should download delta or full
+			
+			 //Now we should run the normal command
+		}
+	}).catch(function(error) { // TODO: Test
+			reject(error);
+	});
+};
+
+
 
 restlib.restoff = restoff;

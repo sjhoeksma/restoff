@@ -732,7 +732,7 @@ angular.module("fakeRoot", ["restoff"])
     }]);
 ```
 
-When using angular you should add a resourceFilter to remove $$hashKey added by angular if you don't want to keep your
+When using angular you should add a resourceFilter to remove $$hashKey added by angular if you want to keep your
 database clean.
 Example config for Angular, using the backendless.com backend servivce
 
